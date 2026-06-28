@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>إعدادات الشحن — Nazamly</title>
+    <link rel="icon" type="image/png" href="nazamly.png" />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="styles/variables.css" />
+    <link rel="stylesheet" href="styles/base.css" />
+    <link rel="stylesheet" href="styles/overlays.css" />
+    <link rel="stylesheet" href="styles/components.css" />
+    <link rel="stylesheet" href="styles/pages/shipping.css" />
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="core/vision-init.js"></script>
+  </head>
+  <body>
+
+    <!-- Skeleton Loader -->
+    <div id="skeletonLoader" class="skeleton-shell">
+      <div class="skeleton-sidebar" style="width:var(--sidebar-width);flex-shrink:0;"></div>
+      <div class="skeleton-content" style="flex:1;padding:var(--space-8);">
+        <div class="skeleton skeleton-shimmer" style="height:52px;border-radius:var(--radius-lg);margin-bottom:var(--space-5);max-width:420px;"></div>
+        <div class="skeleton skeleton-shimmer" style="height:320px;border-radius:var(--radius-xl);margin-bottom:var(--space-5);"></div>
+        <div class="skeleton skeleton-shimmer" style="height:260px;border-radius:var(--radius-xl);margin-bottom:var(--space-5);"></div>
+        <div class="skeleton skeleton-shimmer" style="height:200px;border-radius:var(--radius-xl);"></div>
+      </div>
+    </div>
+
+    <div class="app-shell">
+      <div id="sidebar-mount"></div>
+      <div class="app-main" id="appMain">
+        <header class="topbar" role="banner"></header>
+        <main class="page-content">
+
+          <!-- Page Header -->
+          <div class="page-header shipping-page-header">
+            <div class="shipping-page-header__text">
+              <h1 class="page-title">
+                <span class="shipping-page-header__icon">
+                  <i class="fas fa-gears" aria-hidden="true"></i>
+                </span>
+                إعدادات الشحن
+              </h1>
+              <p class="page-subtitle">إدارة شركات الشحن، حالات الطلبات، والمنصات التسويقية</p>
+            </div>
+          </div>
+
+          <!-- ══ SECTION 1: SHIPPING COMPANIES ══ -->
+          <section class="settings-section settings-section--elevated" id="section-companies">
+            <div class="settings-section-header">
+              <div class="settings-section-header__info">
+                <div class="settings-section-icon-wrap settings-section-icon-wrap--primary">
+                  <i class="fas fa-truck" aria-hidden="true"></i>
+                </div>
+                <div>
+                  <div class="settings-section-title">شركات الشحن</div>
+                  <div class="settings-section-desc">إدارة شركات الشحن وتسعيرتها حسب المحافظة</div>
+                </div>
+              </div>
+              <button class="btn btn-primary btn-sm" id="addCompanyBtn">
+                <i class="fas fa-plus"></i> إضافة شركة
+              </button>
+            </div>
+            <div class="settings-section-body">
+              <div class="company-toolbar">
+                <div class="form-input-wrapper company-toolbar__search">
+                  <i class="fas fa-magnifying-glass form-input-icon" aria-hidden="true"></i>
+                  <input type="search" id="searchCompanies" class="form-input"
+                    placeholder="بحث باسم الشركة..." autocomplete="off" />
+                </div>
+                <div class="company-toolbar__right">
+                  <select id="filterCompanyStatus" class="form-input company-toolbar__select" aria-label="تصفية بالحالة">
+                    <option value="">الكل</option>
+                    <option value="active">نشطة</option>
+                    <option value="inactive">غير نشطة</option>
+                  </select>
+                  <div class="company-toolbar__count">
+                    <span id="totalCompanies">0</span>
+                    <span>شركة</span>
+                  </div>
+                </div>
+              </div>
+              <div class="companies-grid" id="companiesGrid"></div>
+              <div id="emptyCompanies" class="empty-state" hidden>
+                <div class="empty-state__icon-wrap">
+                  <i class="fas fa-truck-fast"></i>
+                </div>
+                <div class="empty-state__title">لا توجد شركات شحن</div>
+                <div class="empty-state__desc">أضف أول شركة شحن للبدء في تنظيم عمليات التوصيل</div>
+              </div>
+              <div id="errorCompanies" class="shipping-error-state" hidden>
+                <div class="shipping-error-state__icon"><i class="fas fa-triangle-exclamation"></i></div>
+                <div class="shipping-error-state__title">تعذّر تحميل البيانات</div>
+                <div class="shipping-error-state__desc">تحقق من اتصال الإنترنت وأعد المحاولة</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ══ SECTION 2: ORDER STATUSES ══ -->
+          <section class="settings-section settings-section--elevated" id="section-statuses">
+            <div class="settings-section-header">
+              <div class="settings-section-header__info">
+                <div class="settings-section-icon-wrap settings-section-icon-wrap--alert">
+                  <i class="fas fa-tags" aria-hidden="true"></i>
+                </div>
+                <div>
+                  <div class="settings-section-title">حالات الطلبات</div>
+                  <div class="settings-section-desc">تحديد المراحل التي يمر بها الطلب</div>
+                </div>
+              </div>
+              <button class="btn btn-secondary btn-sm" id="addStatusBtn">
+                <i class="fas fa-plus"></i> إضافة حالة
+              </button>
+            </div>
+            <div class="settings-section-body">
+              <div class="vision-banner" data-type="info" style="margin-bottom:var(--space-5);">
+                <i class="vision-banner-icon fas fa-circle-info" aria-hidden="true"></i>
+                <div class="vision-banner-content">
+                  <div class="vision-banner-text">النوع يُحدد كيفية احتساب الحالة في التقارير المالية. "مسلم" تُحتسب كإيراد، "ملغي/مرتجع" تُستثنى.</div>
+                </div>
+              </div>
+              <div class="statuses-list" id="statusesList"></div>
+              <!-- Inline add status form -->
+              <div id="addStatusForm" hidden>
+                <div class="add-status-form">
+                  <div class="add-status-form__fields">
+                    <div class="form-group" style="margin:0;flex:1;min-width:0;">
+                      <label class="form-label" for="newStatusName">اسم الحالة</label>
+                      <input type="text" id="newStatusName" class="form-input" placeholder="مثال: جاري التسليم" />
+                    </div>
+                    <div class="form-group" style="margin:0;width:140px;flex-shrink:0;">
+                      <label class="form-label" for="newStatusType">النوع</label>
+                      <select id="newStatusType" class="form-input">
+                        <option value="active">قيد التنفيذ</option>
+                        <option value="delivered">مسلم (إيراد)</option>
+                        <option value="cancelled">ملغي / مرتجع</option>
+                      </select>
+                    </div>
+                    <div class="form-group" style="margin:0;flex-shrink:0;">
+                      <label class="form-label" for="newStatusColor">اللون</label>
+                      <div class="add-status-color-wrap">
+                        <input type="color" id="newStatusColor" value="#F59E0B" title="اختر لوناً" />
+                      </div>
+                    </div>
+                  </div>
+                  <div class="add-status-form__actions">
+                    <button class="btn btn-success btn-sm" id="saveNewStatusBtn" title="حفظ">
+                      <i class="fas fa-check"></i>
+                    </button>
+                    <button class="btn btn-ghost btn-sm" id="cancelAddStatusBtn" title="إلغاء">
+                      <i class="fas fa-xmark"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ══ SECTION 3: MARKETING PLATFORMS ══ -->
+          <section class="settings-section settings-section--elevated" id="section-platforms">
+            <div class="settings-section-header">
+              <div class="settings-section-header__info">
+                <div class="settings-section-icon-wrap settings-section-icon-wrap--update">
+                  <i class="fas fa-bullhorn" aria-hidden="true"></i>
+                </div>
+                <div>
+                  <div class="settings-section-title">المنصات التسويقية</div>
+                  <div class="settings-section-desc">مصادر الطلبات المستخدمة في لوحة التحكم والتقارير</div>
+                </div>
+              </div>
+            </div>
+            <div class="settings-section-body">
+              <div class="platforms-list" id="platformsList"></div>
+              <div class="add-platform-row">
+                <div class="form-input-wrapper add-platform-row__input-wrap">
+                  <i class="fas fa-globe form-input-icon" aria-hidden="true"></i>
+                  <input type="text" id="newPlatformName" class="form-input"
+                    placeholder="اسم المنصة (مثال: فيسبوك، تيك توك...)" />
+                </div>
+                <div class="add-platform-row__color-wrap">
+                  <input type="color" id="newPlatformColor" value="#3B82F6" title="اختر لوناً" />
+                </div>
+                <button class="btn btn-success btn-sm" id="addPlatformBtn">
+                  <i class="fas fa-plus"></i> إضافة
+                </button>
+              </div>
+            </div>
+          </section>
+
+        </main>
+      </div>
+    </div>
+
+    <!-- ══ COMPANY FORM MODAL ══ -->
+    <div class="pur-modal-overlay" id="companyModalOverlay"
+      role="dialog" aria-modal="true" aria-labelledby="companyModalTitle">
+      <div class="pur-modal shipping-modal">
+
+        <div class="pur-modal-header">
+          <div class="pur-modal-title">
+            <span class="shipping-modal__icon">
+              <i id="companyModalIcon" class="fas fa-truck" aria-hidden="true"></i>
+            </span>
+            <span id="companyModalTitle">إضافة شركة شحن</span>
+          </div>
+          <button class="btn btn-ghost btn-icon" id="closeCompanyModal" aria-label="إغلاق">
+            <i class="fas fa-xmark" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <!-- Inner tab bar -->
+        <div class="company-modal-tabs">
+          <button class="company-modal-tab active" data-ctab="basics">
+            <i class="fas fa-info-circle"></i> الأساسيات
+          </button>
+          <button class="company-modal-tab" data-ctab="pricing">
+            <i class="fas fa-map-pin"></i> التسعيرة
+          </button>
+          <button class="company-modal-tab" data-ctab="collection">
+            <i class="fas fa-coins"></i> التحصيل
+          </button>
+        </div>
+
+        <div class="pur-modal-body">
+          <input type="hidden" id="editingCompanyId" />
+
+          <!-- TAB: BASICS -->
+          <div class="company-tab-panel active" data-cpanel="basics">
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label class="form-label" for="companyName">اسم الشركة <span class="required">*</span></label>
+                <input type="text" id="companyName" class="form-input" placeholder="مثال: أرامكس، بوسطة، J&T..." required />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="companyPhone">رقم الهاتف</label>
+                <input type="tel" id="companyPhone" class="form-input" dir="ltr" placeholder="01XXXXXXXXX" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="companyCost">تكلفة الشحن الافتراضية (ج.م)</label>
+                <input type="number" id="companyCost" class="form-input"
+                  min="0" step="0.5" placeholder="0" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="companyNotes">ملاحظات داخلية</label>
+                <input type="text" id="companyNotes" class="form-input"
+                  placeholder="ملاحظات عن التعامل مع الشركة..." />
+              </div>
+            </div>
+            <div class="toggle-stack">
+              <label class="toggle-row">
+                <div>
+                  <div class="toggle-row-label">الشركة نشطة</div>
+                  <div class="toggle-row-desc">إيقاف التفعيل يخفيها من قوائم الاختيار</div>
+                </div>
+                <div class="toggle-pill" aria-hidden="true">
+                  <div class="toggle-pill-track"></div>
+                  <div class="toggle-pill-thumb"></div>
+                </div>
+                <input type="checkbox" id="companyActive" checked />
+              </label>
+              <label class="toggle-row">
+                <div>
+                  <div class="toggle-row-label">شركة افتراضية</div>
+                  <div class="toggle-row-desc">تُختار تلقائياً عند إنشاء طلب جديد</div>
+                </div>
+                <div class="toggle-pill" aria-hidden="true">
+                  <div class="toggle-pill-track"></div>
+                  <div class="toggle-pill-thumb"></div>
+                </div>
+                <input type="checkbox" id="companyIsDefault" />
+              </label>
+              <label class="toggle-row">
+                <div>
+                  <div class="toggle-row-label">شحن مجاني افتراضي</div>
+                  <div class="toggle-row-desc">الشركة لا تفرض تكلفة شحن على العميل</div>
+                </div>
+                <div class="toggle-pill" aria-hidden="true">
+                  <div class="toggle-pill-track"></div>
+                  <div class="toggle-pill-thumb"></div>
+                </div>
+                <input type="checkbox" id="companyFreeShipping" />
+              </label>
+            </div>
+          </div>
+
+          <!-- TAB: PRICING -->
+          <div class="company-tab-panel" data-cpanel="pricing">
+            <div class="vision-banner" data-type="info" style="margin-bottom:var(--space-5);">
+              <i class="vision-banner-icon fas fa-circle-info" aria-hidden="true"></i>
+              <div class="vision-banner-content">
+                <div class="vision-banner-text">اترك الحقل فارغاً لاستخدام التكلفة الافتراضية. جميع المبالغ بالجنيه المصري.</div>
+              </div>
+            </div>
+            <div class="pricing-grid" id="pricingGrid"></div>
+          </div>
+
+          <!-- TAB: COLLECTION -->
+          <div class="company-tab-panel" data-cpanel="collection">
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label class="form-label" for="courierFee">عمولة المندوب (ج.م)</label>
+                <input type="number" id="courierFee" class="form-input shipping-fee-input"
+                  min="0" step="1" value="0" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="courierFeeApplies">تطبق على</label>
+                <select id="courierFeeApplies" class="form-input">
+                  <option value="cod">كاش عند الاستلام (COD)</option>
+                  <option value="always">جميع الطلبات</option>
+                  <option value="never">تعطيل</option>
+                </select>
+              </div>
+            </div>
+            <label class="toggle-row toggle-row--spaced">
+              <div>
+                <div class="toggle-row-label">تقريب COD للأسفل</div>
+                <div class="toggle-row-desc">مثلاً: 124.5 ج ← 124 ج (يتجنب الكسور مع المندوب)</div>
+              </div>
+              <div class="toggle-pill" aria-hidden="true">
+                <div class="toggle-pill-track"></div>
+                <div class="toggle-pill-thumb"></div>
+              </div>
+              <input type="checkbox" id="floorCOD" checked />
+            </label>
+
+            <!-- Live COD preview -->
+            <div class="cod-preview-box">
+              <div class="cod-preview-box__header">
+                <i class="fas fa-calculator"></i>
+                <span>معاينة حساب COD</span>
+                <span class="cod-preview-box__badge">طلب وهمي</span>
+              </div>
+              <div class="cod-preview-box__body">
+                <div class="cod-preview-row">
+                  <span class="cod-preview-row__label"><i class="fas fa-box"></i> سعر المنتجات</span>
+                  <span class="cod-preview-row__value">350.00 ج.م</span>
+                </div>
+                <div class="cod-preview-row">
+                  <span class="cod-preview-row__label"><i class="fas fa-truck"></i> سعر شحن العميل</span>
+                  <span class="cod-preview-row__value">55.00 ج.م</span>
+                </div>
+                <div class="cod-preview-row" id="previewFeeRow" hidden>
+                  <span class="cod-preview-row__label"><i class="fas fa-hand-holding-dollar"></i> + عمولة المندوب</span>
+                  <span class="cod-preview-row__value cod-preview-row__value--fee" id="previewFeeVal">+ 0 ج.م</span>
+                </div>
+              </div>
+              <div class="cod-preview-total">
+                <span class="cod-preview-total__label">COD المطلوب</span>
+                <span class="cod-val" id="previewCOD">405 ج.م</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="pur-modal-footer">
+          <button class="btn btn-secondary" id="cancelCompanyModal">إلغاء</button>
+          <button class="btn btn-primary" id="saveCompanyBtn">
+            <span id="saveCompanyText">حفظ الشركة</span>
+            <i id="saveCompanySpinner" class="fas fa-circle-notch fa-spin" hidden aria-hidden="true"></i>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <script src="shared/auth-guard.js"></script>
+    <script src="shared/sidebar.js"></script>
+    <script src="shared/topbar.js"></script>
+    <script src="pages/shipping.js"></script>
+  </body>
+</html>

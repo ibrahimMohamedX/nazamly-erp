@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>الموظفون — Nazamly</title>
+    <link rel="icon" type="image/png" href="nazamly.png" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="styles/variables.css" />
+    <link rel="stylesheet" href="styles/base.css" />
+    <link rel="stylesheet" href="styles/overlays.css" />
+    <link rel="stylesheet" href="styles/components.css" />
+    <link rel="stylesheet" href="styles/pages/employees.css" />
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <script src="core/vision-init.js"></script>
+  </head>
+  <body>
+    <div id="skeletonLoader">
+      <div
+        style="
+          width: var(--sidebar-width);
+          background: var(--color-surface);
+          border-left: 1px solid var(--color-border-light);
+          flex-shrink: 0;
+        "
+      ></div>
+      <div
+        style="
+          flex: 1;
+          padding: var(--space-8);
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-5);
+        "
+      >
+        <div
+          class="skeleton"
+          style="height: 60px; border-radius: var(--radius-xl)"
+        ></div>
+        <div
+          style="
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: var(--space-4);
+          "
+        >
+          <div
+            class="skeleton"
+            style="height: 100px; border-radius: var(--radius-xl)"
+          ></div>
+          <div
+            class="skeleton"
+            style="height: 100px; border-radius: var(--radius-xl)"
+          ></div>
+          <div
+            class="skeleton"
+            style="height: 100px; border-radius: var(--radius-xl)"
+          ></div>
+          <div
+            class="skeleton"
+            style="height: 100px; border-radius: var(--radius-xl)"
+          ></div>
+        </div>
+        <div
+          class="skeleton"
+          style="height: 380px; border-radius: var(--radius-xl)"
+        ></div>
+      </div>
+    </div>
+
+    <div class="app-shell">
+      <div id="sidebar-mount"></div>
+      <div class="app-main" id="appMain">
+        <header class="topbar" role="banner"></header>
+        <main class="page-content">
+          <!-- Page Header -->
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">
+                <i
+                  class="fas fa-users"
+                  style="
+                    color: var(--color-primary);
+                    margin-left: var(--space-2);
+                  "
+                  aria-hidden="true"
+                ></i>
+                إدارة الموظفين
+              </h1>
+              <p class="page-subtitle">إدارة حسابات الموظفين والصلاحيات</p>
+            </div>
+            <button class="btn btn-primary" id="addEmployeeBtn">
+              <i class="fas fa-user-plus"></i> إضافة موظف
+            </button>
+          </div>
+
+          <!-- Stats Row -->
+          <div class="emp-stats-row stagger">
+            <div class="kpi-card">
+              <div
+                class="kpi-card-strip"
+                style="background: var(--color-primary)"
+              ></div>
+              <div
+                class="kpi-icon"
+                style="
+                  background: var(--color-primary-bg);
+                  color: var(--color-primary);
+                  margin-bottom: var(--space-3);
+                "
+              >
+                <i class="fas fa-users"></i>
+              </div>
+              <div class="kpi-label">إجمالي الموظفين</div>
+              <div class="kpi-value" id="statTotalEmployees">—</div>
+            </div>
+            <div class="kpi-card">
+              <div
+                class="kpi-card-strip"
+                style="background: var(--color-success)"
+              ></div>
+              <div
+                class="kpi-icon"
+                style="
+                  background: var(--color-success-bg);
+                  color: var(--color-success);
+                  margin-bottom: var(--space-3);
+                "
+              >
+                <i class="fas fa-user-check"></i>
+              </div>
+              <div class="kpi-label">موظفون نشطون</div>
+              <div class="kpi-value" id="statActiveEmployees">—</div>
+            </div>
+            <div class="kpi-card">
+              <div
+                class="kpi-card-strip"
+                style="background: var(--color-error)"
+              ></div>
+              <div
+                class="kpi-icon"
+                style="
+                  background: var(--color-error-bg);
+                  color: var(--color-error);
+                  margin-bottom: var(--space-3);
+                "
+              >
+                <i class="fas fa-user-slash"></i>
+              </div>
+              <div class="kpi-label">موظفون موقوفون</div>
+              <div class="kpi-value" id="statSuspendedEmployees">—</div>
+            </div>
+            <div class="kpi-card">
+              <div
+                class="kpi-card-strip"
+                style="background: var(--color-warning)"
+              ></div>
+              <div
+                class="kpi-icon"
+                style="
+                  background: var(--color-warning-bg);
+                  color: var(--color-warning);
+                  margin-bottom: var(--space-3);
+                "
+              >
+                <i class="fas fa-trophy"></i>
+              </div>
+              <div class="kpi-label">أفضل موظف</div>
+              <div class="kpi-value text-warning" id="statTopSeller">—</div>
+              <div class="text-xs text-muted" id="statTopSellerAmount"></div>
+            </div>
+          </div>
+
+          <!-- Performance Chart -->
+          <div class="perf-chart-card">
+            <div class="perf-chart-header">
+              <div class="perf-chart-title">
+                <i
+                  class="fas fa-chart-bar"
+                  style="color: var(--color-primary)"
+                ></i>
+                أداء الموظفين — إجمالي الطلبات المسلمة
+              </div>
+              <div style="display: flex; gap: var(--space-2)">
+                <div class="form-input-wrapper">
+                  <i
+                    class="fas fa-magnifying-glass form-input-icon"
+                    aria-hidden="true"
+                  ></i>
+                  <input
+                    type="search"
+                    id="searchInput"
+                    class="form-input"
+                    placeholder="ابحث بالاسم أو البريد..."
+                    style="width: 220px"
+                  />
+                </div>
+              </div>
+            </div>
+            <div class="chart-wrap chart-wrap--md">
+              <canvas
+                id="performanceChart"
+                aria-label="مخطط أداء الموظفين"
+              ></canvas>
+            </div>
+          </div>
+
+          <!-- Employees Table -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">قائمة الموظفين</div>
+              <span class="text-sm text-muted" id="empCount">0 موظف</span>
+            </div>
+            <div class="table-wrapper" style="border-radius: 0; border: none">
+              <table
+                class="table"
+                id="employeesTable"
+                aria-label="جدول الموظفين"
+              >
+                <thead>
+                  <tr>
+                    <th>الموظف</th>
+                    <th>الدور</th>
+                    <th style="text-align: center">الحالة</th>
+                    <th style="text-align: center">الطلبات المسلمة</th>
+                    <th>إجمالي المبيعات</th>
+                    <th style="text-align: center; width: 140px">إجراءات</th>
+                  </tr>
+                </thead>
+                <tbody id="employeesTableBody">
+                  <tr>
+                    <td
+                      colspan="6"
+                      style="
+                        text-align: center;
+                        padding: var(--space-10);
+                        color: var(--color-text-muted);
+                      "
+                    >
+                      <i
+                        class="fas fa-circle-notch fa-spin"
+                        style="font-size: 1.5rem"
+                      ></i>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div id="empEmpty" class="empty-state" hidden>
+              <div class="empty-state-icon"><i class="fas fa-users"></i></div>
+              <div class="empty-state-title">لا يوجد موظفون</div>
+              <div class="empty-state-desc">أضف أول موظف للبدء</div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- ══ ADD EMPLOYEE MODAL ══ -->
+    <div
+      class="emp-modal-overlay"
+      id="addEmpOverlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="addEmpTitle"
+    >
+      <div class="emp-modal">
+        <div class="emp-modal-header">
+          <div class="emp-modal-title">
+            <i
+              class="fas fa-user-plus"
+              style="color: var(--color-primary)"
+              aria-hidden="true"
+            ></i>
+            <span id="addEmpTitle">إضافة موظف جديد</span>
+          </div>
+          <button
+            class="btn btn-ghost btn-icon"
+            id="closeAddEmp"
+            aria-label="إغلاق"
+          >
+            <i class="fas fa-xmark" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="emp-modal-body">
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label" for="addEmpName"
+                >الاسم الكامل <span class="required">*</span></label
+              >
+              <input
+                type="text"
+                id="addEmpName"
+                class="form-input"
+                placeholder="اسم الموظف"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="addEmpRole"
+                >الدور <span class="required">*</span></label
+              >
+              <select id="addEmpRole" class="form-input" required>
+                <option value="user">موظف</option>
+                <option value="admin">مدير</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="addEmpEmail"
+                >البريد الإلكتروني <span class="required">*</span></label
+              >
+              <input
+                type="email"
+                id="addEmpEmail"
+                class="form-input"
+                placeholder="employee@company.com"
+                dir="ltr"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="addEmpPassword"
+                >كلمة المرور <span class="required">*</span></label
+              >
+              <input
+                type="password"
+                id="addEmpPassword"
+                class="form-input"
+                placeholder="6 أحرف على الأقل"
+                dir="ltr"
+                minlength="6"
+                required
+              />
+            </div>
+          </div>
+        </div>
+        <div class="emp-modal-footer">
+          <button class="btn btn-secondary" id="cancelAddEmp">إلغاء</button>
+          <button class="btn btn-primary" id="saveAddEmpBtn">
+            <span id="addEmpBtnText">إنشاء الحساب</span>
+            <i
+              id="addEmpSpinner"
+              class="fas fa-circle-notch fa-spin"
+              hidden
+              aria-hidden="true"
+            ></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ EDIT EMPLOYEE MODAL (with permissions) ══ -->
+    <div
+      class="emp-modal-overlay"
+      id="editEmpOverlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="editEmpTitle"
+    >
+      <div class="emp-modal">
+        <div class="emp-modal-header">
+          <div class="emp-modal-title">
+            <i
+              class="fas fa-user-pen"
+              style="color: var(--color-warning)"
+              aria-hidden="true"
+            ></i>
+            <span id="editEmpTitle">تعديل الموظف</span>
+          </div>
+          <button
+            class="btn btn-ghost btn-icon"
+            id="closeEditEmp"
+            aria-label="إغلاق"
+          >
+            <i class="fas fa-xmark" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="emp-modal-body">
+          <input type="hidden" id="editEmpId" />
+
+          <!-- Basic info -->
+          <div class="form-section">
+            <div
+              class="form-section-strip"
+              style="background: var(--color-warning)"
+            ></div>
+            <div class="form-section-title">
+              <i class="fas fa-user" style="color: var(--color-warning)"></i>
+              البيانات الأساسية
+            </div>
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label class="form-label" for="editEmpName">الاسم الكامل</label>
+                <input type="text" id="editEmpName" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="editEmpRole">الدور</label>
+                <select id="editEmpRole" class="form-input">
+                  <option value="user">موظف</option>
+                  <option value="admin">مدير</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="editEmpEmail"
+                  >البريد الإلكتروني</label
+                >
+                <input
+                  type="email"
+                  id="editEmpEmail"
+                  class="form-input"
+                  dir="ltr"
+                  disabled
+                  style="opacity: 0.6; cursor: not-allowed"
+                  title="لا يمكن تغيير البريد"
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="editEmpStatus">الحالة</label>
+                <select id="editEmpStatus" class="form-input">
+                  <option value="active">نشط</option>
+                  <option value="suspended">موقوف</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Permissions (hidden for admin role) -->
+          <div class="form-section" id="permissionsSection">
+            <div
+              class="form-section-strip"
+              style="background: var(--color-primary)"
+            ></div>
+            <div class="form-section-title">
+              <i
+                class="fas fa-shield-halved"
+                style="color: var(--color-primary)"
+              ></i>
+              الصلاحيات
+              <span
+                class="badge badge-info"
+                style="font-size: 0.6rem; margin-right: auto"
+                >المدراء يملكون كل الصلاحيات تلقائياً</span
+              >
+            </div>
+            <div class="permissions-grid" id="permissionsGrid">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+        </div>
+        <div class="emp-modal-footer">
+          <button class="btn btn-secondary" id="cancelEditEmp">إلغاء</button>
+          <button class="btn btn-primary" id="saveEditEmpBtn">
+            <span id="editEmpBtnText">حفظ التعديلات</span>
+            <i
+              id="editEmpSpinner"
+              class="fas fa-circle-notch fa-spin"
+              hidden
+              aria-hidden="true"
+            ></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="shared/auth-guard.js"></script>
+    <script src="shared/sidebar.js"></script>
+    <script src="shared/topbar.js"></script>
+    <script src="pages/employees.js"></script>
+  </body>
+</html>

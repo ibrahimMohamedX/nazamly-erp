@@ -1,0 +1,1 @@
+class ERPSystem:\n    def __init__(self):\n        self.modules = []\n\n    def add_module(self, module):\n        self.modules.append(module)\n\n    def remove_module(self, module):\n        self.modules.remove(module)\n\n    def run(self):\n        for module in self.modules:\n            module.run()

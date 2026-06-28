@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>المشتريات — Nazamly</title>
+    <link rel="icon" type="image/png" href="nazamly.png" />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="styles/variables.css" />
+    <link rel="stylesheet" href="styles/base.css" />
+    <link rel="stylesheet" href="styles/overlays.css" />
+    <link rel="stylesheet" href="styles/components.css" />
+    <link rel="stylesheet" href="styles/pages/purchases.css" />
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="core/vision-init.js"></script>
+  </head>
+  <body>
+
+    <div id="skeletonLoader">
+      <div style="width:var(--sidebar-width);background:var(--color-surface);border-left:1px solid var(--color-border-light);flex-shrink:0;"></div>
+      <div style="flex:1;padding:var(--space-8);display:flex;flex-direction:column;gap:var(--space-5);">
+        <div class="skeleton" style="height:60px;border-radius:var(--radius-xl);"></div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-4);">
+          <div class="skeleton" style="height:110px;border-radius:var(--radius-xl);"></div>
+          <div class="skeleton" style="height:110px;border-radius:var(--radius-xl);"></div>
+          <div class="skeleton" style="height:110px;border-radius:var(--radius-xl);"></div>
+          <div class="skeleton" style="height:110px;border-radius:var(--radius-xl);"></div>
+        </div>
+        <div class="skeleton" style="height:380px;border-radius:var(--radius-xl);"></div>
+      </div>
+    </div>
+
+    <div class="app-shell">
+      <div id="sidebar-mount"></div>
+      <div class="app-main" id="appMain">
+        <header class="topbar" role="banner"></header>
+        <main class="page-content">
+
+          <!-- Page Header -->
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">
+                <i class="fas fa-truck-ramp-box" style="color:var(--color-warning);margin-left:var(--space-2);" aria-hidden="true"></i>
+                المشتريات
+              </h1>
+              <p class="page-subtitle">أوامر الشراء وإدارة الموردين</p>
+            </div>
+            <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;">
+              <button class="btn btn-secondary" id="manageSuppliersBtn">
+                <i class="fas fa-address-book"></i> الموردين
+              </button>
+              <button class="btn btn-primary" id="addPurchaseBtn">
+                <i class="fas fa-plus"></i> أمر شراء جديد
+              </button>
+            </div>
+          </div>
+
+          <!-- Stats Grid -->
+          <div class="pur-stats-grid stagger">
+            <div class="kpi-card">
+              <div class="kpi-card-strip" style="background:var(--color-warning);"></div>
+              <div class="kpi-icon" style="background:var(--color-warning-bg);color:var(--color-warning);margin-bottom:var(--space-3);"><i class="fas fa-file-invoice"></i></div>
+              <div class="kpi-label">إجمالي الأوامر</div>
+              <div class="kpi-value" id="statTotalOrders">—</div>
+              <div class="text-xs text-muted" id="statTotalCost"></div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-card-strip" style="background:var(--color-primary);"></div>
+              <div class="kpi-icon" style="background:var(--color-primary-bg);color:var(--color-primary);margin-bottom:var(--space-3);"><i class="fas fa-address-book"></i></div>
+              <div class="kpi-label">عدد الموردين</div>
+              <div class="kpi-value" id="statTotalSuppliers">—</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-card-strip" style="background:var(--color-alert);"></div>
+              <div class="kpi-icon" style="background:var(--color-alert-bg);color:var(--color-alert);margin-bottom:var(--space-3);"><i class="fas fa-clock"></i></div>
+              <div class="kpi-label">قيد الانتظار</div>
+              <div class="kpi-value text-warning" id="statPending">—</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-card-strip" style="background:var(--color-success);"></div>
+              <div class="kpi-icon" style="background:var(--color-success-bg);color:var(--color-success);margin-bottom:var(--space-3);"><i class="fas fa-calendar-check"></i></div>
+              <div class="kpi-label">مستلمة هذا الشهر</div>
+              <div class="kpi-value text-success" id="statThisMonth">—</div>
+            </div>
+          </div>
+
+          <!-- Table Card -->
+          <div class="card">
+            <div class="pur-filters-row">
+              <div class="form-input-wrapper search-wide">
+                <i class="fas fa-magnifying-glass form-input-icon" aria-hidden="true"></i>
+                <input type="search" id="searchInput" class="form-input"
+                  placeholder="بحث (رقم الأمر، المورد، المنتج...)" autocomplete="off" />
+              </div>
+              <select id="statusFilter" class="form-input" aria-label="تصفية حسب الحالة" style="max-width:180px;">
+                <option value="">كل الحالات</option>
+                <option value="pending">قيد الانتظار</option>
+                <option value="sent">تم الإرسال</option>
+                <option value="received">تم الاستلام</option>
+                <option value="cancelled">ملغي</option>
+              </select>
+              <select id="supplierFilter" class="form-input" aria-label="تصفية حسب المورد" style="max-width:180px;">
+                <option value="">كل الموردين</option>
+              </select>
+              <button class="btn btn-ghost btn-sm" id="resetFiltersBtn" title="مسح الفلاتر"><i class="fas fa-xmark"></i></button>
+              <span class="text-sm text-muted" style="margin-right:auto;" id="countLabel">0 أمر</span>
+            </div>
+
+            <div class="table-wrapper" style="border-radius:0;border:none;">
+              <table class="table" id="purchasesTable" aria-label="جدول المشتريات">
+                <thead>
+                  <tr>
+                    <th style="width:40px;">#</th>
+                    <th>رقم الأمر</th>
+                    <th>المورد</th>
+                    <th>المنتجات</th>
+                    <th>الإجمالي</th>
+                    <th>التاريخ المتوقع</th>
+                    <th>الحالة</th>
+                    <th style="width:130px;text-align:center;">إجراءات</th>
+                  </tr>
+                </thead>
+                <tbody id="purchasesTableBody"></tbody>
+              </table>
+            </div>
+
+            <div id="emptyPurchases" class="empty-state" hidden>
+              <div class="empty-state-icon"><i class="fas fa-truck-ramp-box"></i></div>
+              <div class="empty-state-title">لا توجد أوامر شراء</div>
+              <div class="empty-state-desc">أنشئ أول أمر شراء وأرسله لموردك</div>
+              <button class="btn btn-primary" style="margin-top:var(--space-5);" id="emptyAddBtn">
+                <i class="fas fa-plus"></i> أمر شراء جديد
+              </button>
+            </div>
+
+            <div class="pagination" id="purPagination" role="navigation"></div>
+          </div>
+
+        </main>
+      </div>
+    </div>
+
+    <!-- ══ PURCHASE FORM MODAL ══ -->
+    <div class="pur-modal-overlay" id="purchaseModalOverlay"
+      role="dialog" aria-modal="true" aria-labelledby="purchaseModalTitle">
+      <div class="pur-modal">
+        <div class="pur-modal-header">
+          <div class="pur-modal-title">
+            <i id="purchaseModalIcon" class="fas fa-file-invoice" style="color:var(--color-warning);" aria-hidden="true"></i>
+            <span id="purchaseModalTitle">أمر شراء جديد</span>
+          </div>
+          <button class="btn btn-ghost btn-icon" id="closePurchaseModal" aria-label="إغلاق">
+            <i class="fas fa-xmark" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="pur-modal-body">
+          <input type="hidden" id="editingPurchaseId" />
+
+          <!-- Supplier + Date -->
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label" for="supplierId">المورد <span class="required">*</span></label>
+              <div style="display:flex;gap:var(--space-2);">
+                <select id="supplierId" class="form-input" required style="flex:1;">
+                  <option value="">اختر المورد</option>
+                </select>
+                <button type="button" class="btn btn-success btn-icon" id="quickAddSupplierBtn" title="إضافة مورد جديد">
+                  <i class="fas fa-plus" aria-hidden="true"></i>
+                </button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="expectedDate">التاريخ المتوقع للتسليم</label>
+              <input type="date" id="expectedDate" class="form-input" />
+            </div>
+          </div>
+
+          <!-- Products section -->
+          <div class="form-section">
+            <div class="form-section-strip" style="background:var(--color-success);"></div>
+            <div class="form-section-title" style="justify-content:space-between;">
+              <span><i class="fas fa-boxes-stacked" style="color:var(--color-success);"></i> المنتجات <span class="required">*</span></span>
+            </div>
+            <div class="pur-products-list" id="productsList"></div>
+            <div id="purProductsEmpty" class="text-sm text-muted" style="text-align:center;padding:var(--space-4);" hidden>
+              أضف منتجاً باستخدام الأزرار أدناه
+            </div>
+            <div class="pur-add-product-btns">
+              <button type="button" class="btn btn-secondary btn-sm" id="addInventoryProductBtn">
+                <i class="fas fa-boxes-stacked"></i> من المخزن
+              </button>
+              <button type="button" class="btn btn-success btn-sm" id="addCustomProductBtn">
+                <i class="fas fa-plus-circle"></i> منتج جديد
+              </button>
+            </div>
+          </div>
+
+          <!-- Notes -->
+          <div class="form-group">
+            <label class="form-label" for="purchaseNotes">ملاحظات للمورد</label>
+            <textarea id="purchaseNotes" class="form-input" rows="2"
+              placeholder="أي تعليمات أو شروط خاصة..."></textarea>
+          </div>
+
+          <!-- Total display -->
+          <div class="pur-total-display">
+            <span class="pur-total-label">إجمالي أمر الشراء</span>
+            <span class="pur-total-value" id="purchaseTotal">0 ج.م</span>
+          </div>
+        </div>
+        <div class="pur-modal-footer">
+          <button class="btn btn-secondary" id="cancelPurchaseModal">إلغاء</button>
+          <button class="btn btn-primary" id="savePurchaseBtn">
+            <span id="savePurchaseText">حفظ الأمر</span>
+            <i id="savePurchaseSpinner" class="fas fa-circle-notch fa-spin" hidden aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SUPPLIERS MANAGER MODAL ══ -->
+    <div class="pur-modal-overlay" id="suppliersModalOverlay"
+      role="dialog" aria-modal="true" aria-labelledby="suppliersModalTitle">
+      <div class="pur-modal" style="max-width:500px;">
+        <div class="pur-modal-header">
+          <div class="pur-modal-title">
+            <i class="fas fa-address-book" style="color:var(--color-warning);" aria-hidden="true"></i>
+            <span id="suppliersModalTitle">إدارة الموردين</span>
+          </div>
+          <button class="btn btn-ghost btn-icon" id="closeSuppliersModal" aria-label="إغلاق">
+            <i class="fas fa-xmark" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="pur-modal-body">
+          <!-- Inline add/edit supplier form -->
+          <div id="supplierForm" hidden>
+            <div class="form-section" style="margin-bottom:var(--space-4);">
+              <div class="form-section-strip" style="background:var(--color-warning);"></div>
+              <div class="form-section-title"><i class="fas fa-user-tie" style="color:var(--color-warning);"></i> <span id="supplierFormTitle">مورد جديد</span></div>
+              <input type="hidden" id="editingSupplierId" />
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="form-label" for="supplierName">الاسم <span class="required">*</span></label>
+                  <input type="text" id="supplierName" class="form-input" placeholder="اسم المورد" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="supplierPhone">رقم الواتساب</label>
+                  <input type="tel" id="supplierPhone" class="form-input" placeholder="201XXXXXXXXX" dir="ltr" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="supplierCompany">الشركة</label>
+                  <input type="text" id="supplierCompany" class="form-input" placeholder="اختياري" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="supplierNotes">ملاحظات</label>
+                <textarea id="supplierNotes" class="form-input" rows="2"></textarea>
+              </div>
+              <div style="display:flex;gap:var(--space-2);justify-content:flex-end;margin-top:var(--space-3);">
+                <button class="btn btn-ghost btn-sm" id="cancelSupplierForm">إلغاء</button>
+                <button class="btn btn-success btn-sm" id="saveSupplierBtn">
+                  <span id="saveSupplierText">حفظ المورد</span>
+                  <i id="saveSupplierSpinner" class="fas fa-circle-notch fa-spin" hidden aria-hidden="true"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn btn-success w-full" id="showAddSupplierFormBtn" style="margin-bottom:var(--space-4);">
+            <i class="fas fa-plus"></i> إضافة مورد جديد
+          </button>
+          <div id="suppliersList"></div>
+        </div>
+        <div class="pur-modal-footer">
+          <button class="btn btn-primary w-full" id="closeSuppliersModalBtn">تم</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SEND ORDER MODAL ══ -->
+    <div class="pur-modal-overlay" id="sendModalOverlay"
+      role="dialog" aria-modal="true" aria-labelledby="sendModalTitle">
+      <div class="pur-modal" style="max-width:420px;">
+        <div class="pur-modal-header">
+          <div class="pur-modal-title">
+            <i class="fas fa-paper-plane" style="color:var(--color-primary);" aria-hidden="true"></i>
+            <span id="sendModalTitle">إرسال أمر الشراء</span>
+          </div>
+          <button class="btn btn-ghost btn-icon" id="closeSendModal" aria-label="إغلاق">
+            <i class="fas fa-xmark" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="pur-modal-body">
+          <input type="hidden" id="sendingPurchaseId" />
+          <p class="text-sm text-muted" id="sendModalInfo" style="margin-bottom:var(--space-4);"></p>
+          <div style="display:flex;flex-direction:column;gap:var(--space-3);">
+            <a class="send-option send-option--wa" id="sendWhatsAppBtn" href="#" target="_blank" rel="noopener">
+              <div class="send-option-icon"><i class="fab fa-whatsapp" aria-hidden="true"></i></div>
+              <div>
+                <div class="send-option-title">إرسال عبر واتساب</div>
+                <div class="send-option-desc">يفتح واتساب مع أمر الشراء كنص جاهز</div>
+              </div>
+            </a>
+            <button class="send-option send-option--copy" id="copyOrderBtn">
+              <div class="send-option-icon"><i class="fas fa-copy" aria-hidden="true"></i></div>
+              <div>
+                <div class="send-option-title">نسخ النص</div>
+                <div class="send-option-desc">انسخ أمر الشراء كنص لأي تطبيق</div>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW PURCHASE MODAL ══ -->
+    <div class="pur-modal-overlay" id="viewModalOverlay"
+      role="dialog" aria-modal="true" aria-labelledby="viewModalTitle">
+      <div class="pur-modal" style="max-width:540px;">
+        <div class="pur-modal-header">
+          <div class="pur-modal-title">
+            <i class="fas fa-file-invoice" style="color:var(--color-warning);" aria-hidden="true"></i>
+            <span id="viewModalTitle">تفاصيل أمر الشراء</span>
+          </div>
+          <button class="btn btn-ghost btn-icon" id="closeViewModal" aria-label="إغلاق">
+            <i class="fas fa-xmark" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="pur-modal-body" id="viewPurchaseContent"></div>
+        <div class="pur-modal-footer" id="viewPurchaseFooter"></div>
+      </div>
+    </div>
+
+    <script src="shared/auth-guard.js"></script>
+    <script src="shared/sidebar.js"></script>
+    <script src="shared/topbar.js"></script>
+    <script src="pages/purchases.js"></script>
+  </body>
+</html>

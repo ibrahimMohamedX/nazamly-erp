@@ -1,0 +1,146 @@
+/* ============================================================
+   AUTH.CSS — Login / Authentication Page
+   Depends on: variables.css, base.css
+   ============================================================ */
+
+/* ── Page body ── */
+.auth-body {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── Ambient glow orbs ── */
+.auth-glow {
+  position: fixed;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  filter: blur(100px);
+  pointer-events: none;
+  z-index: 0;
+}
+.auth-glow--primary {
+  top: -10%;
+  right: -5%;
+  background: rgba(59, 130, 246, 0.12);
+}
+.auth-glow--secondary {
+  bottom: -10%;
+  left: -5%;
+  background: rgba(139, 92, 246, 0.08);
+}
+
+/* ── Container ── */
+.auth-container {
+  position: relative;
+  z-index: var(--z-raised);
+  width: 100%;
+  max-width: 440px;
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* ── Card ── */
+.auth-card {
+  width: 100%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-8);
+  box-shadow: var(--shadow-lg);
+}
+
+/* ── Header ── */
+.auth-header {
+  text-align: center;
+  margin-bottom: var(--space-8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+.auth-logo {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-xl);
+  object-fit: contain;
+  /* Subtle glow on the logo */
+  filter: drop-shadow(0 0 18px rgba(59, 130, 246, 0.30));
+}
+.auth-brand {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--color-text);
+  letter-spacing: -0.01em;
+}
+.auth-subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* ── Form ── */
+.auth-form { display: flex; flex-direction: column; gap: var(--space-5); }
+
+/* Override form-input for auth page (slightly larger) */
+.auth-form .form-input {
+  padding: var(--space-4) var(--space-4);
+  font-size: var(--font-size-base);
+  background: rgba(15, 23, 42, 0.8);
+  border-color: var(--color-border);
+}
+.auth-form .form-input-wrapper .form-input {
+  padding-right: calc(var(--space-4) + 20px + var(--space-4));
+}
+.auth-form .form-input:focus {
+  background: rgba(15, 23, 42, 1);
+}
+
+/* Auth submit button — extra height */
+.auth-form .btn-primary {
+  padding: var(--space-4);
+  font-size: var(--font-size-base);
+  border-radius: var(--radius-lg);
+  letter-spacing: 0.01em;
+  margin-top: var(--space-2);
+}
+
+/* ── Inline error panel ── */
+.auth-error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-error-bg);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-error);
+  line-height: var(--line-height-base);
+}
+.auth-error i { flex-shrink: 0; margin-top: 2px; }
+
+/* ── Watermark credit ── */
+.auth-watermark {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  opacity: 0.5;
+  text-align: center;
+  user-select: none;
+}
+
+/* ── Mobile ── */
+@media (max-width: 480px) {
+  .auth-card {
+    padding: var(--space-6) var(--space-5);
+    border-radius: var(--radius-xl);
+  }
+}

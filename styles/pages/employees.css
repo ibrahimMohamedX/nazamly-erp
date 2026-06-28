@@ -1,0 +1,227 @@
+/* ============================================================
+   EMPLOYEES.CSS — Employees Management Page
+   Depends on: variables.css, components.css
+   ============================================================ */
+
+
+/* ──────────────────────────────────────
+   EMPLOYEE STATS ROW
+   ────────────────────────────────────── */
+
+.emp-stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+@media (max-width: 768px) { .emp-stats-row { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .emp-stats-row { grid-template-columns: 1fr; } }
+
+
+/* ──────────────────────────────────────
+   PERMISSION GRID
+   ────────────────────────────────────── */
+
+.permissions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+@media (max-width: 560px) { .permissions-grid { grid-template-columns: 1fr; } }
+
+.permission-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  user-select: none;
+}
+.permission-toggle:hover { border-color: var(--color-border); background: var(--color-surface-raised); }
+.permission-toggle:has(input:checked) {
+  border-color: rgba(59,130,246,0.35);
+  background: var(--color-primary-bg);
+}
+.permission-toggle input { display: none; }
+
+.perm-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+}
+.perm-label i { font-size: 0.875rem; width: 16px; text-align: center; }
+.permission-toggle:has(input:checked) .perm-label { color: var(--color-primary); }
+
+/* Toggle switch pill */
+.toggle-switch {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  flex-shrink: 0;
+}
+.toggle-switch-track {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  transition: var(--transition-base);
+}
+.toggle-switch-thumb {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+  transition: var(--transition-base);
+}
+.permission-toggle:has(input:checked) .toggle-switch-track {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.permission-toggle:has(input:checked) .toggle-switch-thumb {
+  background: #fff;
+  right: calc(100% - 15px);
+}
+
+
+/* ──────────────────────────────────────
+   ROLE BADGES
+   ────────────────────────────────────── */
+
+.role-admin { background: var(--color-primary-bg); color: var(--color-primary);  border: 1px solid rgba(59,130,246,0.25); }
+.role-user  { background: var(--color-alert-bg);   color: var(--color-alert);    border: 1px solid rgba(139,92,246,0.25); }
+
+
+/* ──────────────────────────────────────
+   EMPLOYEE TABLE
+   ────────────────────────────────────── */
+
+.emp-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: var(--font-weight-bold);
+  flex-shrink: 0;
+}
+.emp-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.emp-name  { font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); color: var(--color-text); }
+.emp-email { font-size: var(--font-size-xs); color: var(--color-text-muted); direction: ltr; }
+
+.status-active    { background: var(--color-success-bg); color: var(--color-success); }
+.status-suspended { background: var(--color-error-bg);   color: var(--color-error); }
+
+
+/* ──────────────────────────────────────
+   PERFORMANCE CHART CARD
+   ────────────────────────────────────── */
+
+.perf-chart-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5);
+  margin-bottom: var(--space-6);
+}
+.perf-chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+.perf-chart-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+
+/* ──────────────────────────────────────
+   EMPLOYEE FORM MODAL
+   ────────────────────────────────────── */
+
+.emp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  background: rgba(5, 8, 18, 0.78);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.emp-modal-overlay.active { opacity: 1; pointer-events: all; }
+
+.emp-modal {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  width: 100%;
+  max-width: 640px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+  transform: scale(0.95) translateY(12px);
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.emp-modal-overlay.active .emp-modal { transform: scale(1) translateY(0); }
+
+.emp-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--color-border-light);
+  position: sticky;
+  top: 0;
+  background: var(--color-surface);
+  z-index: 1;
+}
+.emp-modal-title {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.emp-modal-body   { padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-5); }
+.emp-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--color-border-light);
+  position: sticky;
+  bottom: 0;
+  background: var(--color-surface);
+}

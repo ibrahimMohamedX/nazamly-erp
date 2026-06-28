@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>طباعة البوليصات — Nazamly</title>
+    <link rel="icon" type="image/png" href="nazamly.png" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="styles/variables.css" />
+    <link rel="stylesheet" href="styles/base.css" />
+    <link rel="stylesheet" href="styles/overlays.css" />
+    <link rel="stylesheet" href="styles/components.css" />
+    <link rel="stylesheet" href="styles/pages/awb.css" />
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="core/vision-init.js"></script>
+  </head>
+  <body>
+    <!-- ═══ SKELETON LOADER ═══ -->
+    <div id="skeletonLoader" class="skeleton-overlay">
+      <div class="skeleton-sidebar"></div>
+      <div class="skeleton-main">
+        <div class="skeleton skeleton-header"></div>
+        <div class="skeleton skeleton-bar"></div>
+        <div class="skeleton skeleton-table"></div>
+      </div>
+    </div>
+
+    <!-- ═══ APP SHELL ═══ -->
+    <div class="app-shell">
+      <div id="sidebar-mount"></div>
+      <div class="app-main no-print" id="appMain">
+        <header class="topbar" role="banner"></header>
+        <main class="page-content">
+          <!-- ═══ PAGE HEADER ═══ -->
+          <div class="awb-header">
+            <div class="awb-header__info">
+              <div class="awb-header__badge">
+                <i class="fas fa-print" aria-hidden="true"></i>
+              </div>
+              <div>
+                <h1 class="awb-header__title">طباعة البوليصات</h1>
+                <p class="awb-header__subtitle">
+                  إنشاء وطباعة بوليصات الشحن باحترافية
+                </p>
+              </div>
+            </div>
+            <div class="awb-header__actions">
+              <button
+                class="btn btn-ghost awb-btn-settings"
+                id="settingsBtn"
+                aria-label="إعدادات البوليصة"
+              >
+                <i class="fas fa-cog"></i>
+                <span>إعدادات</span>
+              </button>
+              <button
+                class="btn btn-primary awb-btn-print"
+                id="printBtn"
+                disabled
+              >
+                <i class="fas fa-print"></i>
+                <span>طباعة</span>
+                <span class="awb-btn-print__count" id="selectedCount">0</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- ═══ KPI CARDS ═══ -->
+          <div class="awb-kpi-grid">
+            <div class="awb-kpi-card">
+              <div class="awb-kpi-card__icon awb-kpi-card__icon--warning">
+                <i class="fas fa-clock"></i>
+              </div>
+              <div class="awb-kpi-card__body">
+                <div class="awb-kpi-card__value" id="kpiUnprinted">0</div>
+                <div class="awb-kpi-card__label">بوليصات لم تُطبع</div>
+              </div>
+            </div>
+            <div class="awb-kpi-card">
+              <div class="awb-kpi-card__icon awb-kpi-card__icon--success">
+                <i class="fas fa-check-circle"></i>
+              </div>
+              <div class="awb-kpi-card__body">
+                <div class="awb-kpi-card__value" id="kpiPrinted">0</div>
+                <div class="awb-kpi-card__label">بوليصات مطبوعة</div>
+              </div>
+            </div>
+            <div class="awb-kpi-card">
+              <div class="awb-kpi-card__icon awb-kpi-card__icon--primary">
+                <i class="fas fa-box"></i>
+              </div>
+              <div class="awb-kpi-card__body">
+                <div class="awb-kpi-card__value" id="kpiTotal">0</div>
+                <div class="awb-kpi-card__label">إجمالي الطلبات</div>
+              </div>
+            </div>
+            <div class="awb-kpi-card">
+              <div class="awb-kpi-card__icon awb-kpi-card__icon--info">
+                <i class="fas fa-money-bill-wave"></i>
+              </div>
+              <div class="awb-kpi-card__body">
+                <div class="awb-kpi-card__value" id="kpiRevenue">0</div>
+                <div class="awb-kpi-card__label">إجمالي القيمة</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ═══ TABS + PERIOD ═══ -->
+          <div class="awb-control-bar">
+            <div class="awb-tabs" role="tablist">
+              <button
+                class="awb-tab active"
+                data-tab="unprinted"
+                role="tab"
+                aria-selected="true"
+              >
+                <i class="fas fa-clock"></i>
+                <span>لم تُطبع</span>
+                <span class="awb-tab__badge" id="cntUnprinted">0</span>
+              </button>
+              <button class="awb-tab" data-tab="printed" role="tab">
+                <i class="fas fa-check"></i>
+                <span>تمت طباعته</span>
+                <span class="awb-tab__badge" id="cntPrinted">0</span>
+              </button>
+              <button class="awb-tab" data-tab="all" role="tab">
+                <i class="fas fa-list"></i>
+                <span>الكل</span>
+                <span class="awb-tab__badge" id="cntAll">0</span>
+              </button>
+            </div>
+
+            <div class="awb-period" role="group" aria-label="الفترة الزمنية">
+              <span class="awb-period__label"
+                ><i class="fas fa-calendar-alt"></i> الفترة:</span
+              >
+              <div class="awb-period__chips">
+                <button class="awb-chip active" data-period="today">
+                  اليوم
+                </button>
+                <button class="awb-chip" data-period="yesterday">الأمس</button>
+                <button class="awb-chip" data-period="7d">7 أيام</button>
+                <button class="awb-chip" data-period="30d">30 يوم</button>
+                <button class="awb-chip" data-period="custom">مخصص</button>
+              </div>
+              <div class="awb-period__custom" id="customDateBox" hidden>
+                <div class="awb-date-field">
+                  <label for="dateFrom">من</label>
+                  <input
+                    type="date"
+                    id="dateFrom"
+                    class="form-input"
+                    aria-label="من تاريخ"
+                  />
+                </div>
+                <div class="awb-date-field">
+                  <label for="dateTo">إلى</label>
+                  <input
+                    type="date"
+                    id="dateTo"
+                    class="form-input"
+                    aria-label="إلى تاريخ"
+                  />
+                </div>
+                <button class="btn btn-primary btn-sm" id="applyCustomDate">
+                  <i class="fas fa-check"></i> تطبيق
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ═══ FILTERS ═══ -->
+          <div class="awb-filters">
+            <div class="awb-filters__search">
+              <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+              <input
+                type="search"
+                id="searchInput"
+                class="form-input"
+                placeholder="بحث بالاسم، الرقم، التتبع، رقم الطلب..."
+                autocomplete="off"
+              />
+            </div>
+            <div class="awb-filters__grid">
+              <select id="statusFilter" class="form-input" aria-label="الحالة">
+                <option value="">كل الحالات</option>
+              </select>
+              <select id="govFilter" class="form-input" aria-label="المحافظة">
+                <option value="">كل المحافظات</option>
+              </select>
+              <select
+                id="shippingFilter"
+                class="form-input"
+                aria-label="شركة الشحن"
+              >
+                <option value="">كل شركات الشحن</option>
+              </select>
+              <select
+                id="employeeFilter"
+                class="form-input"
+                aria-label="الموظف"
+              >
+                <option value="">كل الموظفين</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- ═══ BULK TOOLBAR ═══ -->
+          <div class="awb-toolbar" id="awbToolbar">
+            <div class="awb-toolbar__left">
+              <label class="awb-checkbox-all">
+                <input
+                  type="checkbox"
+                  id="selectAllChk"
+                  aria-label="تحديد الكل"
+                />
+                <span class="awb-checkbox-all__box"></span>
+                <span class="awb-checkbox-all__label">تحديد الكل</span>
+              </label>
+              <div class="awb-toolbar__stats">
+                <span class="awb-stat">
+                  <span class="awb-stat__value" id="filteredCount">0</span>
+                  <span class="awb-stat__label">طلب</span>
+                </span>
+                <span class="awb-stat__divider">|</span>
+                <span class="awb-stat">
+                  <span class="awb-stat__value" id="selectedDisplay">0</span>
+                  <span class="awb-stat__label">محدد</span>
+                </span>
+              </div>
+            </div>
+            <div class="awb-toolbar__right">
+              <button
+                class="btn btn-success btn-sm"
+                id="markPrintedBtn"
+                disabled
+              >
+                <i class="fas fa-check"></i> تمييز كمطبوع
+              </button>
+              <button
+                class="btn btn-secondary btn-sm"
+                id="markUnprintedBtn"
+                disabled
+              >
+                <i class="fas fa-rotate-left"></i> إلغاء الطباعة
+              </button>
+            </div>
+          </div>
+
+          <!-- ═══ TABLE ═══ -->
+          <div class="card awb-table-card">
+            <div class="table-wrapper">
+              <table
+                class="table awb-table"
+                id="awbTable"
+                aria-label="جدول الطلبات للطباعة"
+              >
+                <thead>
+                  <tr>
+                    <th class="awb-th--checkbox" style="width: 44px"></th>
+                    <th class="awb-th--num" style="width: 44px">#</th>
+                    <th class="awb-th--date">التاريخ</th>
+                    <th class="awb-th--customer">العميل</th>
+                    <th class="awb-th--gov">المحافظة</th>
+                    <th class="awb-th--items">المنتجات</th>
+                    <th class="awb-th--total">الإجمالي</th>
+                    <th class="awb-th--track">التتبع</th>
+                    <th class="awb-th--status" style="text-align: center">
+                      الحالة
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="awbTableBody"></tbody>
+              </table>
+            </div>
+
+            <!-- Empty State -->
+            <div id="awbEmpty" class="awb-empty" hidden>
+              <div class="awb-empty__icon"><i class="fas fa-print"></i></div>
+              <div class="awb-empty__title">لا توجد طلبات</div>
+              <div class="awb-empty__desc">
+                جرّب تغيير الفترة أو الفلاتر للعثور على نتائج
+              </div>
+            </div>
+
+            <!-- Error State -->
+            <div id="awbError" class="awb-error" hidden>
+              <div class="awb-error__icon">
+                <i class="fas fa-triangle-exclamation"></i>
+              </div>
+              <div class="awb-error__title">تعذر تحميل البيانات</div>
+              <div class="awb-error__desc">
+                حدث خطأ أثناء الاتصال بالخادم. حاول مرة أخرى.
+              </div>
+              <button class="btn btn-primary btn-sm" id="retryLoadBtn">
+                <i class="fas fa-rotate-right"></i> إعادة المحاولة
+              </button>
+            </div>
+
+            <!-- Loading State -->
+            <div id="awbLoading" class="awb-loading" hidden>
+              <div class="awb-loading__spinner"></div>
+              <div class="awb-loading__text">جاري تحميل الطلبات...</div>
+            </div>
+
+            <div class="pagination" id="awbPagination"></div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- ═══ PRINT SIZE MODAL ═══ -->
+    <div
+      class="pur-modal-overlay no-print"
+      id="printModalOverlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="printModalTitle"
+    >
+      <div class="pur-modal awb-modal awb-modal--print">
+        <div class="pur-modal-header">
+          <div class="pur-modal-title" id="printModalTitle">
+            <i
+              class="fas fa-print"
+              style="color: var(--color-primary)"
+              aria-hidden="true"
+            ></i>
+            اختر مقاس الطباعة
+            <span class="awb-modal__count"
+              >(<span id="printSelectedCount">0</span> طلب)</span
+            >
+          </div>
+          <button
+            class="btn btn-ghost btn-icon"
+            id="closePrintModal"
+            aria-label="إغلاق"
+          >
+            <i class="fas fa-xmark" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="pur-modal-body">
+          <div id="printedWarningBox" class="awb-warning" hidden>
+            <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+            <span id="printedWarningText"></span>
+          </div>
+
+          <div class="awb-section-title">
+            <i class="fas fa-receipt" style="color: var(--color-alert)"></i>
+            الطباعة الحرارية (Thermal)
+          </div>
+          <div class="awb-size-grid">
+            <div class="awb-size-card active" data-size="100x150">
+              <div class="awb-size-card__preview">
+                <div class="awb-size-card__inner" style="inset: 8%"></div>
+              </div>
+              <div class="awb-size-card__name">10 × 15 سم</div>
+              <div class="awb-size-card__desc">موصى به ✓</div>
+            </div>
+            <div class="awb-size-card" data-size="100x100">
+              <div class="awb-size-card__preview">
+                <div class="awb-size-card__inner" style="inset: 15%"></div>
+              </div>
+              <div class="awb-size-card__name">10 × 10 سم</div>
+              <div class="awb-size-card__desc">مربع</div>
+            </div>
+            <div class="awb-size-card" data-size="80x120">
+              <div class="awb-size-card__preview">
+                <div
+                  class="awb-size-card__inner"
+                  style="left: 18%; right: 18%; top: 10%; bottom: 10%"
+                ></div>
+              </div>
+              <div class="awb-size-card__name">8 × 12 سم</div>
+              <div class="awb-size-card__desc">متوسط</div>
+            </div>
+            <div class="awb-size-card" data-size="50x100">
+              <div class="awb-size-card__preview">
+                <div
+                  class="awb-size-card__inner"
+                  style="left: 22%; right: 22%; top: 8%; bottom: 8%"
+                ></div>
+              </div>
+              <div class="awb-size-card__name">5 × 10 سم</div>
+              <div class="awb-size-card__desc">صغير</div>
+            </div>
+            <div class="awb-size-card" data-size="50x80">
+              <div class="awb-size-card__preview">
+                <div
+                  class="awb-size-card__inner"
+                  style="left: 20%; right: 20%; top: 15%; bottom: 15%"
+                ></div>
+              </div>
+              <div class="awb-size-card__name">5 × 8 سم</div>
+              <div class="awb-size-card__desc">الأصغر</div>
+            </div>
+          </div>
+
+          <div class="awb-section-title">
+            <i class="fas fa-file" style="color: var(--color-primary)"></i>
+            ورق عادي (Inkjet / Laser)
+          </div>
+          <div class="awb-size-grid awb-size-grid--paper">
+            <div class="awb-size-card" data-size="A5">
+              <div class="awb-size-card__preview">
+                <div class="awb-size-card__inner" style="inset: 10%"></div>
+              </div>
+              <div class="awb-size-card__name">A5 — نصف ورقة</div>
+              <div class="awb-size-card__desc">148 × 210 مم</div>
+            </div>
+            <div class="awb-size-card" data-size="A4">
+              <div class="awb-size-card__preview">
+                <div
+                  class="awb-size-card__inner"
+                  style="left: 15%; right: 15%; top: 8%; bottom: 8%"
+                ></div>
+              </div>
+              <div class="awb-size-card__name">A4 — ورقة كاملة</div>
+              <div class="awb-size-card__desc">210 × 297 مم</div>
+            </div>
+          </div>
+        </div>
+        <div class="pur-modal-footer">
+          <button class="btn btn-secondary" id="cancelPrintModal">إلغاء</button>
+          <button class="btn btn-primary" id="confirmPrintBtn">
+            <i class="fas fa-print"></i> طباعة الآن
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ LABEL SETTINGS MODAL ═══ -->
+    <div
+      class="pur-modal-overlay no-print"
+      id="settingsModalOverlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="settingsModalTitle"
+    >
+      <div class="pur-modal awb-modal awb-modal--settings">
+        <div class="pur-modal-header">
+          <div class="pur-modal-title">
+            <i
+              class="fas fa-cog"
+              style="color: var(--color-warning)"
+              aria-hidden="true"
+            ></i>
+            <span id="settingsModalTitle">إعدادات البوليصة</span>
+          </div>
+          <button
+            class="btn btn-ghost btn-icon"
+            id="closeSettingsModal"
+            aria-label="إغلاق"
+          >
+            <i class="fas fa-xmark" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="pur-modal-body">
+          <div
+            class="vision-banner"
+            data-type="info"
+            style="margin-bottom: var(--space-4)"
+          >
+            <i
+              class="vision-banner-icon fas fa-circle-info"
+              aria-hidden="true"
+            ></i>
+            <div class="vision-banner-content">
+              <div class="vision-banner-text">
+                تُحفظ الإعدادات على هذا الجهاز فقط. تظهر على كل بوليصة تطبعها.
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="setCompanyName"
+              >اسم الشركة / المتجر <span class="required">*</span></label
+            >
+            <input
+              type="text"
+              id="setCompanyName"
+              class="form-input"
+              placeholder="مثال: متجر الأناقة"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="setLogoUrl"
+              >رابط اللوجو (URL مباشر)</label
+            >
+            <input
+              type="url"
+              id="setLogoUrl"
+              class="form-input"
+              placeholder="https://example.com/logo.png"
+              dir="ltr"
+            />
+            <div class="form-hint">
+              PNG شفاف مُفضل. يظهر في الزاوية العلوية للبوليصة.
+            </div>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label" for="setCompanyPhone"
+                >تليفون الشركة</label
+              >
+              <input
+                type="tel"
+                id="setCompanyPhone"
+                class="form-input"
+                placeholder="01012345678"
+                dir="ltr"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="setCompanyAddress"
+                >عنوان الشركة</label
+              >
+              <input
+                type="text"
+                id="setCompanyAddress"
+                class="form-input"
+                placeholder="5 شارع التحرير - القاهرة"
+              />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="setDefaultNote"
+              >ملاحظات افتراضية للمندوب</label
+            >
+            <textarea
+              id="setDefaultNote"
+              class="form-input"
+              rows="2"
+              placeholder="مثال: متاح التسليم بدون بطاقة - في أي مشكلة كلمنا على طول"
+            ></textarea>
+            <div class="form-hint">تظهر أسفل ملاحظات كل طلب.</div>
+          </div>
+        </div>
+        <div class="pur-modal-footer">
+          <button class="btn btn-secondary" id="cancelSettingsModal">
+            إلغاء
+          </button>
+          <button class="btn btn-primary" id="saveSettingsBtn">
+            حفظ الإعدادات
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ HIDDEN PRINT AREA ═══ -->
+    <div id="printArea" aria-hidden="true"></div>
+
+    <script src="shared/auth-guard.js"></script>
+    <script src="shared/sidebar.js"></script>
+    <script src="shared/topbar.js"></script>
+    <script src="pages/awb.js"></script>
+  </body>
+</html>

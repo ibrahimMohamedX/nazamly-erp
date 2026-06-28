@@ -1,0 +1,172 @@
+/* ============================================================
+   INVENTORY.CSS — Inventory Management Page
+   Replaces the inline <style> block in inventory.html.
+   Depends on: variables.css, components.css
+   ============================================================ */
+
+
+/* ──────────────────────────────────────
+   STOCK STATUS PILLS
+   ────────────────────────────────────── */
+
+.stock-in     { background: var(--color-success-bg); color: var(--color-success); }
+.stock-low    { background: var(--color-warning-bg); color: var(--color-warning); }
+.stock-out    { background: var(--color-error-bg);   color: var(--color-error); }
+
+/* Quantity number colour variants */
+.qty-in  { color: var(--color-text); }
+.qty-low { color: var(--color-warning); font-weight: var(--font-weight-black); }
+.qty-out { color: var(--color-error);   font-weight: var(--font-weight-black); }
+
+
+/* ──────────────────────────────────────
+   PROFIT PREVIEW BAR (inside add modal)
+   ────────────────────────────────────── */
+
+.profit-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  transition: var(--transition-base);
+  border: 1px solid transparent;
+}
+.profit-preview--positive {
+  background: var(--color-success-bg);
+  border-color: rgba(16,185,129,0.25);
+}
+.profit-preview--negative {
+  background: var(--color-error-bg);
+  border-color: rgba(239,68,68,0.25);
+}
+.profit-preview-label { color: var(--color-text-secondary); }
+.profit-preview-value {
+  font-weight: var(--font-weight-black);
+  font-variant-numeric: tabular-nums;
+}
+.profit-preview--positive .profit-preview-value { color: var(--color-success); }
+.profit-preview--negative .profit-preview-value { color: var(--color-error); }
+
+
+/* ──────────────────────────────────────
+   IMPORT / EXPORT TOOLBAR
+   ────────────────────────────────────── */
+
+.inv-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+/* Drop zone for drag-and-drop Excel import */
+.excel-dropzone {
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8) var(--space-6);
+  text-align: center;
+  cursor: pointer;
+  transition: var(--transition-base);
+  color: var(--color-text-muted);
+}
+.excel-dropzone:hover,
+.excel-dropzone.drag-over {
+  border-color: var(--color-success);
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+.excel-dropzone-icon  { font-size: 2.5rem; margin-bottom: var(--space-3); opacity: 0.6; }
+.excel-dropzone-title { font-size: var(--font-size-md); font-weight: var(--font-weight-bold); margin-bottom: var(--space-1); }
+.excel-dropzone-sub   { font-size: var(--font-size-xs); }
+
+
+/* ──────────────────────────────────────
+   CATEGORY MANAGER ITEMS
+   ────────────────────────────────────── */
+
+.cat-list-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  transition: var(--transition-fast);
+}
+.cat-list-item:hover { border-color: var(--color-border); }
+.cat-list-name  { flex: 1; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--color-text); }
+.cat-list-count { font-size: var(--font-size-xs); color: var(--color-text-muted); flex-shrink: 0; }
+
+
+/* ──────────────────────────────────────
+   MOBILE CARD VIEW
+   Converts the inventory table to labeled
+   cards on screens narrower than 900px.
+   ────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  #invTable thead { display: none; }
+
+  #invTable,
+  #invTable tbody,
+  #invTable tr,
+  #invTable td   { display: block; }
+
+  #invTable tr {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-xl);
+    margin-bottom: var(--space-3);
+    padding: var(--space-3);
+    transition: var(--transition-fast);
+  }
+  #invTable tr:hover { border-color: var(--color-border); }
+
+  #invTable td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-2) var(--space-1);
+    border: none;
+    border-bottom: 1px solid var(--color-border-light);
+    font-size: var(--font-size-sm);
+  }
+  #invTable td:last-child { border-bottom: none; padding-bottom: 0; }
+
+  /* Label injected via data-label attribute */
+  #invTable td::before {
+    content: attr(data-label);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
+    flex-shrink: 0;
+    width: 42%;
+  }
+
+  /* Align cell value to the left (physical end in RTL) */
+  #invTable td > * { text-align: left; }
+  #invTable td > div { text-align: right; }
+}
+
+
+/* ──────────────────────────────────────
+   IMPORT PROGRESS
+   ────────────────────────────────────── */
+
+.import-progress-bar {
+  height: 6px;
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin-top: var(--space-3);
+}
+.import-progress-fill {
+  height: 100%;
+  background: var(--color-success);
+  border-radius: var(--radius-full);
+  transition: width 0.3s ease;
+  width: 0;
+}

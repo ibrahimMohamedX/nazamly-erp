@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>المخزون — Nazamly</title>
+    <link rel="icon" type="image/png" href="nazamly.png" />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="styles/variables.css" />
+    <link rel="stylesheet" href="styles/base.css" />
+    <link rel="stylesheet" href="styles/overlays.css" />
+    <link rel="stylesheet" href="styles/components.css" />
+
+    <!-- Mobile card view: convert table rows to labeled cards on small screens -->
+    <style>
+      @media (max-width: 900px) {
+        #invTable thead { display: none; }
+        #invTable, #invTable tbody, #invTable tr, #invTable td { display: block; }
+        #invTable tr {
+          background: var(--color-surface);
+          border: 1px solid var(--color-border-light);
+          border-radius: var(--radius-xl);
+          margin-bottom: var(--space-3);
+          padding: var(--space-3);
+        }
+        #invTable td {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: var(--space-2) var(--space-1);
+          border: none;
+          border-bottom: 1px solid var(--color-border-light);
+          font-size: var(--font-size-sm);
+        }
+        #invTable td:last-child { border-bottom: none; padding-bottom: 0; }
+        #invTable td::before {
+          content: attr(data-label);
+          font-weight: var(--font-weight-bold);
+          color: var(--color-text-muted);
+          font-size: var(--font-size-xs);
+          flex-shrink: 0;
+          width: 45%;
+        }
+        #invTable td > * { text-align: left; }
+      }
+    </style>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <!-- XLSX for import/export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="core/vision-init.js"></script>
+  </head>
+  <body>
+
+    <div id="skeletonLoader">
+      <div style="width:var(--sidebar-width);background:var(--color-surface);border-left:1px solid var(--color-border-light);flex-shrink:0;"></div>
+      <div style="flex:1;padding:var(--space-8);display:flex;flex-direction:column;gap:var(--space-5);">
+        <div class="skeleton" style="height:60px;border-radius:var(--radius-xl);"></div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-4);">
+          <div class="skeleton" style="height:100px;border-radius:var(--radius-xl);"></div>
+          <div class="skeleton" style="height:100px;border-radius:var(--radius-xl);"></div>
+          <div class="skeleton" style="height:100px;border-radius:var(--radius-xl);"></div>
+          <div class="skeleton" style="height:100px;border-radius:var(--radius-xl);"></div>
+        </div>
+        <div class="skeleton" style="height:400px;border-radius:var(--radius-xl);"></div>
+      </div>
+    </div>
+
+    <div class="app-shell">
+      <div id="sidebar-mount"></div>
+      <div class="app-main" id="appMain">
+        <header class="topbar" role="banner"></header>
+        <main class="page-content">
+
+          <!-- Page Header -->
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">
+                <i class="fas fa-boxes-stacked" style="color:var(--color-primary);margin-left:var(--space-2);" aria-hidden="true"></i>
+                إدارة المخزون
+              </h1>
+              <p class="page-subtitle">تتبع المنتجات والمخزون وهامش الربح</p>
+            </div>
+            <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;">
+              <button class="btn btn-secondary admin-only" id="importExcelBtn">
+                <i class="fas fa-file-import"></i> استيراد Excel
+              </button>
+              <button class="btn btn-secondary admin-only" id="exportBtn">
+                <i class="fas fa-file-export"></i> تصدير
+              </button>
+              <button class="btn btn-primary admin-only" id="addProductBtn">
+                <i class="fas fa-plus"></i> إضافة منتج
+              </button>
+            </div>
+          </div>
+
+          <!-- Stats Grid (admin only) -->
+          <div class="grid-kpi stagger admin-only" id="statsGrid" style="margin-bottom:var(--space-6);">
+            <div class="kpi-card">
+              <div class="kpi-card-strip" style="background:var(--color-primary);"></div>
+              <div class="kpi-icon" style="background:var(--color-primary-bg);color:var(--color-primary);margin-bottom:var(--space-3);">
+                <i class="fas fa-boxes-stacked"></i>
+              </div>
+              <div class="kpi-label">إجمالي المنتجات</div>
+              <div class="kpi-value" id="statTotalItems">—</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-card-strip" style="background:var(--color-success);"></div>
+              <div class="kpi-icon" style="background:var(--color-success-bg);color:var(--color-success);margin-bottom:var(--space-3);">
+                <i class="fas fa-coins"></i>
+              </div>
+              <div class="kpi-label">قيمة المخزون (بيع)</div>
+              <div class="kpi-value text-success" id="statTotalValue">—</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-card-strip" style="background:var(--color-alert);"></div>
+              <div class="kpi-icon" style="background:var(--color-alert-bg);color:var(--color-alert);margin-bottom:var(--space-3);">
+                <i class="fas fa-chart-line"></i>
+              </div>
+              <div class="kpi-label">الأرباح المتوقعة</div>
+              <div class="kpi-value text-alert" id="statTotalProfit">—</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-card-strip" style="background:var(--color-error);"></div>
+              <div class="kpi-icon" style="background:var(--color-error-bg);color:var(--color-error);margin-bottom:var(--space-3);">
+                <i class="fas fa-triangle-exclamation"></i>
+              </div>
+              <div class="kpi-label">نواقص المخزن</div>
+              <div class="kpi-value text-error" id="statLowStock">—</div>
+            </div>
+          </div>
+
+          <!-- Filters -->
+          <div class="card" style="margin-bottom:var(--space-4);">
+            <div class="card-body" style="padding:var(--space-4);">
+              <div style="display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;">
+                <div class="form-input-wrapper" style="flex:2;min-width:200px;">
+                  <i class="fas fa-magnifying-glass form-input-icon" aria-hidden="true"></i>
+                  <input type="search" id="searchInput" class="form-input"
+                    placeholder="بحث باسم المنتج، الوصف، أو الفئة..." autocomplete="off" />
+                </div>
+                <select id="categoryFilter" class="form-input" style="flex:1;min-width:160px;max-width:220px;" aria-label="تصفية حسب الفئة">
+                  <option value="all">كل الفئات</option>
+                </select>
+                <select id="stockFilter" class="form-input" style="flex:1;min-width:160px;max-width:220px;" aria-label="حالة المخزون">
+                  <option value="all">حالة المخزون (الكل)</option>
+                  <option value="in_stock">متوفر</option>
+                  <option value="low_stock">أوشك على النفاذ</option>
+                  <option value="out_of_stock">نفذت الكمية</option>
+                </select>
+                <button class="btn btn-secondary btn-sm admin-only" id="manageCategoriesBtn" title="إدارة الفئات">
+                  <i class="fas fa-tags"></i> الفئات
+                </button>
+                <button class="btn btn-ghost btn-sm" id="resetFiltersBtn" title="مسح الفلاتر">
+                  <i class="fas fa-xmark"></i>
+                </button>
+                <span class="text-sm text-muted" id="countLabel" style="margin-right:auto;">0 منتج</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Products Table -->
+          <div class="card" style="padding:0;">
+            <div class="table-wrapper" style="border-radius:var(--radius-xl);border:none;">
+              <table class="table" id="invTable" aria-label="جدول المخزون">
+                <thead>
+                  <tr>
+                    <th>المنتج</th>
+                    <th>الفئة</th>
+                    <th>سعر البيع</th>
+                    <th class="admin-only">التكلفة / الربح</th>
+                    <th style="text-align:center;">الكمية المتاحة</th>
+                    <th style="text-align:center;">المباع</th>
+                    <th class="admin-only" style="text-align:center;width:120px;">إجراءات</th>
+                  </tr>
+                </thead>
+                <tbody id="productsTableBody"></tbody>
+              </table>
+            </div>
+            <div id="invEmpty" class="empty-state" hidden>
+              <div class="empty-state-icon"><i class="fas fa-boxes-stacked"></i></div>
+              <div class="empty-state-title">لا توجد منتجات</div>
+              <div class="empty-state-desc">أضف منتجات للبدء في تتبع مخزونك</div>
+              <button class="btn btn-primary admin-only" style="margin-top:var(--space-5);" id="emptyAddBtn">
+                <i class="fas fa-plus"></i> إضافة أول منتج
+              </button>
+            </div>
+            <div class="pagination" id="invPagination"></div>
+          </div>
+
+        </main>
+      </div>
+    </div>
+
+    <!-- ══ PRODUCT FORM MODAL ══ -->
+    <div class="pur-modal-overlay" id="productModalOverlay"
+      role="dialog" aria-modal="true" aria-labelledby="productModalTitle">
+      <div class="pur-modal" style="max-width:600px;">
+        <div class="pur-modal-header">
+          <div class="pur-modal-title">
+            <i id="productModalIcon" class="fas fa-box" style="color:var(--color-primary);" aria-hidden="true"></i>
+            <span id="productModalTitle">إضافة منتج جديد</span>
+          </div>
+          <button class="btn btn-ghost btn-icon" id="closeProductModal" aria-label="إغلاق">
+            <i class="fas fa-xmark" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="pur-modal-body">
+          <input type="hidden" id="editingProductId" />
+
+          <div class="form-group">
+            <label class="form-label" for="prodName">اسم المنتج <span class="required">*</span></label>
+            <input type="text" id="prodName" class="form-input" placeholder="اسم المنتج" required />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="prodDesc">وصف / ملاحظات</label>
+            <input type="text" id="prodDesc" class="form-input" placeholder="وصف مختصر أو رمز المنتج..." />
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label" for="prodCategory">الفئة</label>
+              <select id="prodCategory" class="form-input">
+                <option value="">بدون فئة</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="prodQuantity">الكمية المتاحة <span class="required">*</span></label>
+              <input type="number" id="prodQuantity" class="form-input" min="0" step="1" value="0" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="prodPrice">سعر البيع (ج.م) <span class="required">*</span></label>
+              <input type="number" id="prodPrice" class="form-input" min="0" step="0.5" placeholder="0.00" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="prodCost">تكلفة الشراء (ج.م) <span class="required">*</span></label>
+              <input type="number" id="prodCost" class="form-input" min="0" step="0.5" placeholder="0.00" required />
+            </div>
+          </div>
+
+          <!-- Profit preview -->
+          <div id="profitPreview"
+            style="background:var(--color-success-bg);border:1px solid rgba(16,185,129,.25);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);display:flex;justify-content:space-between;align-items:center;font-size:var(--font-size-sm);">
+            <span class="text-muted">الربح لكل وحدة</span>
+            <span id="profitPerUnit" class="font-bold text-success">0.00 ج.م</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="prodAlert">تنبيه النواقص (كمية)</label>
+            <input type="number" id="prodAlert" class="form-input" min="1" step="1" value="5"
+              placeholder="يظهر تنبيه عند وصول الكمية لهذا الحد" />
+            <div class="form-hint">يظهر المنتج بالأصفر عند الوصول لهذا الحد، وبالأحمر عند النفاد.</div>
+          </div>
+        </div>
+        <div class="pur-modal-footer">
+          <button class="btn btn-secondary" id="cancelProductModal">إلغاء</button>
+          <button class="btn btn-primary" id="saveProductBtn">
+            <span id="saveProductText">حفظ المنتج</span>
+            <i id="saveProductSpinner" class="fas fa-circle-notch fa-spin" hidden aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ CATEGORY MANAGER MODAL ══ -->
+    <div class="pur-modal-overlay" id="categoryModalOverlay"
+      role="dialog" aria-modal="true" aria-labelledby="categoryModalTitle">
+      <div class="pur-modal" style="max-width:420px;">
+        <div class="pur-modal-header">
+          <div class="pur-modal-title">
+            <i class="fas fa-tags" style="color:var(--color-warning);" aria-hidden="true"></i>
+            <span id="categoryModalTitle">إدارة الفئات</span>
+          </div>
+          <button class="btn btn-ghost btn-icon" id="closeCategoryModal" aria-label="إغلاق">
+            <i class="fas fa-xmark" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="pur-modal-body">
+          <!-- Add / edit form -->
+          <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-4);">
+            <input type="hidden" id="editingCategoryId" />
+            <input type="text" id="newCategoryInput" class="form-input"
+              placeholder="اسم الفئة..." style="flex:1;" />
+            <button class="btn btn-success" id="saveCategoryBtn">
+              <i class="fas fa-plus"></i>
+            </button>
+          </div>
+          <div id="categoriesList" style="display:flex;flex-direction:column;gap:var(--space-2);"></div>
+        </div>
+        <div class="pur-modal-footer">
+          <button class="btn btn-primary w-full" id="closeCategoryModalBtn">تم</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ EXCEL IMPORT MODAL ══ -->
+    <div class="pur-modal-overlay" id="importModalOverlay"
+      role="dialog" aria-modal="true" aria-labelledby="importModalTitle">
+      <div class="pur-modal" style="max-width:420px;">
+        <div class="pur-modal-header">
+          <div class="pur-modal-title">
+            <i class="fas fa-file-excel" style="color:var(--color-success);" aria-hidden="true"></i>
+            <span id="importModalTitle">استيراد من Excel</span>
+          </div>
+          <button class="btn btn-ghost btn-icon" id="closeImportModal" aria-label="إغلاق">
+            <i class="fas fa-xmark" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="pur-modal-body">
+          <div class="vision-banner" data-type="info" style="margin-bottom:var(--space-4);">
+            <i class="vision-banner-icon fas fa-circle-info" aria-hidden="true"></i>
+            <div class="vision-banner-content">
+              <div class="vision-banner-title">الأعمدة المطلوبة</div>
+              <div class="vision-banner-text">
+                <strong>الاسم</strong>، الوصف، الفئة،
+                <strong>التكلفة</strong>، <strong>السعر</strong>،
+                <strong>الكمية</strong>، التنبيه
+              </div>
+            </div>
+          </div>
+          <input type="file" id="excelFileInput" accept=".xlsx,.xls" hidden />
+          <button class="btn btn-success w-full" id="chooseFileBtn" style="margin-bottom:var(--space-3);">
+            <i class="fas fa-upload"></i> اختر ملف Excel
+          </button>
+          <div id="importProgress" hidden style="text-align:center;color:var(--color-text-secondary);font-size:var(--font-size-sm);"></div>
+        </div>
+        <div class="pur-modal-footer">
+          <button class="btn btn-secondary w-full" id="cancelImportModal">إلغاء</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="shared/auth-guard.js"></script>
+    <script src="shared/sidebar.js"></script>
+    <script src="shared/topbar.js"></script>
+    <script src="pages/inventory.js"></script>
+  </body>
+</html>
