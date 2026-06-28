@@ -31,7 +31,12 @@
       "Bash(cd D:\\\\\\\\\\\\Job\\\\\\\\\\\\\\\\nazamly-erp && npm install && npm start)",
       "Bash(erp implement *)",
       "Bash(python manage.py migrate)",
-      "Bash(erp --help)"
+      "Bash(erp --help)",
+      "Bash(node app.js)",
+      "Bash(nazamly-erp/run.sh)",
+      "Bash(python erp_system.py)",
+      "Bash(python D:\\\\\\\\Job\\\\\\\\nazamly-erp\\\\\\\\erp.py)",
+      "Bash(python D:\\\\Job\\\\nazamly-erp\\\\erp.py)"
     ]
   }
 }

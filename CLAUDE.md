@@ -1,0 +1,1 @@
+This repository contains the implementation of the ERP system.
