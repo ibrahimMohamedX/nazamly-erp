@@ -1,0 +1,13 @@
+{
+  "tasks": [
+    {
+      "id": "7d953aa6",
+      "cron": "0 8 * * *",
+      "prompt": "Run ERP system",
+      "createdAt": 1782646802426,
+      "recurring": true,
+      "createdBySessionId": "4a8e79dc-4ea6-45d4-9f26-3358055abcda",
+      "createdByPid": 11496
+    }
+  ]
+}

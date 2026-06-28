@@ -10,7 +10,14 @@
       "Bash(flask db *)",
       "Bash(python erp.py)",
       "Bash(npm install *)",
-      "Bash(npm start *)"
+      "Bash(npm start *)",
+      "Bash(npm init *)",
+      "Bash(node index.js)",
+      "Bash(erp-system.sh)",
+      "Bash(python manage.py runserver)",
+      "Bash(npm test *)",
+      "Bash(python app.py)",
+      "Bash(erp-system:implement)"
     ]
   }
 }
