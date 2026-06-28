@@ -17,7 +17,21 @@
       "Bash(python manage.py runserver)",
       "Bash(npm test *)",
       "Bash(python app.py)",
-      "Bash(erp-system:implement)"
+      "Bash(erp-system:implement)",
+      "Bash(git push *)",
+      "Bash(python -m pip install --upgrade pip)",
+      "Bash(python -m ensurepip)",
+      "Bash(python -m pip install flask)",
+      "Bash(python -m pip install flask_sqlalchemy)",
+      "Bash(cd D:\\\\\\\\Job\\\\\\\\nazamly-erp)",
+      "Bash(npm run *)",
+      "Bash(cd D:\\\\\\\\\\\\\\\\Job\\\\\\\\\\\\\\\\nazamly-erp && npm run start)",
+      "Read(//d/Job/nazamly-erp/**)",
+      "Bash(cd D:\\\\\\\\\\\\Job\\\\\\\\\\\\\\\\nazamly-erp && npm start)",
+      "Bash(cd D:\\\\\\\\\\\\Job\\\\\\\\\\\\\\\\nazamly-erp && npm install && npm start)",
+      "Bash(erp implement *)",
+      "Bash(python manage.py migrate)",
+      "Bash(erp --help)"
     ]
   }
 }
