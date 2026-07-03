@@ -36,7 +36,9 @@
       "Bash(nazamly-erp/run.sh)",
       "Bash(python erp_system.py)",
       "Bash(python D:\\\\\\\\Job\\\\\\\\nazamly-erp\\\\\\\\erp.py)",
-      "Bash(python D:\\\\Job\\\\nazamly-erp\\\\erp.py)"
+      "Bash(python D:\\\\Job\\\\nazamly-erp\\\\erp.py)",
+      "Bash(del d:\\\\\\\\Job\\\\\\\\nazamly-erp\\\\\\\\package.json)",
+      "Bash(del d:\\\\\\\\Job\\\\\\\\nazamly-erp\\\\\\\\package-lock.json)"
     ]
   }
 }

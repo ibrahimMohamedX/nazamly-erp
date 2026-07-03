@@ -65,7 +65,7 @@
   function _loadTodayStats(db) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayTs = window.db.Timestamp.fromDate(today);
+    const todayTs = firebase.firestore.Timestamp.fromDate(today);
 
     _unsubToday = db.collection('orders')
       .where('createdAt', '>=', todayTs)
@@ -163,7 +163,7 @@
         Sidebar.init({ activePage: 'index' });
         Topbar.init({ title: 'الرئيسية' });
 
-        const db = window.db;
+        const db = firebase.firestore();
         _loadTodayStats(db);
         _loadRecentOrders(db);
 

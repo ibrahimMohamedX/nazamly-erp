@@ -37,7 +37,7 @@
      * ───────────────────────────────────────────── */
 
     function _firebaseAvailable() {
-        return typeof firebase !== 'undefined' && firebase.auth && window.auth;
+        return typeof firebase !== 'undefined' && firebase.auth && firebase.auth();
     }
 
     /** Sync user data from a Firebase Auth user object + ID-token claims */
@@ -119,7 +119,7 @@
                 console.warn('[VisionAuth] Firebase SDK not loaded — will retry on signIn()');
                 return;
             }
-            window.auth.onAuthStateChanged(async fbUser => {
+            firebase.auth().onAuthStateChanged(async fbUser => {
                 if (fbUser) {
                     await _syncFirebaseUser(fbUser);
                     _notify(_state.user);
@@ -139,7 +139,7 @@
      */
     async function signIn(email, password) {
         if (!_firebaseAvailable()) throw new Error('[VisionAuth] Firebase not available');
-        const cred = await window.auth.signInWithEmailAndPassword(email, password);
+        const cred = await firebase.auth().signInWithEmailAndPassword(email, password);
         await _syncFirebaseUser(cred.user);
         _notify(_state.user);
         return _state.user;
@@ -152,7 +152,7 @@
      */
     async function signInWithToken(token) {
         if (!_firebaseAvailable()) throw new Error('[VisionAuth] Firebase not available');
-        const cred = await window.auth.signInWithCustomToken(token);
+        const cred = await firebase.auth().signInWithCustomToken(token);
         await _syncFirebaseUser(cred.user);
         _notify(_state.user);
         return _state.user;
@@ -164,7 +164,7 @@
      */
     async function signOut() {
         if (_state.useFirebase && _firebaseAvailable()) {
-            await window.auth.signOut();
+            await firebase.auth().signOut();
         }
         _clearState();
         _notify(null);

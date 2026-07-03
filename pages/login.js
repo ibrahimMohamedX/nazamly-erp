@@ -84,7 +84,7 @@
     if (_inFlight) return;
     _inFlight = true;
 
-    const db = window.db;
+    const db = firebase.firestore();
 
     try {
       const employeeRef = db.collection('employees').doc(fbUser.uid);
@@ -93,7 +93,7 @@
       if (!employeeDoc.exists) {
         /* First-time login: only whitelisted emails may create an admin record */
         if (!_isEmailAllowed(fbUser.email)) {
-          await window.auth.signOut();
+          await firebase.auth().signOut();
           _showError('هذا البريد الإلكتروني غير مصرح له بالدخول.');
           _setLoading(false);
           _inFlight = false;
@@ -119,7 +119,7 @@
             canManageStatuses:      true,
             canChangeOrderEmployee: true,
           },
-          createdAt: window.db.FieldValue.serverTimestamp(),
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         });
 
         window.location.replace('index.html');
@@ -130,7 +130,7 @@
 
       /* Suspended account check */
       if (data.status === 'suspended') {
-        await window.auth.signOut();
+        await firebase.auth().signOut();
         _showError('حسابك موقوف. يرجى التواصل مع الإدارة.');
         _setLoading(false);
         _inFlight = false;
@@ -145,7 +145,7 @@
 
     } catch (err) {
       console.error('[Login] handleLoginLogic error:', err);
-      await window.auth.signOut().catch(() => {});
+      await firebase.auth().signOut().catch(() => {});
       _showError('حدث خطأ غير متوقع. يرجى المحاولة مجدداً.');
       _setLoading(false);
       _inFlight = false;
@@ -177,7 +177,44 @@
       brandTitle.textContent = window.CLIENT_BRAND;
     }
 
-    const auth      = window.auth;
+    /* ── Bug fix: Auth lifecycle guard ────────────────────────────────────
+       Race condition: vision-ready fires after vision-init.js completes its
+       bootstrap, but firebase-auth-compat.js is a CDN script loaded in
+       <head>. On slow connections it may not have registered firebase.auth
+       by the time this runs. We also guard against firebase.initializeApp()
+       not yet having been called (firebase.apps.length === 0).
+
+       Root cause of "Cannot read properties of undefined (reading
+       'onAuthStateChanged')": firebase.auth() returns undefined when either
+       firebase-auth-compat.js hasn't loaded, or the app isn't initialized.
+
+       Fix: explicit runtime checks before any .auth() call, with user-facing
+       error messages so the page never silently freezes.                    */
+    if (typeof firebase === 'undefined') {
+      _showError('Firebase SDK لم يتم تحميله. يرجى التحقق من اتصالك وإعادة تحميل الصفحة.');
+      console.error('[Login] firebase global is undefined — CDN scripts may not have loaded.');
+      return;
+    }
+    if (!firebase.apps || firebase.apps.length === 0) {
+      _showError('فشل تهيئة Firebase. يرجى إعادة تحميل الصفحة.');
+      console.error('[Login] firebase.apps is empty — initializeApp() has not been called yet.');
+      return;
+    }
+    if (typeof firebase.auth !== 'function') {
+      _showError('مكوّن المصادقة لم يتم تحميله. يرجى إعادة تحميل الصفحة.');
+      console.error('[Login] firebase.auth is not a function — firebase-auth-compat.js may not be loaded.');
+      return;
+    }
+
+    const auth = firebase.auth();
+
+    /* Second-tier guard: firebase.auth() can return null in edge cases      */
+    if (!auth || typeof auth.onAuthStateChanged !== 'function') {
+      _showError('تعذّر تهيئة نظام تسجيل الدخول. يرجى إعادة تحميل الصفحة.');
+      console.error('[Login] firebase.auth() returned an invalid Auth instance:', auth);
+      return;
+    }
+
     const loginForm = document.getElementById('loginForm');
 
     /* Auto-login: if session already exists, skip the form */

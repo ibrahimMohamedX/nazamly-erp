@@ -743,7 +743,7 @@
       category,
       categoryColor: _catColor(category),
       description,
-      date: window.db.Timestamp.fromDate(new Date(dateVal)),
+      date: firebase.firestore.Timestamp.fromDate(new Date(dateVal)),
       paymentMethod: payment,
       notes,
       createdBy:    user?.displayName || user?.email?.split('@')[0] || 'مدير',
@@ -751,14 +751,13 @@
     };
 
     try {
-      const db = window.db;
       if (editId) {
-        await db.collection('expenses').doc(editId)
-          .update({ ...payload, updatedAt: window.db.FieldValue.serverTimestamp() });
+        await firebase.firestore().collection('expenses').doc(editId)
+          .update({ ...payload, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
         window.VisionOverlays?.toast({ type: 'success', message: 'تم تحديث المصروف بنجاح' });
       } else {
-        payload.createdAt = window.db.FieldValue.serverTimestamp();
-        await db.collection('expenses').add(payload);
+        payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        await firebase.firestore().collection('expenses').add(payload);
         window.VisionOverlays?.toast({ type: 'success', message: `تم إضافة مصروف بقيمة ${_fmtCentsCompact(amountCents)}` });
       }
       _closeExpenseModal();
@@ -783,7 +782,7 @@
     });
     if (confirmed !== 'delete') return;
     try {
-      await window.db.collection('expenses').doc(expId).delete();
+      await firebase.firestore().collection('expenses').doc(expId).delete();
       window.VisionOverlays?.toast({ type: 'success', message: 'تم حذف المصروف' });
     } catch (err) {
       console.error('[Expenses] delete error:', err);
@@ -844,12 +843,11 @@
 
     const payload = { name, category, amountCents, amount: amountCents / 100, dayOfMonth, notes, active: true };
     try {
-      const db = window.db;
       if (editId) {
-        await db.collection('recurring_expenses').doc(editId).update(payload);
+        await firebase.firestore().collection('recurring_expenses').doc(editId).update(payload);
       } else {
-        payload.createdAt = window.db.FieldValue.serverTimestamp();
-        await db.collection('recurring_expenses').add(payload);
+        payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        await firebase.firestore().collection('recurring_expenses').add(payload);
       }
       window.VisionOverlays?.toast({ type: 'success', message: 'تم الحفظ بنجاح' });
       _closeRecurringModal();
@@ -937,7 +935,7 @@
     try {
       await firebase.firestore().collection('expense_categories').add({
         name, color, order: Store.categories.length,
-        createdAt: window.db.FieldValue.serverTimestamp(),
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       });
       const nameEl = _el('newCatName'); if (nameEl) nameEl.value = '';
       _el('newCategoryForm').hidden = true;
@@ -971,59 +969,75 @@
      DATA LOADING
      ────────────────────────────────────── */
 
-  async function _seedCategories(db) {
+  async function _seedCategories() {
     /* Only seed if the collection is empty */
-    const snap = await db.collection('expense_categories').limit(1).get();
+    const snap = await firebase.firestore().collection('expense_categories').limit(1).get();
     if (!snap.empty) return;
-    const batch = db.batch();
+    const batch = firebase.firestore().batch();
     DEFAULT_CATEGORIES.forEach((cat, i) => {
-      const ref = db.collection('expense_categories').doc();
-      batch.set(ref, { ...cat, order: i, createdAt: window.db.FieldValue.serverTimestamp() });
+      const ref = firebase.firestore().collection('expense_categories').doc();
+      batch.set(ref, { ...cat, order: i, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
     });
     await batch.commit();
   }
 
   function _loadData() {
-    const db = window.db;
+    try {
+      /* Expenses — load last 13 months to cover all period options */
+      const cutoff = new Date();
+      cutoff.setMonth(cutoff.getMonth() - 13);
+      _unsubs.push(
+        firebase.firestore().collection('expenses')
+          .where('date', '>=', firebase.firestore.Timestamp.fromDate(cutoff))
+          .orderBy('date', 'desc')
+          .onSnapshot(
+            snap => { Store.expenses = snap.docs.map(d => ({ id: d.id, ...d.data() })); _scheduleRender(); },
+            err  => {
+              console.error('[Expenses] listener:', err);
+              const skel = document.getElementById('skeletonLoader');
+              if (skel) skel.classList.add('hidden');
+              window.VisionOverlays?.toast({ type: 'error', message: 'تعذر تحميل المصاريف' });
+            }
+          )
+      );
 
-    /* Expenses — load last 13 months to cover all period options */
-    const cutoff = new Date();
-    cutoff.setMonth(cutoff.getMonth() - 13);
-    _unsubs.push(
-      db.collection('expenses')
-        .where('date', '>=', firebase.firestore.Timestamp.fromDate(cutoff))
-        .orderBy('date', 'desc')
-        .onSnapshot(
-          snap => { Store.expenses = snap.docs.map(d => ({ id: d.id, ...d.data() })); _scheduleRender(); },
-          err  => { console.error('[Expenses] listener:', err); }
-        )
-    );
+      /* Recurring expenses */
+      _unsubs.push(
+        firebase.firestore().collection('recurring_expenses').orderBy('createdAt', 'desc')
+          .onSnapshot(
+            snap => { Store.recurring = snap.docs.map(d => ({ id: d.id, ...d.data() })); _scheduleRender(); },
+            err  => {
+              console.error('[Expenses] recurring listener:', err);
+              window.VisionOverlays?.toast({ type: 'error', message: 'تعذر تحميل المصاريف المتكررة' });
+            }
+          )
+      );
 
-    /* Recurring expenses */
-    _unsubs.push(
-      db.collection('recurring_expenses').orderBy('createdAt', 'desc')
-        .onSnapshot(
-          snap => { Store.recurring = snap.docs.map(d => ({ id: d.id, ...d.data() })); _scheduleRender(); },
-          err  => { console.error('[Expenses] recurring listener:', err); }
-        )
-    );
+      /* Categories */
+      _unsubs.push(
+        firebase.firestore().collection('expense_categories').orderBy('order')
+          .onSnapshot(
+            snap => {
+              Store.categories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+              _populateCategorySelects();
+              _renderCatManagerList();
+              _scheduleRender();
+            },
+            err => {
+              console.error('[Expenses] categories listener:', err);
+              window.VisionOverlays?.toast({ type: 'error', message: 'تعذر تحميل التصنيفات' });
+            }
+          )
+      );
 
-    /* Categories */
-    _unsubs.push(
-      db.collection('expense_categories').orderBy('order')
-        .onSnapshot(
-          snap => {
-            Store.categories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            _populateCategorySelects();
-            _renderCatManagerList();
-            _scheduleRender();
-          },
-          err => { console.error('[Expenses] categories listener:', err); }
-        )
-    );
-
-    /* Seed default categories if first run */
-    _seedCategories(db).catch(err => console.warn('[Expenses] seed skipped:', err));
+      /* Seed default categories if first run */
+      _seedCategories().catch(err => console.warn('[Expenses] seed skipped:', err));
+    } catch (err) {
+      console.error('[Expenses] _loadData fatal:', err);
+      const skel = document.getElementById('skeletonLoader');
+      if (skel) skel.classList.add('hidden');
+      window.VisionOverlays?.toast({ type: 'error', message: 'حدث خطأ أثناء تحميل بيانات المصاريف' });
+    }
   }
 
   /* ──────────────────────────────────────

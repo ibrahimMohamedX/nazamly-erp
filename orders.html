@@ -5,14 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>الطلبات — Nazamly</title>
     <link rel="icon" type="image/png" href="nazamly.png" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="stylesheet" href="styles/variables.css" />
     <link rel="stylesheet" href="styles/base.css" />
     <link rel="stylesheet" href="styles/overlays.css" />
@@ -24,37 +18,14 @@
     <script src="core/vision-init.js"></script>
   </head>
   <body>
-    <!-- Skeleton loader -->
+
+    <!-- Skeleton -->
     <div id="skeletonLoader">
-      <div
-        style="
-          width: var(--sidebar-width);
-          background: var(--color-surface);
-          border-left: 1px solid var(--color-border-light);
-          flex-shrink: 0;
-        "
-      ></div>
-      <div
-        style="
-          flex: 1;
-          padding: var(--space-8);
-          display: flex;
-          flex-direction: column;
-          gap: var(--space-5);
-        "
-      >
-        <div
-          class="skeleton"
-          style="height: 60px; border-radius: var(--radius-xl)"
-        ></div>
-        <div
-          class="skeleton"
-          style="height: 56px; border-radius: var(--radius-xl)"
-        ></div>
-        <div
-          class="skeleton"
-          style="height: 400px; border-radius: var(--radius-xl)"
-        ></div>
+      <div style="width:var(--sidebar-width);background:var(--color-surface);border-left:1px solid var(--color-border-light);flex-shrink:0;"></div>
+      <div style="flex:1;padding:var(--space-8);display:flex;flex-direction:column;gap:var(--space-5);">
+        <div class="skeleton" style="height:60px;border-radius:var(--radius-xl);"></div>
+        <div class="skeleton" style="height:56px;border-radius:var(--radius-xl);"></div>
+        <div class="skeleton" style="height:400px;border-radius:var(--radius-xl);"></div>
       </div>
     </div>
 
@@ -63,190 +34,110 @@
       <div id="sidebar-mount"></div>
       <div class="app-main" id="appMain">
         <header class="topbar" role="banner"></header>
-        <main class="page-content page-content--orders">
+        <main class="page-content">
+
           <!-- Page Header -->
-          <div class="page-header page-header--orders">
-            <div class="page-header__info">
-              <h1 class="page-title page-title--orders">
-                <span class="page-title__icon" aria-hidden="true">
-                  <i class="fas fa-cart-shopping"></i>
-                </span>
-                الطلبات والعملاء
-              </h1>
-              <p class="page-subtitle page-subtitle--orders">
-                إدارة الطلبات ومتابعة العملاء والشحنات
-              </p>
+          <div class="page-header">
+            <div>
+              <h1 class="page-title"><i class="fas fa-cart-shopping" style="color:var(--color-primary);margin-left:var(--space-2);" aria-hidden="true"></i>الطلبات والعملاء</h1>
+              <p class="page-subtitle">إدارة الطلبات ومتابعة العملاء</p>
             </div>
-            <div class="page-header__actions">
-              <button
-                class="btn btn-secondary btn-3d"
-                id="importBtn"
-                title="استيراد من Excel"
-              >
-                <i class="fas fa-file-import"></i>
-                <span>استيراد</span>
-              </button>
-              <button
-                class="btn btn-secondary btn-3d"
-                id="exportBtn"
-                title="تصدير إلى CSV"
-              >
-                <i class="fas fa-file-export"></i>
-                <span>تصدير</span>
-              </button>
-              <button class="btn btn-primary btn-3d btn-glow" id="addOrderBtn">
-                <i class="fas fa-plus"></i>
-                <span>إضافة طلب</span>
-              </button>
+            <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;">
+              <button class="btn btn-secondary" id="importBtn"><i class="fas fa-file-import"></i> استيراد</button>
+              <button class="btn btn-secondary" id="exportBtn"><i class="fas fa-file-export"></i> تصدير</button>
+              <button class="btn btn-primary"   id="addOrderBtn"><i class="fas fa-plus"></i> إضافة طلب</button>
             </div>
           </div>
 
           <!-- Status Pills -->
-          <div
-            class="status-pills"
-            id="statusPills"
-            role="group"
-            aria-label="تصفية حسب الحالة"
-          >
+          <div class="status-pills" id="statusPills" role="group" aria-label="تصفية حسب الحالة">
             <button class="status-pill active" data-status="">الكل</button>
-          </div>
-
-          <!-- Summary Bar -->
-          <div
-            class="orders-summary-bar"
-            role="region"
-            aria-label="ملخص الطلبات"
-          >
-            <div class="summary-stat summary-stat--total">
-              <div class="summary-stat__icon">
-                <i class="fas fa-layer-group"></i>
-              </div>
-              <div class="summary-stat__value" id="statTotal">—</div>
-              <div class="summary-stat__label">إجمالي الطلبات</div>
-            </div>
-            <div class="summary-stat summary-stat--delivered">
-              <div class="summary-stat__icon">
-                <i class="fas fa-check-circle"></i>
-              </div>
-              <div class="summary-stat__value" id="statDelivered">—</div>
-              <div class="summary-stat__label">مسلمة</div>
-            </div>
-            <div class="summary-stat summary-stat--cancelled">
-              <div class="summary-stat__icon">
-                <i class="fas fa-times-circle"></i>
-              </div>
-              <div class="summary-stat__value" id="statCancelled">—</div>
-              <div class="summary-stat__label">ملغية / مرتجعة</div>
-            </div>
-            <div class="summary-stat summary-stat--pending">
-              <div class="summary-stat__icon">
-                <i class="fas fa-clock"></i>
-              </div>
-              <div class="summary-stat__value" id="statPending">—</div>
-              <div class="summary-stat__label">قيد التنفيذ</div>
-            </div>
-            <div class="summary-stat summary-stat--revenue">
-              <div class="summary-stat__icon">
-                <i class="fas fa-sack-dollar"></i>
-              </div>
-              <div class="summary-stat__value" id="statRevenue">—</div>
-              <div class="summary-stat__label">إيرادات مسلمة</div>
-            </div>
           </div>
 
           <!-- Filters Card -->
           <div class="filters-card">
             <div class="filters-row">
-              <div class="form-input-wrapper form-input-wrapper--search">
-                <i
-                  class="fas fa-magnifying-glass form-input-icon"
-                  aria-hidden="true"
-                ></i>
-                <input
-                  type="search"
-                  id="searchInput"
-                  class="form-input search-wide"
-                  placeholder="بحث بالاسم، الهاتف، رقم الطلب، التتبع، المنتج..."
-                  autocomplete="off"
-                />
+              <!-- Search field selector: Firestore requires an exact field
+                   to query against — no native free-text multi-field search -->
+              <select id="searchField" class="form-input" style="max-width:140px;" aria-label="نوع البحث">
+                <option value="name">بحث بالاسم</option>
+                <option value="phone">بحث بالهاتف</option>
+                <option value="tracking">بحث برقم التتبع</option>
+              </select>
+              <div class="form-input-wrapper" style="flex:2;min-width:200px;max-width:300px;">
+                <i class="fas fa-magnifying-glass form-input-icon" aria-hidden="true"></i>
+                <input type="search" id="searchInput" class="form-input search-wide"
+                  placeholder="اكتب للبحث..."
+                  autocomplete="off" />
               </div>
-              <select
-                id="filterEmployee"
-                class="form-input"
-                aria-label="الموظف"
-              >
+              <select id="filterEmployee" class="form-input" aria-label="الموظف">
                 <option value="">كل الموظفين</option>
               </select>
-              <select
-                id="filterPlatform"
-                class="form-input"
-                aria-label="المنصة"
-              >
+              <select id="filterPlatform" class="form-input" aria-label="المنصة">
                 <option value="">كل المنصات</option>
               </select>
               <select id="filterGov" class="form-input" aria-label="المحافظة">
                 <option value="">كل المحافظات</option>
               </select>
-              <select
-                id="filterPayment"
-                class="form-input"
-                aria-label="طريقة الدفع"
-              >
+              <!-- isCOD boolean field — replaces fragile regex payment matching -->
+              <select id="filterIsCOD" class="form-input" aria-label="طريقة الدفع">
                 <option value="">كل طرق الدفع</option>
-                <option value="cod">كاش عند الاستلام</option>
-                <option value="online">دفع إلكتروني</option>
+                <option value="true">كاش عند الاستلام</option>
+                <option value="false">مدفوع مسبقاً</option>
               </select>
               <div class="filters-divider" aria-hidden="true"></div>
-              <div class="date-range">
-                <input
-                  type="date"
-                  id="dateFrom"
-                  class="form-input"
-                  aria-label="من تاريخ"
-                />
-                <span class="date-range__sep" aria-hidden="true">
-                  <i class="fas fa-arrow-left"></i>
-                </span>
-                <input
-                  type="date"
-                  id="dateTo"
-                  class="form-input"
-                  aria-label="إلى تاريخ"
-                />
-              </div>
-              <button
-                class="btn btn-ghost btn-sm btn-icon-only"
-                id="resetFiltersBtn"
-                title="مسح جميع الفلاتر"
-              >
-                <i class="fas fa-rotate-left"></i>
+              <input type="date" id="dateFrom" class="form-input" style="width:148px;" aria-label="من تاريخ" />
+              <input type="date" id="dateTo"   class="form-input" style="width:148px;" aria-label="إلى تاريخ" />
+              <button class="btn btn-ghost btn-sm" id="resetFiltersBtn" title="مسح الفلاتر">
+                <i class="fas fa-xmark"></i>
               </button>
             </div>
-            <!-- Active filter chips -->
-            <div class="filter-chips" id="activeFilterChips"></div>
+            <!-- Firestore allows only ONE range filter per query —
+                 shown when name search makes date range unavailable -->
+            <div id="searchDateConflictWarning" class="phone-warning" style="margin-top:var(--space-3);" hidden>
+              <i class="fas fa-circle-info" aria-hidden="true"></i>
+              <span>فلتر التاريخ معطّل مؤقتاً أثناء البحث بالاسم (قيد تقني في Firestore)</span>
+            </div>
+          </div>
+
+          <!-- Summary Bar -->
+          <div class="orders-summary-bar" role="region" aria-label="ملخص الطلبات">
+            <div class="summary-stat">
+              <div class="summary-stat-value" id="statTotal">—</div>
+              <div class="summary-stat-label">إجمالي الطلبات</div>
+            </div>
+            <div class="summary-stat">
+              <div class="summary-stat-value" id="statDelivered" style="color:var(--color-success);">—</div>
+              <div class="summary-stat-label">مسلمة</div>
+            </div>
+            <div class="summary-stat">
+              <div class="summary-stat-value" id="statCancelled" style="color:var(--color-error);">—</div>
+              <div class="summary-stat-label">ملغية / مرتجعة</div>
+            </div>
+            <div class="summary-stat">
+              <div class="summary-stat-value" id="statPending" style="color:var(--color-warning);">—</div>
+              <div class="summary-stat-label">قيد التنفيذ</div>
+            </div>
+            <div class="summary-stat">
+              <div class="summary-stat-value" id="statRevenue" style="color:var(--color-primary);">—</div>
+              <div class="summary-stat-label">إيرادات مسلمة</div>
+            </div>
           </div>
 
           <!-- Table Card -->
-          <div class="card card--3d orders-card">
+          <div class="card">
             <div class="orders-table-header">
               <div class="orders-count">
-                عرض <strong id="shownCount">0</strong> من
-                <strong id="totalCount">0</strong> طلب
+                صفحة <strong id="pageNumberLabel">1</strong> ·
+                <strong id="shownCount">0</strong> في هذه الصفحة ·
+                <strong id="totalCount">0</strong> نتيجة مطابقة
               </div>
-              <div class="orders-table-controls">
-                <label class="select-all-label">
-                  <input
-                    type="checkbox"
-                    id="selectPageChk"
-                    aria-label="تحديد الكل في الصفحة"
-                  />
-                  <span>تحديد الكل</span>
+              <div style="display:flex;align-items:center;gap:var(--space-3);">
+                <label class="text-sm text-muted" style="display:flex;align-items:center;gap:var(--space-2);">
+                  <input type="checkbox" id="selectAllChk" aria-label="تحديد الكل" />
+                  تحديد الكل
                 </label>
-                <select
-                  id="pageSizeSelect"
-                  class="form-input form-input--compact"
-                  aria-label="عدد الصفوف في الصفحة"
-                >
+                <select id="pageSizeSelect" class="form-input" style="width:110px;padding:var(--space-2) var(--space-3);" aria-label="عدد الصفوف">
                   <option value="25">25 صف</option>
                   <option value="50">50 صف</option>
                   <option value="100">100 صف</option>
@@ -254,39 +145,28 @@
               </div>
             </div>
 
-            <!-- Loading state -->
-            <div class="table-loading-state" id="tableLoadingState">
-              <div class="spinner"></div>
-              <span>جاري تحميل الطلبات...</span>
-            </div>
-
             <!-- Desktop table -->
-            <div
-              class="desktop-orders-table table-wrapper"
-              id="desktopTableWrapper"
-            >
-              <table
-                class="table table--orders"
-                id="ordersTable"
-                aria-label="جدول الطلبات"
-              >
+            <div class="desktop-orders-table table-wrapper" style="border-radius:0;border:none;">
+              <table class="table" id="ordersTable" aria-label="جدول الطلبات">
                 <thead>
                   <tr>
-                    <th class="th-checkbox" style="width: 40px">
-                      <span class="sr-only">تحديد</span>
-                    </th>
-                    <th style="width: 40px">#</th>
+                    <th style="width:40px;"><input type="checkbox" id="selectPageChk" aria-label="تحديد الصفحة" /></th>
+                    <th style="width:40px;">#</th>
                     <th>العميل</th>
                     <th>المنتجات</th>
-                    <th>الإجمالي</th>
+                    <th>الإجمالي / الربح</th>
                     <th>الحالة</th>
                     <th>التاريخ</th>
                     <th class="admin-only">الموظف</th>
                     <th>التتبع</th>
-                    <th class="th-actions" style="width: 120px">إجراءات</th>
+                    <th style="width:120px;">إجراءات</th>
                   </tr>
                 </thead>
-                <tbody id="ordersTableBody"></tbody>
+                <tbody id="ordersTableBody">
+                  <tr><td colspan="10" style="text-align:center;padding:var(--space-10);color:var(--color-text-muted);">
+                    <div class="skeleton" style="height:20px;width:200px;margin:0 auto;"></div>
+                  </td></tr>
+                </tbody>
               </table>
             </div>
 
@@ -295,52 +175,26 @@
 
             <!-- Empty state -->
             <div id="emptyState" class="empty-state" hidden>
-              <div class="empty-state__visual">
-                <div class="empty-state__icon-ring">
-                  <i class="fas fa-inbox"></i>
-                </div>
-              </div>
-              <div class="empty-state__title">لا توجد طلبات</div>
-              <div class="empty-state__desc" id="emptyStateMsg">
-                لا توجد طلبات مطابقة للفلاتر المحددة
-              </div>
-              <button class="btn btn-primary btn-3d" id="emptyAddBtn">
+              <div class="empty-state-icon"><i class="fas fa-inbox"></i></div>
+              <div class="empty-state-title">لا توجد طلبات</div>
+              <div class="empty-state-desc" id="emptyStateMsg">لا توجد طلبات مطابقة للفلاتر المحددة</div>
+              <button class="btn btn-primary" style="margin-top:var(--space-5);" id="emptyAddBtn">
                 <i class="fas fa-plus"></i> إضافة أول طلب
               </button>
             </div>
 
             <!-- Pagination -->
-            <div
-              class="pagination"
-              id="paginationBar"
-              role="navigation"
-              aria-label="تصفح الصفحات"
-            ></div>
+            <div class="pagination" id="paginationBar" role="navigation" aria-label="صفحات النتائج"></div>
           </div>
 
           <!-- Bulk action bar -->
           <div class="bulk-bar" id="bulkBar" aria-live="polite">
-            <div class="bulk-bar__info">
-              <span class="bulk-bar__icon"
-                ><i class="fas fa-check-square"></i
-              ></span>
-              <span class="bulk-count" id="bulkCount">0 طلبات محددة</span>
-            </div>
-            <div class="bulk-bar__actions">
-              <button class="btn btn-secondary btn-sm" id="bulkStatusBtn">
-                <i class="fas fa-tags"></i> تغيير الحالة
-              </button>
-              <button class="btn btn-secondary btn-sm" id="bulkEmployeeBtn">
-                <i class="fas fa-user-tag"></i> تعيين موظف
-              </button>
-              <button class="btn btn-danger btn-sm" id="bulkDeleteBtn">
-                <i class="fas fa-trash"></i> حذف
-              </button>
-              <button class="btn btn-ghost btn-sm" id="bulkClearBtn">
-                <i class="fas fa-xmark"></i> إلغاء
-              </button>
-            </div>
+            <span class="bulk-count" id="bulkCount">0 طلبات محددة</span>
+            <button class="btn btn-secondary btn-sm" id="bulkStatusBtn"><i class="fas fa-tags"></i> تغيير الحالة</button>
+            <button class="btn btn-danger btn-sm"    id="bulkDeleteBtn"><i class="fas fa-trash"></i> حذف</button>
+            <button class="btn btn-ghost btn-sm"     id="bulkClearBtn"><i class="fas fa-xmark"></i> إلغاء</button>
           </div>
+
         </main>
       </div>
     </div>
@@ -348,104 +202,50 @@
     <!-- ══════════════════════════════════════
          ORDER FORM MODAL (Add / Edit)
          ══════════════════════════════════════ -->
-    <div
-      class="order-modal-overlay"
-      id="orderModalOverlay"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="orderModalTitle"
-    >
+    <div class="order-modal-overlay" id="orderModalOverlay" role="dialog" aria-modal="true" aria-labelledby="orderModalTitle">
       <div class="order-modal">
-        <div class="order-modal__header">
-          <div class="order-modal__title">
-            <span class="order-modal__title-icon" id="orderModalIcon">
-              <i class="fas fa-cart-plus" aria-hidden="true"></i>
-            </span>
+        <div class="order-modal-header">
+          <div class="order-modal-title">
+            <i class="fas fa-cart-plus" id="orderModalIcon" aria-hidden="true"></i>
             <span id="orderModalTitle">إضافة طلب جديد</span>
           </div>
-          <button
-            class="btn btn-ghost btn-icon btn-sm order-modal__close"
-            id="closeOrderModal"
-            aria-label="إغلاق النافذة"
-          >
+          <button class="btn btn-ghost btn-icon" id="closeOrderModal" aria-label="إغلاق">
             <i class="fas fa-xmark" aria-hidden="true"></i>
           </button>
         </div>
-        <div class="order-modal__body">
+        <div class="order-modal-body">
           <input type="hidden" id="editingOrderId" />
 
           <!-- Customer Info -->
-          <div class="form-section form-section--customer">
-            <div class="form-section__header">
-              <div class="form-section__strip"></div>
-              <div class="form-section__title">
-                <i class="fas fa-user"></i>
-                <span>بيانات العميل</span>
-              </div>
-            </div>
+          <div class="form-section">
+            <div class="form-section-strip" style="background:var(--color-primary);"></div>
+            <div class="form-section-title"><i class="fas fa-user" style="color:var(--color-primary);"></i>بيانات العميل</div>
             <div class="form-grid-2">
               <div class="form-group">
-                <label class="form-label" for="customerName">
-                  اسم العميل <span class="required">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="customerName"
-                  class="form-input"
-                  placeholder="الاسم بالكامل"
-                  autocomplete="off"
-                  required
-                />
+                <label class="form-label" for="customerName">اسم العميل <span class="required">*</span></label>
+                <input type="text" id="customerName" class="form-input" placeholder="الاسم بالكامل" autocomplete="off" required />
               </div>
               <div class="form-group">
-                <label class="form-label" for="customerPhone">
-                  رقم الهاتف <span class="required">*</span>
-                </label>
-                <input
-                  type="tel"
-                  id="customerPhone"
-                  class="form-input"
-                  placeholder="01XXXXXXXXX"
-                  dir="ltr"
-                  autocomplete="off"
-                  required
-                />
+                <label class="form-label" for="customerPhone">رقم الهاتف <span class="required">*</span></label>
+                <input type="tel" id="customerPhone" class="form-input" placeholder="01XXXXXXXXX" dir="ltr" autocomplete="off" required />
                 <div id="phoneWarning" class="phone-warning" hidden>
                   <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
                   <span id="phoneWarningText"></span>
                 </div>
               </div>
               <div class="form-group">
-                <label class="form-label" for="customerPhone2">
-                  رقم احتياطي
-                </label>
-                <input
-                  type="tel"
-                  id="customerPhone2"
-                  class="form-input"
-                  placeholder="01XXXXXXXXX"
-                  dir="ltr"
-                />
+                <label class="form-label" for="customerPhone2">رقم احتياطي</label>
+                <input type="tel" id="customerPhone2" class="form-input" placeholder="01XXXXXXXXX" dir="ltr" />
               </div>
               <div class="form-group">
-                <label class="form-label" for="customerGov">
-                  المحافظة <span class="required">*</span>
-                </label>
+                <label class="form-label" for="customerGov">المحافظة <span class="required">*</span></label>
                 <select id="customerGov" class="form-input" required>
                   <option value="">اختر المحافظة</option>
                 </select>
               </div>
-              <div class="form-group form-group--full">
-                <label class="form-label" for="customerAddress">
-                  العنوان التفصيلي <span class="required">*</span>
-                </label>
-                <textarea
-                  id="customerAddress"
-                  class="form-input"
-                  rows="2"
-                  placeholder="الشارع، المنطقة، رقم المنزل، علامة مميزة..."
-                  required
-                ></textarea>
+              <div class="form-group" style="grid-column:span 2;">
+                <label class="form-label" for="customerAddress">العنوان التفصيلي <span class="required">*</span></label>
+                <textarea id="customerAddress" class="form-input" rows="2" placeholder="الشارع، المنطقة، رقم المنزل..." required></textarea>
               </div>
               <div class="form-group">
                 <label class="form-label" for="salesPlatform">مصدر الطلب</label>
@@ -463,187 +263,81 @@
           </div>
 
           <!-- Products -->
-          <div class="form-section form-section--products">
-            <div class="form-section__header">
-              <div class="form-section__strip"></div>
-              <div class="form-section__title form-section__title--between">
-                <span>
-                  <i class="fas fa-box"></i>
-                  المنتجات
-                </span>
-                <button
-                  type="button"
-                  class="btn btn-success btn-sm btn-3d"
-                  id="addProductRowBtn"
-                >
-                  <i class="fas fa-plus"></i> إضافة منتج
-                </button>
-              </div>
+          <div class="form-section">
+            <div class="form-section-strip" style="background:var(--color-success);"></div>
+            <div class="form-section-title" style="justify-content:space-between;">
+              <span><i class="fas fa-box" style="color:var(--color-success);"></i>المنتجات</span>
+              <button type="button" class="btn btn-success btn-sm" id="addProductRowBtn">
+                <i class="fas fa-plus"></i> إضافة منتج
+              </button>
             </div>
             <div class="product-rows" id="productsContainer"></div>
-            <div class="products-empty" id="productsEmpty" hidden>
-              <i class="fas fa-box-open"></i>
-              <p>اضغط "إضافة منتج" لإضافة منتجات للطلب</p>
+            <div id="productsEmpty" style="text-align:center;color:var(--color-text-muted);padding:var(--space-4);font-size:var(--font-size-sm);" hidden>
+              اضغط "إضافة منتج" لإضافة منتجات للطلب
             </div>
           </div>
 
           <!-- Shipping & Payment -->
-          <div class="form-section form-section--shipping">
-            <div class="form-section__header">
-              <div class="form-section__strip"></div>
-              <div class="form-section__title">
-                <i class="fas fa-truck"></i>
-                <span>الشحن والدفع</span>
-              </div>
-            </div>
-            <div class="form-grid-2">
+          <div class="form-section">
+            <div class="form-section-strip" style="background:var(--color-alert);"></div>
+            <div class="form-section-title"><i class="fas fa-truck" style="color:var(--color-alert);"></i>الشحن والدفع</div>
+            <div class="form-grid-2" style="margin-bottom:var(--space-4);">
               <div class="form-group">
-                <label class="form-label" for="orderShippingCompany">
-                  شركة الشحن
-                </label>
+                <label class="form-label" for="orderShippingCompany">شركة الشحن</label>
                 <select id="orderShippingCompany" class="form-input"></select>
               </div>
               <div class="form-group">
-                <label class="form-label" for="orderDiscount">
-                  خصم (ج.م)
-                </label>
-                <input
-                  type="number"
-                  id="orderDiscount"
-                  class="form-input"
-                  value="0"
-                  min="0"
-                  step="0.5"
-                />
+                <label class="form-label" for="orderDiscount">خصم (ج.م)</label>
+                <input type="number" id="orderDiscount" class="form-input" value="0" min="0" step="0.5" />
               </div>
             </div>
             <div class="check-cards">
-              <label class="check-card">
-                <input type="checkbox" id="chkFreeShipping" />
-                <span class="check-card__icon">
-                  <i class="fas fa-gift" style="color: var(--color-alert)"></i>
-                </span>
-                <span class="check-card__text">شحن مجاني</span>
-                <span class="check-card__check">
-                  <i class="fas fa-check"></i>
-                </span>
-              </label>
-              <label class="check-card">
-                <input type="checkbox" id="chkPrepaidShipping" />
-                <span class="check-card__icon">
-                  <i
-                    class="fas fa-money-bill-wave"
-                    style="color: var(--color-warning)"
-                  ></i>
-                </span>
-                <span class="check-card__text">شحن مدفوع مسبقاً</span>
-                <span class="check-card__check">
-                  <i class="fas fa-check"></i>
-                </span>
-              </label>
-              <label class="check-card">
-                <input type="checkbox" id="chkPaidInAdvance" />
-                <span class="check-card__icon">
-                  <i
-                    class="fas fa-credit-card"
-                    style="color: var(--color-success)"
-                  ></i>
-                </span>
-                <span class="check-card__text">الطلب مدفوع بالكامل</span>
-                <span class="check-card__check">
-                  <i class="fas fa-check"></i>
-                </span>
-              </label>
-              <label class="check-card">
-                <input type="checkbox" id="chkIntentConfirmed" />
-                <span class="check-card__icon">
-                  <i
-                    class="fas fa-handshake"
-                    style="color: var(--color-primary)"
-                  ></i>
-                </span>
-                <span class="check-card__text">نية استلام مؤكدة</span>
-                <span class="check-card__check">
-                  <i class="fas fa-check"></i>
-                </span>
-              </label>
+              <label class="check-card"><input type="checkbox" id="chkFreeShipping" /><i class="fas fa-gift" style="color:var(--color-alert);"></i>شحن مجاني</label>
+              <label class="check-card"><input type="checkbox" id="chkPrepaidShipping" /><i class="fas fa-money-bill-wave" style="color:var(--color-warning);"></i>شحن مدفوع مسبقاً</label>
+              <label class="check-card"><input type="checkbox" id="chkPaidInAdvance" /><i class="fas fa-credit-card" style="color:var(--color-success);"></i>الطلب مدفوع بالكامل</label>
+              <label class="check-card"><input type="checkbox" id="chkIntentConfirmed" /><i class="fas fa-handshake" style="color:var(--color-primary);"></i>نية استلام مؤكدة</label>
             </div>
             <div class="cod-display">
-              <span class="cod-display__label">المطلوب تحصيله (COD)</span>
-              <div class="cod-display__amount" id="codAmount">0 ج.م</div>
-              <div class="cod-display__breakdown" id="codBreakdown"></div>
+              <span class="cod-label">المطلوب تحصيله (COD)</span>
+              <div class="cod-amount" id="codAmount">0 ج.م</div>
+              <div class="cod-breakdown" id="codBreakdown"></div>
             </div>
           </div>
 
           <!-- Order Meta -->
-          <div class="form-section form-section--meta">
-            <div class="form-section__header">
-              <div class="form-section__strip"></div>
-              <div class="form-section__title">
-                <i class="fas fa-cog"></i>
-                <span>تفاصيل الطلب</span>
-              </div>
-            </div>
+          <div class="form-section">
+            <div class="form-section-strip" style="background:var(--color-warning);"></div>
+            <div class="form-section-title"><i class="fas fa-cog" style="color:var(--color-warning);"></i>تفاصيل الطلب</div>
             <div class="form-grid-2">
               <div class="form-group">
                 <label class="form-label" for="orderStatus">حالة الطلب</label>
                 <select id="orderStatus" class="form-input"></select>
               </div>
               <div class="form-group admin-only">
-                <label class="form-label" for="orderEmployee">
-                  الموظف المسؤول
-                </label>
+                <label class="form-label" for="orderEmployee">الموظف المسؤول</label>
                 <select id="orderEmployee" class="form-input"></select>
               </div>
               <div class="form-group">
                 <label class="form-label" for="orderDate">تاريخ الطلب</label>
-                <input
-                  type="datetime-local"
-                  id="orderDate"
-                  class="form-input"
-                />
+                <input type="datetime-local" id="orderDate" class="form-input" />
               </div>
               <div class="form-group">
-                <label class="form-label" for="trackingNumber">
-                  رقم التتبع
-                </label>
-                <input
-                  type="text"
-                  id="trackingNumber"
-                  class="form-input"
-                  placeholder="رقم البوليصة"
-                  dir="ltr"
-                />
+                <label class="form-label" for="trackingNumber">رقم التتبع</label>
+                <input type="text" id="trackingNumber" class="form-input" placeholder="رقم البوليصة" dir="ltr" />
               </div>
-              <div class="form-group form-group--full">
+              <div class="form-group" style="grid-column:span 2;">
                 <label class="form-label" for="orderNotes">ملاحظات</label>
-                <textarea
-                  id="orderNotes"
-                  class="form-input"
-                  rows="2"
-                  placeholder="أي ملاحظات إضافية..."
-                ></textarea>
+                <textarea id="orderNotes" class="form-input" rows="2" placeholder="أي ملاحظات إضافية..."></textarea>
               </div>
             </div>
           </div>
-        </div>
-        <!-- /modal-body -->
-        <div class="order-modal__footer">
-          <button type="button" class="btn btn-secondary" id="cancelOrderModal">
-            إلغاء
-          </button>
-          <button
-            type="button"
-            class="btn btn-primary btn-glow"
-            id="saveOrderBtn"
-          >
+
+        </div><!-- /modal-body -->
+        <div class="order-modal-footer">
+          <button type="button" class="btn btn-secondary" id="cancelOrderModal">إلغاء</button>
+          <button type="button" class="btn btn-primary"   id="saveOrderBtn">
             <span id="saveOrderText">حفظ الطلب</span>
-            <i
-              id="saveOrderSpinner"
-              class="fas fa-circle-notch fa-spin"
-              hidden
-              aria-hidden="true"
-            ></i>
+            <i id="saveOrderSpinner" class="fas fa-circle-notch fa-spin" hidden aria-hidden="true"></i>
           </button>
         </div>
       </div>
@@ -652,103 +346,27 @@
     <!-- ══════════════════════════════════════
          QUICK STATUS CHANGE MODAL
          ══════════════════════════════════════ -->
-    <div
-      class="order-modal-overlay status-modal-overlay"
-      id="statusModalOverlay"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="statusModalTitle"
-    >
-      <div class="order-modal order-modal--compact">
-        <div class="order-modal__header">
-          <div class="order-modal__title">
-            <span
-              class="order-modal__title-icon order-modal__title-icon--status"
-            >
-              <i class="fas fa-tags" aria-hidden="true"></i>
-            </span>
-            <span id="statusModalTitle">تغيير حالة الطلب</span>
-          </div>
-          <button
-            class="btn btn-ghost btn-icon btn-sm order-modal__close"
-            id="closeStatusModal"
-            aria-label="إغلاق"
-          >
-            <i class="fas fa-xmark" aria-hidden="true"></i>
-          </button>
+    <div class="vision-modal-overlay" id="statusModalOverlay" role="dialog" aria-modal="true" aria-labelledby="statusModalTitle">
+      <div class="vision-modal" style="max-width:400px;">
+        <div class="vision-modal-header">
+          <h2 class="vision-modal-title" id="statusModalTitle">تغيير حالة الطلب</h2>
+          <button class="vision-modal-close" id="closeStatusModal" aria-label="إغلاق">×</button>
         </div>
-        <div class="order-modal__body order-modal__body--compact">
+        <div class="vision-modal-body">
           <input type="hidden" id="statusModalOrderId" />
-          <p class="status-modal__info" id="statusModalOrderInfo"></p>
+          <p style="margin-bottom:var(--space-4);font-size:var(--font-size-sm);" id="statusModalOrderInfo"></p>
           <div class="form-group">
-            <label class="form-label" for="newStatusSelect"
-              >الحالة الجديدة</label
-            >
+            <label class="form-label" for="newStatusSelect">الحالة الجديدة</label>
             <select id="newStatusSelect" class="form-input"></select>
           </div>
           <div class="form-group">
             <label class="form-label" for="statusNotes">ملاحظة (اختياري)</label>
-            <input
-              type="text"
-              id="statusNotes"
-              class="form-input"
-              placeholder="سبب التغيير..."
-            />
+            <input type="text" id="statusNotes" class="form-input" placeholder="سبب التغيير..." />
           </div>
         </div>
-        <div class="order-modal__footer">
-          <button class="btn btn-secondary" id="cancelStatusModal">
-            إلغاء
-          </button>
-          <button class="btn btn-primary" id="confirmStatusBtn">تأكيد</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══════════════════════════════════════
-         BULK EMPLOYEE ASSIGN MODAL
-         ══════════════════════════════════════ -->
-    <div
-      class="order-modal-overlay"
-      id="bulkEmployeeModalOverlay"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="bulkEmployeeModalTitle"
-    >
-      <div class="order-modal order-modal--compact">
-        <div class="order-modal__header">
-          <div class="order-modal__title">
-            <span
-              class="order-modal__title-icon order-modal__title-icon--employee"
-            >
-              <i class="fas fa-user-tag" aria-hidden="true"></i>
-            </span>
-            <span id="bulkEmployeeModalTitle">تعيين موظف</span>
-          </div>
-          <button
-            class="btn btn-ghost btn-icon btn-sm order-modal__close"
-            id="closeBulkEmployeeModal"
-            aria-label="إغلاق"
-          >
-            <i class="fas fa-xmark" aria-hidden="true"></i>
-          </button>
-        </div>
-        <div class="order-modal__body order-modal__body--compact">
-          <p class="status-modal__info" id="bulkEmployeeInfo"></p>
-          <div class="form-group">
-            <label class="form-label" for="bulkEmployeeSelect"
-              >اختر الموظف</label
-            >
-            <select id="bulkEmployeeSelect" class="form-input"></select>
-          </div>
-        </div>
-        <div class="order-modal__footer">
-          <button class="btn btn-secondary" id="cancelBulkEmployeeModal">
-            إلغاء
-          </button>
-          <button class="btn btn-primary" id="confirmBulkEmployeeBtn">
-            تأكيد
-          </button>
+        <div class="vision-modal-footer">
+          <button class="btn btn-secondary" id="cancelStatusModal">إلغاء</button>
+          <button class="btn btn-primary"   id="confirmStatusBtn">تأكيد</button>
         </div>
       </div>
     </div>

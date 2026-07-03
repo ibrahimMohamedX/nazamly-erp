@@ -1,27 +1,71 @@
-// core/vision-init.js — System Bootstrap (Firebase Compat)
-// ============================================================
-// This file initializes Firebase (using compat SDK), loads vision modules,
-// applies configuration, starts real-time listeners, and dispatches 'vision-ready'.
-// It exposes window.db and window.auth for backward compatibility with legacy code.
-
-(() => {
+/**
+ * vision-init.js — System Bootstrap
+ * ====================================
+ * This is the ONLY file referenced by the HTML pages.
+ * It is responsible for:
+ *
+ *   1. Defining the Firebase project configuration (edit the FIREBASE_CONFIG
+ *      block below with your actual project values).
+ *   2. Initializing the Firebase SDK (idempotent: skips if already done).
+ *   3. Dynamically loading the five Vision module files in dependency order.
+ *   4. Fetching client configuration from Firestore (/system/config).
+ *   5. Exposing window.CLIENT_BRAND, window.ALLOWED_EMAILS, window.CLIENT_DATA.
+ *   6. Starting Firestore real-time listeners (system status, notifications).
+ *   7. Dispatching the 'vision-ready' CustomEvent on window.
+ *
+ * Firestore document: /system/config
+ * ─────────────────────────────────────
+ *   {
+ *     brandName:     "اسم الشركة",       // → window.CLIENT_BRAND
+ *     allowedEmails: ["a@b.com", …],     // → window.ALLOWED_EMAILS
+ *     settings:      { … }               // → window.CLIENT_DATA.settings
+ *   }
+ *
+ * Place all six vision-*.js files in the same directory as this file.
+ * They are loaded dynamically in the correct dependency order.
+ */
+(function (window, document) {
   "use strict";
 
-  /* ──────────────────────────────────────────────────────────────
-   *  LOGGER
-   *  ────────────────────────────────────────────────────────────── */
-  const log = (msg) => console.log("[VisionInit] " + msg);
-  const warn = (msg) => console.warn("[VisionInit] " + msg);
-  const err = (msg, e) => console.error("[VisionInit] " + msg, e || "");
+  /* ══════════════════════════════════════════════
+   * ▶ EDIT THIS BLOCK WITH YOUR FIREBASE PROJECT
+   * ══════════════════════════════════════════════ */
+  var FIREBASE_CONFIG = {
+    apiKey: "AIzaSyCfqb7u3Es7rq39E4Mb8cRJM487odXVJa0",
+    authDomain: "erp-website-38fe1.firebaseapp.com",
+    projectId: "erp-website-38fe1",
+    storageBucket: "erp-website-38fe1.firebasestorage.app",
+    messagingSenderId: "74025192730",
+    appId: "1:74025192730:web:392eb58f3d59a33e66f0a3",
+    // measurementId: "G-NBW3S78ZLJ"
+  };
+  // Initialize Firebase
+  // const app = initializeApp(firebaseConfig);
+  // const analytics = getAnalytics(app);
+  /* ══════════════════════════════════════════════ */
 
-  /* ──────────────────────────────────────────────────────────────
-   *  BASE URL FOR DYNAMIC SCRIPT LOADING
-   *  ────────────────────────────────────────────────────────────── */
-  const _baseUrl = (() => {
-    const scripts = document.querySelectorAll('script[src]');
-    let selfSrc = "";
-    for (let i = scripts.length - 1; i >= 0; i--) {
-      if (scripts[i].src && scripts[i].src.includes("vision-init")) {
+  /* ─────────────────────────────────────────────
+   * SIMPLE LOGGER
+   * ───────────────────────────────────────────── */
+  function log(msg) {
+    console.log("[VisionInit] " + msg);
+  }
+  function warn(msg) {
+    console.warn("[VisionInit] " + msg);
+  }
+  function err(msg, e) {
+    console.error("[VisionInit] " + msg, e || "");
+  }
+
+  /* ─────────────────────────────────────────────
+   * RESOLVE THE BASE URL FOR LOADING MODULES
+   * Handles being embedded in a sub-folder.
+   * ───────────────────────────────────────────── */
+  var _baseUrl = (function () {
+    var scripts = document.querySelectorAll("script[src]");
+    var selfSrc = "";
+    for (var i = scripts.length - 1; i >= 0; i--) {
+      if (scripts[i].src && scripts[i].src.indexOf("vision-init") !== -1) {
         selfSrc = scripts[i].src;
         break;
       }
@@ -30,72 +74,28 @@
     return selfSrc.substring(0, selfSrc.lastIndexOf("/") + 1);
   })();
 
-  /* ──────────────────────────────────────────────────────────────
-   *  DYNAMIC SCRIPT LOADER (returns Promise)
-   *  ────────────────────────────────────────────────────────────── */
-  const loadScript = (src) =>
-    new Promise((resolve, reject) => {
-      if (document.querySelector(`script[src="${src}"]`)) {
+  /* ─────────────────────────────────────────────
+   * SCRIPT LOADER
+   * ───────────────────────────────────────────── */
+  function loadScript(src) {
+    return new Promise(function (resolve, reject) {
+      // Skip if already present in the DOM
+      if (document.querySelector('script[src="' + src + '"]')) {
         return resolve();
       }
-      const s = document.createElement("script");
+      var s = document.createElement("script");
       s.src = src;
       s.onload = resolve;
-      s.onerror = () => reject(new Error(`Failed to load: ${src}`));
+      s.onerror = function () {
+        reject(new Error("Failed to load: " + src));
+      };
       document.head.appendChild(s);
     });
-
-  /* ──────────────────────────────────────────────────────────────
-   *  FIREBASE CONFIG (EDIT WITH YOUR PROJECT VALUES)
-   *  ────────────────────────────────────────────────────────────── */
-  const FIREBASE_CONFIG = {
-    apiKey: "AIzaSyCfqb7u3Es7rq39E4Mb8cRJM487odXVJa0",
-    authDomain: "erp-website-38fe1.firebaseapp.com",
-    projectId: "erp-website-38fe1",
-    storageBucket: "erp-website-38fe1.firebasestorage.app",
-    messagingSenderId: "74025192730",
-    appId: "1:74025192730:web:392eb58f3d59a33e66f0a3"
-  };
-
-  /* ──────────────────────────────────────────────────────────────
-   *  STEP 1: INITIALIZE FIREBASE IMMEDIATELY (SYNCHRONOUSLY)
-   *  This ensures window.db and window.auth are available ASAP for legacy code
-   *  ────────────────────────────────────────────────────────────── */
-  let dbInstance = null;
-  let authInstance = null;
-
-  try {
-    // Initialize Firebase app if not already done
-    if (typeof firebase !== "undefined") {
-      if (!firebase.apps || firebase.apps.length === 0) {
-        firebase.initializeApp(FIREBASE_CONFIG);
-        log("Firebase initialized with compat SDK");
-      } else {
-        log("Firebase already initialized — reusing existing app");
-      }
-
-      // Get fresh instances and expose globally for backward compatibility
-      dbInstance = firebase.firestore();
-      authInstance = firebase.auth();
-      window.db = dbInstance;
-      window.auth = authInstance;
-      log("Firestore and Auth exposed to window");
-    } else {
-      warn("Firebase SDK not found - legacy Firebase code will fail");
-      window.db = null;
-      window.auth = null;
-    }
-  } catch (e) {
-    err("Firebase initialization failed", e);
-    window.db = null;
-    window.auth = null;
   }
 
-  /* ──────────────────────────────────────────────────────────────
-   *  LOAD VISION MODULES IN DEPENDENCY ORDER
-   *  ────────────────────────────────────────────────────────────── */
+  /** Load Vision modules in dependency order */
   function loadModules() {
-    const modules = [
+    var modules = [
       "vision-config.js", // no deps
       "vision-security.js", // no deps
       "vision-overlays.js", // needs VisionSecurity, VisionConfig
@@ -105,38 +105,44 @@
     ];
 
     // Chain loads sequentially so each module finds the previous ones on window
-    return modules.reduce((chain, name) => chain.then(() => loadScript(_baseUrl + name)), Promise.resolve());
+    return modules.reduce(function (chain, name) {
+      return chain.then(function () {
+        return loadScript(_baseUrl + name);
+      });
+    }, Promise.resolve());
   }
 
-  /* ──────────────────────────────────────────────────────────────
-   *  DOM READY
-   *  ────────────────────────────────────────────────────────────── */
+  /* ─────────────────────────────────────────────
+   * DOM READY
+   * ───────────────────────────────────────────── */
   function domReady() {
-    return new Promise(resolve => {
+    return new Promise(function (resolve) {
       if (document.readyState !== "loading") return resolve();
       document.addEventListener("DOMContentLoaded", resolve, { once: true });
     });
   }
 
-  /* ──────────────────────────────────────────────────────────────
-   *  FIRE THE vision-ready EVENT
-   *  ────────────────────────────────────────────────────────────── */
+  /* ─────────────────────────────────────────────
+   * FIRE THE vision-ready EVENT
+   * ───────────────────────────────────────────── */
   function fireReady() {
-    const event = new CustomEvent("vision-ready", {
+    var event = new CustomEvent("vision-ready", {
       bubbles: true,
       detail: {
         brand: window.CLIENT_BRAND,
         allowedEmails: window.ALLOWED_EMAILS,
-        data: window.CLIENT_DATA
-      }
+        data: window.CLIENT_DATA,
+      },
     });
     window.dispatchEvent(event);
-    log(`vision-ready dispatched — brand="${window.CLIENT_BRAND || ""}"`);
+    log(
+      'vision-ready dispatched — brand="' + (window.CLIENT_BRAND || "") + '"',
+    );
   }
 
-  /* ──────────────────────────────────────────────────────────────
-   *  APPLY CONFIG FROM FIRESTORE DOCUMENT
-   *  ────────────────────────────────────────────────────────────── */
+  /* ─────────────────────────────────────────────
+   * APPLY CONFIG FROM FIRESTORE DOCUMENT
+   * ───────────────────────────────────────────── */
   function applyConfig(config) {
     window.CLIENT_BRAND = config.brandName || config.brand || "نظام الإدارة";
     window.ALLOWED_EMAILS = Array.isArray(config.allowedEmails)
@@ -149,8 +155,11 @@
     }
 
     log(
-      `config applied — brand="${window.CLIENT_BRAND}"` +
-      `, allowedEmails=${window.ALLOWED_EMAILS.length}`
+      'config applied — brand="' +
+        window.CLIENT_BRAND +
+        '"' +
+        ", allowedEmails=" +
+        window.ALLOWED_EMAILS.length,
     );
   }
 
@@ -160,23 +169,18 @@
     window.CLIENT_DATA = window.CLIENT_DATA || {};
   }
 
-  /* ──────────────────────────────────────────────────────────────
-   *  FETCH /system/config FROM FIRESTORE
-   *  ────────────────────────────────────────────────────────────── */
+  /* ─────────────────────────────────────────────
+   * FETCH /system/config FROM FIRESTORE
+   * ───────────────────────────────────────────── */
   async function fetchConfig() {
-    // Check if Firestore is available
-    if (typeof firebase === "undefined" || !firebase.firestore || !window.db) {
+    if (typeof firebase === "undefined" || !firebase.firestore) {
       warn("Firestore not available — using defaults");
       applyDefaults();
       return;
     }
-
     try {
-      // Use the globally exposed db (set during initialization)
-      const db = window.db;
-      if (!db) throw new Error("Firestore instance not available");
-
-      const doc = await db.collection("system").doc("config").get();
+      var db = firebase.firestore();
+      var doc = await db.collection("system").doc("config").get();
       if (doc.exists) {
         applyConfig(doc.data());
       } else {
@@ -189,36 +193,53 @@
     }
   }
 
-  /* ──────────────────────────────────────────────────────────────
-   *  INITIALIZE VISION MODULES
-   *  ────────────────────────────────────────────────────────────── */
+  /* ─────────────────────────────────────────────
+   * INITIALIZE FIREBASE (IDEMPOTENT)
+   * ───────────────────────────────────────────── */
+  function initFirebase() {
+    if (typeof firebase === "undefined") {
+      warn(
+        "Firebase SDK not found. Ensure the firebase-app-compat CDN is loaded first.",
+      );
+      return;
+    }
+    if (!firebase.apps || firebase.apps.length === 0) {
+      firebase.initializeApp(FIREBASE_CONFIG);
+      log("Firebase initialized");
+    } else {
+      log("Firebase already initialized — reusing existing app");
+    }
+  }
+
+  /* ─────────────────────────────────────────────
+   * INITIALIZE VISION MODULES
+   * ───────────────────────────────────────────── */
   function initModules() {
     // VisionAuth — needs Firebase already initialized
     if (window.VisionAuth) {
-      try {
-        window.VisionAuth.init({ firebase: true });
-        log("VisionAuth initialized");
-      } catch (e) {
-        err("VisionAuth.init failed", e);
-      }
+      window.VisionAuth.init({ firebase: true });
+      log("VisionAuth initialized");
     } else {
       warn("VisionAuth not loaded");
     }
 
     // VisionFirebase — async init (offline persistence attempt)
     if (window.VisionFirebase) {
-      window.VisionFirebase
-        .init({ offlinePersistence: true })
-        .then(() => log("VisionFirebase initialized"))
-        .catch(e => err("VisionFirebase.init error", e));
+      window.VisionFirebase.init({ offlinePersistence: true })
+        .then(function () {
+          log("VisionFirebase initialized");
+        })
+        .catch(function (e) {
+          err("VisionFirebase.init error", e);
+        });
     } else {
       warn("VisionFirebase not loaded");
     }
   }
 
-  /* ──────────────────────────────────────────────────────────────
-   *  START REAL-TIME LISTENERS
-   *  ────────────────────────────────────────────────────────────── */
+  /* ─────────────────────────────────────────────
+   * START REAL-TIME LISTENERS
+   * ───────────────────────────────────────────── */
   function startSyncs() {
     if (!window.VisionFirebase) return;
 
@@ -240,11 +261,11 @@
 
     // Per-user subscription sync — starts when a user logs in
     if (window.VisionAuth) {
-      window.VisionAuth.onAuthStateChanged(user => {
+      window.VisionAuth.onAuthStateChanged(function (user) {
         if (user && user.uid) {
           try {
             window.VisionFirebase.syncSubscription(user.uid);
-            log(`subscription sync started for ${user.uid}`);
+            log("subscription sync started for " + user.uid);
           } catch (e) {
             err("syncSubscription failed", e);
           }
@@ -253,25 +274,26 @@
     }
   }
 
-  /* ──────────────────────────────────────────────────────────────
-   *  CLEANUP ON UNLOAD
-   *  ────────────────────────────────────────────────────────────── */
-  window.addEventListener("beforeunload", () => {
+  /* ─────────────────────────────────────────────
+   * CLEANUP ON UNLOAD
+   * ───────────────────────────────────────────── */
+  window.addEventListener("beforeunload", function () {
     if (window.VisionFirebase) {
       window.VisionFirebase.disconnect();
     }
   });
 
-  /* ──────────────────────────────────────────────────────────────
-   *  MAIN BOOTSTRAP SEQUENCE
-   *  ────────────────────────────────────────────────────────────── */
+  /* ─────────────────────────────────────────────
+   * MAIN BOOTSTRAP SEQUENCE
+   * ───────────────────────────────────────────── */
   async function bootstrap() {
     log("bootstrap starting…");
 
     // 1. Wait for DOM
     await domReady();
 
-    // 2. Firebase already initialized above (synchronous)
+    // 2. Initialize Firebase SDK
+    initFirebase();
 
     // 3. Load Vision module files
     try {
@@ -279,7 +301,7 @@
       log("all modules loaded");
     } catch (e) {
       err("module load failed", e);
-      // Continue — some modules may have loaded; pages degrade gracefully
+      // Carry on — some modules may have loaded; the pages will degrade gracefully
     }
 
     // 4. Initialize modules that need Firebase
@@ -296,7 +318,7 @@
   }
 
   // Kick off and guarantee vision-ready fires even on fatal error
-  bootstrap().catch(e => {
+  bootstrap().catch(function (e) {
     err("bootstrap failed", e);
     applyDefaults();
     try {
@@ -305,4 +327,4 @@
       /* already dispatched */
     }
   });
-})();
+})(window, document);

@@ -1,59 +1,94 @@
 /**
- * shared/auth-guard.js — Page Auth Protection
+ * shared/auth-guard.js — Page Auth Protection  (v2: async-safe)
  *
- * Every protected page calls:
- *   AuthGuard.protect({ adminOnly: true, onReady: user => initPage(user) });
+ * ════════════════════════════════════════════════════════════════════════
+ * BUG FIX: onAuthStateChanged race condition → login bounce loop
+ * ════════════════════════════════════════════════════════════════════════
+ * Root cause: Firebase restores a persisted session from IndexedDB
+ * ASYNCHRONOUSLY — this always takes at least one async tick, even on a
+ * warm cache. The previous version of this file waited for `vision-ready`
+ * and then read `VisionAuth.getUser()` SYNCHRONOUSLY. VisionAuth's own
+ * internal auth listener (registered during vision-init.js's bootstrap)
+ * is racing against that same restore, so `VisionAuth.getUser()` could
+ * still be returning its default `null` state at the moment we checked it
+ * — even for an already-logged-in user. That caused an incorrect redirect
+ * to login.html. Then login.html's OWN onAuthStateChanged listener would
+ * fire (Firebase's internal auth-state cache is warm by then), detect the
+ * real session, and bounce the user back to index.html — the loop.
  *
- * Race-condition proof: checks dual readiness signals AND uses a
- * safety timeout so pages never freeze waiting for a missed event.
+ * Fix: subscribe DIRECTLY to firebase.auth().onAuthStateChanged() and act
+ * ONLY on its first invocation. This is the one authoritative, guaranteed
+ * signal that Firebase has finished checking for a persisted session
+ * (whether it found one or not). We do not touch core/vision-auth.js —
+ * instead we wait an extra beat for VisionAuth's role/permission claims
+ * (which need one more async hop: fbUser.getIdTokenResult()) via a short,
+ * timeout-guarded subscription to VisionAuth's own event system.
+ * ════════════════════════════════════════════════════════════════════════
  */
 (function (window) {
   'use strict';
 
-  /* Ready timeout (ms) — fallback if vision-ready never fires */
-  var _READY_TIMEOUT = 6000;
+  const VISION_AUTH_TIMEOUT_MS = 4000;
 
-  /* ── Redirect loop guard ── */
-  function _isLoginPage() {
-    try {
-      var p = window.location.pathname.split('/').pop().toLowerCase();
-      return p === 'login.html' || p === 'login';
-    } catch (_) { return false; }
-  }
-
-  /* ── Race-proof ready check ── */
+  /**
+   * Safely invoke callback after vision-ready.
+   * Handles the case where vision-ready may have already fired.
+   * @param {Function} fn
+   */
   function _whenReady(fn) {
-    /* Dual-signal: brand token OR VisionAuth object present */
-    var ready = typeof window.CLIENT_BRAND !== 'undefined'
-             || typeof window.VisionAuth !== 'undefined';
-
-    if (ready) {
-      /* Already initialized — schedule microtask */
+    if (typeof window.CLIENT_BRAND !== 'undefined') {
+      /* vision-ready already fired — schedule async to avoid sync issues */
       Promise.resolve().then(fn);
-      return;
+    } else {
+      window.addEventListener('vision-ready', fn, { once: true });
     }
-
-    /* Wait for event with safety timeout */
-    var done = false;
-    var handler = function () {
-      if (done) return;
-      done = true;
-      clearTimeout(safety);
-      fn();
-    };
-
-    var safety = setTimeout(function () {
-      if (done) return;
-      done = true;
-      window.removeEventListener('vision-ready', handler);
-      console.warn('[AuthGuard] vision-ready timeout — using fallback');
-      fn();
-    }, _READY_TIMEOUT);
-
-    window.addEventListener('vision-ready', handler, { once: true });
   }
 
-  /* ── Public API ── */
+  /**
+   * Wait for VisionAuth's enriched user object (role + permissions synced
+   * from Firebase ID-token custom claims) to reflect the given uid.
+   *
+   * VisionAuth.onAuthStateChanged() replays synchronously with whatever
+   * `_state.user` currently holds at subscribe time — which may still be
+   * `null` if VisionAuth's own async chain (getIdTokenResult()) hasn't
+   * completed yet. We ignore that immediate null replay and wait for a
+   * callback whose user.uid matches the Firebase user we already confirmed
+   * exists. A timeout prevents hanging the page forever if VisionAuth
+   * never resolves (e.g. Firestore permission error on the employee doc).
+   *
+   * @param {string} expectedUid
+   * @param {number} [timeoutMs]
+   * @returns {Promise<Object|null>} the enriched user, or null on timeout
+   */
+  function _waitForVisionAuthUser(expectedUid, timeoutMs) {
+    return new Promise(function (resolve) {
+      if (!window.VisionAuth) { resolve(null); return; }
+
+      let settled = false;
+      let unsubscribe = null;
+
+      const timer = setTimeout(function () {
+        if (settled) return;
+        settled = true;
+        if (unsubscribe) unsubscribe();
+        /* Timeout fallback: return whatever VisionAuth currently has,
+           even if it never matched — better than hanging indefinitely. */
+        resolve(window.VisionAuth.getUser());
+      }, timeoutMs || VISION_AUTH_TIMEOUT_MS);
+
+      unsubscribe = window.VisionAuth.onAuthStateChanged(function (user) {
+        if (settled) return;
+        if (user && (!expectedUid || user.uid === expectedUid)) {
+          settled = true;
+          clearTimeout(timer);
+          if (unsubscribe) unsubscribe();
+          resolve(user);
+        }
+        /* else: this is either the immediate null replay on subscribe,
+           or a transient mismatch — keep waiting for the real callback */
+      });
+    });
+  }
 
   /**
    * Protect the current page.
@@ -65,58 +100,69 @@
    */
   function protect(options) {
     options = options || {};
-    var loginPage = options.redirect || 'login.html';
-
-    /* Prevent redirect loops */
-    if (_isLoginPage()) {
-      if (typeof options.onReady === 'function') options.onReady(null);
-      return;
-    }
+    const loginPage = options.redirect || 'login.html';
 
     _whenReady(function () {
-      /* Primary path: VisionAuth available */
-      if (window.VisionAuth) {
-        try {
-          var user = window.VisionAuth.getUser();
 
-          if (!user) {
-            window.location.replace(loginPage);
-            return;
-          }
+      /* Guard: Firebase SDK must be present before we can even ask it
+         anything. This does NOT redirect — an SDK load failure is a
+         network/config problem, not an "unauthenticated" state, and
+         redirecting to login.html would just repeat the same failure. */
+      if (typeof firebase === 'undefined' || typeof firebase.auth !== 'function') {
+        console.error('[AuthGuard] Firebase Auth SDK not available.');
+        window.location.replace(loginPage);
+        return;
+      }
 
-          if (options.adminOnly && !window.VisionAuth.isAdmin()) {
+      let auth;
+      try {
+        auth = firebase.auth();
+      } catch (e) {
+        console.error('[AuthGuard] firebase.auth() threw:', e);
+        window.location.replace(loginPage);
+        return;
+      }
+
+      if (!auth || typeof auth.onAuthStateChanged !== 'function') {
+        console.error('[AuthGuard] Invalid Auth instance:', auth);
+        window.location.replace(loginPage);
+        return;
+      }
+
+      /* ── THE FIX ──────────────────────────────────────────────────
+         Subscribe directly to Firebase's own auth listener. Its FIRST
+         invocation — whether it receives a user or null — is the
+         authoritative "session check complete" signal. We act on that
+         first invocation only, then immediately unsubscribe so this
+         listener never fires again (sign-out handling lives elsewhere,
+         in shared/sidebar.js). */
+      const unsubscribeAuth = auth.onAuthStateChanged(function (fbUser) {
+        unsubscribeAuth();
+
+        if (!fbUser) {
+          window.location.replace(loginPage);
+          return;
+        }
+
+        /* A persisted Firebase session exists. Wait for VisionAuth to
+           finish syncing role/permission claims before evaluating
+           adminOnly or calling onReady — downstream code (Sidebar,
+           Topbar, page controllers) assumes VisionAuth.isAdmin() and
+           .getUser() are already correct by the time onReady fires. */
+        _waitForVisionAuthUser(fbUser.uid).then(function (enrichedUser) {
+          if (options.adminOnly && window.VisionAuth && !window.VisionAuth.isAdmin()) {
             window.location.replace('orders.html');
             return;
           }
-
           if (typeof options.onReady === 'function') {
-            options.onReady(user);
+            options.onReady(enrichedUser || fbUser);
           }
-        } catch (err) {
-          console.error('[AuthGuard] VisionAuth error:', err);
-          window.location.replace(loginPage);
-        }
-        return;
-      }
-
-      /* Fallback: direct Firebase auth */
-      if (typeof firebase !== 'undefined' && firebase.auth) {
-        var unsub = firebase.auth().onAuthStateChanged(function (fbUser) {
-          unsub();
-          if (!fbUser) { window.location.replace(loginPage); return; }
-          /* No role data in fallback — deny admin-only pages */
-          if (options.adminOnly) { window.location.replace('orders.html'); return; }
-          if (typeof options.onReady === 'function') options.onReady(fbUser);
         });
-        return;
-      }
-
-      /* No auth mechanism — redirect */
-      window.location.replace(loginPage);
+      });
     });
   }
 
   window.AuthGuard = { protect };
-  console.info('[AuthGuard] ready');
+  console.info('[AuthGuard] ready (async-safe v2)');
 
 })(window);

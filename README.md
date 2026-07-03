@@ -1,1 +1,0 @@
-# Nazamly ERP System

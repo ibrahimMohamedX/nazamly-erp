@@ -392,16 +392,15 @@
     };
 
     try {
-      const db = window.db;
       if (editId) {
-        await db.collection('purchases').doc(editId)
+        await firebase.firestore().collection('purchases').doc(editId)
           .update({ ...payload, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
         window.VisionOverlays?.toast({ type: 'success', message: 'تم تحديث أمر الشراء' });
       } else {
         payload.orderRef   = _nextRef();
         payload.status     = 'pending';
         payload.createdAt  = firebase.firestore.FieldValue.serverTimestamp();
-        await db.collection('purchases').add(payload);
+        await firebase.firestore().collection('purchases').add(payload);
         window.VisionOverlays?.toast({ type: 'success', message: `تم إنشاء ${payload.orderRef}` });
       }
       _closePurchaseModal();
@@ -423,7 +422,7 @@
     });
     if (confirmed !== 'delete') return;
     try {
-      await window.db.collection('purchases').doc(id).delete();
+      await window.firebase.firestore().collection('purchases').doc(id).delete();
       window.VisionOverlays?.toast({ type: 'success', message: 'تم حذف الأمر' });
     } catch (err) {
       window.VisionOverlays?.toast({ type: 'error', message: 'تعذّر الحذف' });
@@ -484,7 +483,7 @@
       waBtn.addEventListener('click', async () => {
         if (p.status === 'pending') {
           try {
-            await window.db.collection('purchases').doc(purchaseId)
+            await window.firebase.firestore().collection('purchases').doc(purchaseId)
               .update({ status: 'sent', updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
           } catch (_) {}
         }
@@ -566,7 +565,7 @@
 
   async function _updateStatus(purchaseId, newStatus) {
     try {
-      await window.db.collection('purchases').doc(purchaseId)
+      await window.firebase.firestore().collection('purchases').doc(purchaseId)
         .update({ status: newStatus, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
       window.VisionOverlays?.toast({ type: 'success', message: `الحالة: ${_statusLabel(newStatus)}` });
     } catch (err) {
@@ -658,12 +657,11 @@
 
     const payload = { name, phone, company, notes };
     try {
-      const db = window.db;
       if (editId) {
-        await db.collection('suppliers').doc(editId).update(payload);
+        await firebase.firestore().collection('suppliers').doc(editId).update(payload);
       } else {
         payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-        await db.collection('suppliers').add(payload);
+        await firebase.firestore().collection('suppliers').add(payload);
       }
       _el('supplierForm').hidden = true;
       _renderSuppliersList();
@@ -689,7 +687,7 @@
     });
     if (confirmed !== 'delete') return;
     try {
-      await window.db.collection('suppliers').doc(supId).delete();
+      await window.firebase.firestore().collection('suppliers').doc(supId).delete();
       _renderSuppliersList();
     } catch (err) {
       window.VisionOverlays?.toast({ type: 'error', message: 'تعذّر الحذف' });
@@ -701,25 +699,41 @@
      ────────────────────────────────────── */
 
   function _loadData() {
-    const db = window.db;
-
-    _unsubs.push(
-      db.collection('purchases').orderBy('createdAt', 'desc')
-        .onSnapshot(
-          snap => { Store.purchases = snap.docs.map(d => ({ id: d.id, ...d.data() })); _scheduleRender(); },
-          err  => console.error('[Purchases] listener:', err)
-        )
-    );
-    _unsubs.push(
-      db.collection('suppliers').orderBy('name')
-        .onSnapshot(
-          snap => { Store.suppliers = snap.docs.map(d => ({ id: d.id, ...d.data() })); _scheduleRender(); },
-          err  => console.error('[Purchases] suppliers listener:', err)
-        )
-    );
-    db.collection('products').orderBy('name').get()
-      .then(snap => { Store.products = snap.docs.map(d => ({ id: d.id, ...d.data() })); })
-      .catch(err  => console.error('[Purchases] products load:', err));
+    try {
+      _unsubs.push(
+        firebase.firestore().collection('purchases').orderBy('createdAt', 'desc')
+          .onSnapshot(
+            snap => { Store.purchases = snap.docs.map(d => ({ id: d.id, ...d.data() })); _scheduleRender(); },
+            err  => {
+              console.error('[Purchases] listener:', err);
+              const skel = document.getElementById('skeletonLoader');
+              if (skel) skel.classList.add('hidden');
+              window.VisionOverlays?.toast({ type: 'error', message: 'تعذر تحميل أوامر الشراء' });
+            }
+          )
+      );
+      _unsubs.push(
+        firebase.firestore().collection('suppliers').orderBy('name')
+          .onSnapshot(
+            snap => { Store.suppliers = snap.docs.map(d => ({ id: d.id, ...d.data() })); _scheduleRender(); },
+            err  => {
+              console.error('[Purchases] suppliers listener:', err);
+              window.VisionOverlays?.toast({ type: 'error', message: 'تعذر تحميل الموردين' });
+            }
+          )
+      );
+      firebase.firestore().collection('products').orderBy('name').get()
+        .then(snap => { Store.products = snap.docs.map(d => ({ id: d.id, ...d.data() })); })
+        .catch(err  => {
+          console.error('[Purchases] products load:', err);
+          window.VisionOverlays?.toast({ type: 'error', message: 'تعذر تحميل المنتجات' });
+        });
+    } catch (err) {
+      console.error('[Purchases] _loadData fatal:', err);
+      const skel = document.getElementById('skeletonLoader');
+      if (skel) skel.classList.add('hidden');
+      window.VisionOverlays?.toast({ type: 'error', message: 'حدث خطأ أثناء تحميل بيانات المشتريات' });
+    }
   }
 
   /* ──────────────────────────────────────

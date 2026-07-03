@@ -1,12 +1,162 @@
 /* ============================================================
-   OVERLAYS.CSS — Vision UI Engine Styles
-   Toast · Modal · Maintenance · Spinner · Banner · Notification Center
-   Also includes: pur-modal base classes for page-level dialogs
-   Depends on: variables.css
+   OVERLAYS.CSS — Vision UI Engine Styles  v2
+   ────────────────────────────────────────────────────────────
+   ARCHITECTURE FIX v2:
+     All overlay containers default to display:none — completely
+     removed from the rendering pipeline. backdrop-filter:blur()
+     only activates when the overlay is actually open.
+     Animations use @keyframes (not transitions) because CSS
+     transitions cannot animate from display:none.
    ============================================================ */
+
+
+/* ──────────────────────────────────────
+   SHARED KEYFRAMES
+   ────────────────────────────────────── */
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes overlayFadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+@keyframes modalSlideIn {
+  from { opacity: 0; transform: scale(0.92) translateY(16px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+@keyframes modalSlideOut {
+  from { opacity: 1; transform: scale(1)    translateY(0); }
+  to   { opacity: 0; transform: scale(0.96) translateY(8px); }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes toast-progress {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+@keyframes toastSlideIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes toastSlideOut {
+  from { opacity: 1; transform: translateX(0) scale(1); }
+  to   { opacity: 0; transform: translateX(20px) scale(0.95); }
+}
+[dir="rtl"] @keyframes toastSlideIn {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+
+/* ──────────────────────────────────────
+   SHARED OVERLAY BACKDROP BASE
+   Applied to ALL overlay containers.
+   ────────────────────────────────────── */
+
+.vision-modal-overlay,
+.order-modal-overlay,
+.exp-modal-overlay,
+.pur-modal-overlay,
+.emp-modal-overlay,
+.vision-overlay-container,
+.vision-spinner-overlay {
+  /* OFF by default — zero GPU cost */
+  display: none;
+
+  /* When active, these apply */
+  position: fixed;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  overflow-y: auto;
+  background: rgba(5, 8, 18, 0.78);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* ── Z-index per overlay type ── */
+.vision-modal-overlay   { z-index: var(--z-modal); }
+.order-modal-overlay    { z-index: var(--z-modal); align-items: flex-start; }
+.exp-modal-overlay      { z-index: var(--z-modal); align-items: center; }
+.pur-modal-overlay      { z-index: var(--z-modal); align-items: flex-start; }
+.emp-modal-overlay      { z-index: var(--z-modal); }
+.vision-overlay-container { z-index: var(--z-maintenance); background: rgba(5,8,18,0.97); }
+.vision-spinner-overlay { z-index: var(--z-spinner); }
+
+
+/* ── ACTIVE STATE: enter rendering pipeline + animate ── */
+
+/* VisionOverlays.js controlled modals (--visible suffix) */
+.vision-modal-overlay.vision-modal-overlay--visible {
+  display: flex;
+  animation: overlayFadeIn 0.25s ease forwards;
+}
+/* Custom page modals (.active class) */
+.order-modal-overlay.active,
+.exp-modal-overlay.active,
+.pur-modal-overlay.active,
+.emp-modal-overlay.active {
+  display: flex;
+  animation: overlayFadeIn 0.25s ease forwards;
+}
+/* Maintenance / spinner overlays */
+.vision-overlay-container.active,
+.vision-spinner-overlay.active {
+  display: flex;
+  animation: overlayFadeIn 0.3s ease forwards;
+}
+
+
+/* ── EXIT STATE: animate out, then JS removes from DOM ── */
+
+.vision-modal-overlay.vision-modal-overlay--exit {
+  animation: overlayFadeOut 0.2s ease forwards;
+}
+.order-modal-overlay.exiting,
+.exp-modal-overlay.exiting,
+.pur-modal-overlay.exiting,
+.emp-modal-overlay.exiting {
+  animation: overlayFadeOut 0.2s ease forwards;
+}
+
+
+/* ── Modal card animations (triggered via parent active state) ── */
+
+/* VisionOverlays modal card */
+.vision-modal {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-lg);
+}
+.vision-modal-overlay.vision-modal-overlay--visible .vision-modal {
+  animation: modalSlideIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+.vision-modal-overlay.vision-modal-overlay--exit .vision-modal {
+  animation: modalSlideOut 0.18s ease forwards;
+}
+
+/* Custom page modals — their cards animate when parent is active */
+.order-modal-overlay.active  .order-modal,
+.exp-modal-overlay.active    .exp-modal,
+.pur-modal-overlay.active    .pur-modal,
+.emp-modal-overlay.active    .emp-modal {
+  animation: modalSlideIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
 
 /* ──────────────────────────────────────
    TOAST SYSTEM
+   Container always in DOM (positional anchor).
+   Individual toasts animate in/out.
    ────────────────────────────────────── */
 
 .vision-toast-container {
@@ -18,6 +168,7 @@
   max-width: 380px;
   width: calc(100% - var(--space-10));
   pointer-events: none;
+  /* No backdrop or overlay — safe to always be in DOM */
 }
 .vision-toast-container[data-position="top-right"]     { top: 20px; right: 20px; }
 .vision-toast-container[data-position="top-left"]      { top: 20px; left: 20px; }
@@ -26,11 +177,10 @@
 .vision-toast-container[data-position="bottom-left"]   { bottom: 20px; left: 20px; flex-direction: column-reverse; }
 .vision-toast-container[data-position="bottom-center"] { bottom: 20px; left: 50%; transform: translateX(-50%); flex-direction: column-reverse; }
 
-/* Toast card */
 .vision-toast {
   background: rgba(17, 24, 39, 0.97);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--color-border);
   border-right: 4px solid var(--color-primary);
   border-radius: var(--radius-lg);
@@ -39,29 +189,29 @@
   align-items: flex-start;
   gap: var(--space-3);
   pointer-events: all;
-  box-shadow: var(--shadow-3d-md);
+  box-shadow: var(--shadow-md);
   position: relative;
   overflow: hidden;
+  /* Toasts start invisible, animate via --visible class */
   opacity: 0;
-  transform: translateX(20px);
-  transition:
-    opacity 0.3s ease,
-    transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
-[dir="rtl"] .vision-toast { transform: translateX(-20px); }
-
 .vision-toast--visible {
-  opacity: 1;
-  transform: translateX(0);
+  animation: toastSlideIn 0.32s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 .vision-toast--exit {
-  opacity: 0 !important;
-  transform: translateX(20px) scale(0.95) !important;
-  transition: opacity 0.22s ease, transform 0.22s ease !important;
+  animation: toastSlideOut 0.22s ease forwards;
 }
-[dir="rtl"] .vision-toast--exit { transform: translateX(-20px) scale(0.95) !important; }
 
-/* Type accent */
+/* RTL: slide from left side */
+[dir="rtl"] .vision-toast { border-right: none; border-left: 4px solid var(--color-primary); }
+[dir="rtl"] .vision-toast--visible { animation-name: toastSlideInRTL; }
+
+@keyframes toastSlideInRTL {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Toast type border accents */
 .vision-toast[data-type="info"]        { border-right-color: var(--color-primary); }
 .vision-toast[data-type="success"]     { border-right-color: var(--color-success); }
 .vision-toast[data-type="warning"]     { border-right-color: var(--color-warning); }
@@ -69,8 +219,15 @@
 .vision-toast[data-type="alert"]       { border-right-color: var(--color-alert); }
 .vision-toast[data-type="update"]      { border-right-color: var(--color-update); }
 .vision-toast[data-type="maintenance"] { border-right-color: var(--color-warning); }
+[dir="rtl"] .vision-toast[data-type="info"]        { border-left-color: var(--color-primary); }
+[dir="rtl"] .vision-toast[data-type="success"]     { border-left-color: var(--color-success); }
+[dir="rtl"] .vision-toast[data-type="warning"]     { border-left-color: var(--color-warning); }
+[dir="rtl"] .vision-toast[data-type="error"]       { border-left-color: var(--color-error); }
+[dir="rtl"] .vision-toast[data-type="alert"]       { border-left-color: var(--color-alert); }
+[dir="rtl"] .vision-toast[data-type="update"]      { border-left-color: var(--color-update); }
+[dir="rtl"] .vision-toast[data-type="maintenance"] { border-left-color: var(--color-warning); }
 
-/* Icon bubble */
+/* Toast icon bubble */
 .vision-toast-icon {
   flex-shrink: 0;
   width: 30px;
@@ -80,7 +237,6 @@
   align-items: center;
   justify-content: center;
   font-size: 0.8rem;
-  box-shadow: var(--shadow-inset-sm);
 }
 .vision-toast[data-type="info"]        .vision-toast-icon { background: var(--color-primary-bg);  color: var(--color-primary); }
 .vision-toast[data-type="success"]     .vision-toast-icon { background: var(--color-success-bg);  color: var(--color-success); }
@@ -103,8 +259,6 @@
   color: var(--color-text-secondary);
   line-height: var(--line-height-relaxed);
 }
-
-/* Close button */
 .vision-toast-close {
   flex-shrink: 0;
   width: 24px;
@@ -117,16 +271,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: var(--transition-fast);
+  cursor: pointer;
   padding: 0;
   line-height: 1;
+  transition: var(--transition-fast);
 }
-.vision-toast-close:hover {
-  background: var(--color-surface-raised);
-  color: var(--color-text);
-}
+.vision-toast-close:hover { background: var(--color-surface-raised); color: var(--color-text); }
 
-/* Progress bar */
 .vision-toast-progress {
   position: absolute;
   bottom: 0;
@@ -139,18 +290,8 @@
   animation: toast-progress linear forwards;
 }
 [dir="rtl"] .vision-toast-progress { transform-origin: left center; }
-@keyframes toast-progress {
-  from { transform: scaleX(1); }
-  to   { transform: scaleX(0); }
-}
 
-/* Action buttons */
-.vision-toast-actions {
-  display: flex;
-  gap: var(--space-2);
-  margin-top: var(--space-3);
-  flex-wrap: wrap;
-}
+.vision-toast-actions { display: flex; gap: var(--space-2); margin-top: var(--space-3); flex-wrap: wrap; }
 .vision-toast-btn {
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-sm);
@@ -163,66 +304,41 @@
   white-space: nowrap;
   line-height: 1.6;
 }
-.vision-toast-btn-primary {
-  background: var(--color-primary);
-  color: #fff;
-  border-color: var(--color-primary);
-}
-.vision-toast-btn-primary:hover {
-  background: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
-}
-.vision-toast-btn-secondary {
-  background: transparent;
-  color: var(--color-text-secondary);
-  border-color: var(--color-border);
-}
-.vision-toast-btn-secondary:hover {
-  background: var(--color-surface-raised);
-  color: var(--color-text);
-}
+.vision-toast-btn-primary  { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+.vision-toast-btn-primary:hover { background: var(--color-primary-hover); }
+.vision-toast-btn-secondary { background: transparent; color: var(--color-text-secondary); border-color: var(--color-border); }
+.vision-toast-btn-secondary:hover { background: var(--color-surface-raised); color: var(--color-text); }
 
 
 /* ──────────────────────────────────────
    MAINTENANCE OVERLAY
    ────────────────────────────────────── */
 
-.vision-overlay-container {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-maintenance);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
 .vision-overlay-backdrop {
   position: absolute;
   inset: 0;
   background: rgba(5, 8, 18, 0.97);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(6px);
 }
 
+/* Maintenance content panel — inside .vision-overlay-container */
 .vision-maintenance-overlay {
   text-align: center;
-  opacity: 0;
-  transition: opacity 0.4s ease;
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 540px;
+  padding: var(--space-4);
 }
-.vision-maintenance-overlay--visible { opacity: 1; }
-.vision-maintenance-overlay--exit {
-  opacity: 0;
-  transition: opacity 0.3s ease;
+.vision-overlay-container.active .vision-maintenance-overlay {
+  animation: modalSlideIn 0.4s ease forwards;
 }
 
 .vision-maintenance-content {
-  position: relative;
-  z-index: 1;
-  padding: var(--space-12) var(--space-8);
-  max-width: 540px;
-  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
+  padding: var(--space-12) var(--space-8);
 }
 .vision-maintenance-icon {
   width: 80px;
@@ -230,13 +346,13 @@
   border-radius: 50%;
   background: var(--color-warning-bg);
   color: var(--color-warning);
-  border: 2px solid rgba(245, 158, 11, 0.30);
+  border: 2px solid rgba(245,158,11,0.30);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 2rem;
   margin-bottom: var(--space-6);
-  box-shadow: 0 0 32px rgba(245, 158, 11, 0.15);
+  box-shadow: 0 0 32px rgba(245,158,11,0.15);
 }
 .vision-maintenance-title {
   font-size: var(--font-size-2xl);
@@ -251,7 +367,6 @@
   margin-bottom: var(--space-8);
   max-width: 420px;
 }
-
 .vision-maintenance-timer {
   display: flex;
   justify-content: center;
@@ -259,12 +374,7 @@
   margin-bottom: var(--space-8);
   flex-wrap: wrap;
 }
-.vo-timer-unit {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-2);
-}
+.vo-timer-unit { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
 .vo-timer-value {
   font-size: var(--font-size-3xl);
   font-weight: var(--font-weight-black);
@@ -277,16 +387,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  letter-spacing: 0.04em;
   font-variant-numeric: tabular-nums;
-  box-shadow: var(--shadow-3d-xs);
 }
-.vo-timer-label {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  font-weight: var(--font-weight-semibold);
-}
-
+.vo-timer-label { font-size: var(--font-size-xs); color: var(--color-text-muted); font-weight: var(--font-weight-semibold); }
 .vision-maintenance-bypass-btn {
   padding: var(--space-3) var(--space-8);
   border-radius: var(--radius-lg);
@@ -297,32 +400,25 @@
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   cursor: pointer;
-  transition: var(--transition-fast);
+  transition: var(--transition-base);
 }
 .vision-maintenance-bypass-btn:hover {
   background: var(--color-surface-raised);
   color: var(--color-text-secondary);
-  border-color: var(--color-text-muted);
 }
 
 
 /* ──────────────────────────────────────
-   LOADING SPINNER
+   LOADING SPINNER OVERLAY
    ────────────────────────────────────── */
 
 .vision-spinner-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-spinner);
-  background: rgba(11, 17, 32, 0.88);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
   gap: var(--space-5);
+  background: rgba(11, 17, 32, 0.88);
 }
+.vision-spinner-overlay.active { animation: overlayFadeIn 0.3s ease forwards; }
+
 .vision-spinner {
   width: 44px;
   height: 44px;
@@ -330,16 +426,8 @@
   border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 0.75s linear infinite;
-  box-shadow: 0 0 16px var(--color-primary-glow);
 }
-.vision-spinner--no-motion {
-  animation: none;
-  border-top-color: var(--color-primary);
-  border-right-color: var(--color-primary);
-}
-@keywords spin { to { transform: rotate(360deg); } }
-@keyframes spin { to { transform: rotate(360deg); } }
-
+.vision-spinner--no-motion { animation: none; border-top-color: var(--color-primary); border-right-color: var(--color-primary); }
 .vision-spinner-text {
   font-size: var(--font-size-base);
   color: var(--color-text-secondary);
@@ -348,54 +436,8 @@
 
 
 /* ──────────────────────────────────────
-   VISION-MODAL (engine dialogs)
+   VISION MODAL (VisionOverlays.modal())
    ────────────────────────────────────── */
-
-/* Base state: hidden */
-.vision-modal-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-modal);
-  background: rgba(5, 8, 18, 0.75);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-4);
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.25s ease, visibility 0.25s ease;
-}
-.vision-modal-overlay--visible {
-  opacity: 1;
-  visibility: visible;
-}
-.vision-modal-overlay--exit {
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.2s ease, visibility 0.2s ease;
-}
-
-.vision-modal {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
-  width: 100%;
-  max-width: 500px;
-  max-height: 90vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  box-shadow: var(--shadow-3d-modal);
-  transform: scale(0.92) translateY(16px);
-  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-.vision-modal--visible  { transform: scale(1) translateY(0); }
-.vision-modal--exit {
-  transform: scale(0.96) translateY(8px);
-  transition: transform 0.18s ease;
-}
 
 .vision-modal-header {
   display: flex;
@@ -404,7 +446,6 @@
   padding: var(--space-5) var(--space-6);
   border-bottom: 1px solid var(--color-border-light);
   flex-shrink: 0;
-  background: linear-gradient(180deg, rgba(255,255,255,0.02) 0%, transparent 100%);
 }
 .vision-modal-title {
   font-size: var(--font-size-md);
@@ -423,16 +464,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
   transition: var(--transition-fast);
   flex-shrink: 0;
-  line-height: 1;
   padding: 0;
+  line-height: 1;
 }
-.vision-modal-close:hover {
-  background: var(--color-surface-raised);
-  color: var(--color-text);
-}
-
+.vision-modal-close:hover { background: var(--color-surface-raised); color: var(--color-text); }
 .vision-modal-body {
   flex: 1;
   overflow-y: auto;
@@ -453,116 +491,99 @@
 }
 
 
+/* ──────────────────────────────────────
+   INLINE BANNER (not an overlay — stays in flow)
+   ────────────────────────────────────── */
 
-/* ──────────────────────────────────────────────────────────
-   PUR-MODAL (page-level dialog base)
-   Bulletproof global classes for all page modals.
-   Pages extend with scoped modifiers; positioning is fixed here.
-   ────────────────────────────────────────────────────────── */
-
-/* Base state: hidden */
-.pur-modal-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-modal);
-  background: rgba(5, 8, 18, 0.70);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+.vision-banner {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-4);
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-              visibility 0.28s ease;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  border-right: 4px solid var(--color-primary);
+  background: var(--color-primary-bg);
+  margin-bottom: var(--space-4);
 }
-.pur-modal-overlay.active {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
+.vision-banner[data-type="success"]     { border-right-color: var(--color-success); background: var(--color-success-bg); }
+.vision-banner[data-type="warning"]     { border-right-color: var(--color-warning); background: var(--color-warning-bg); }
+.vision-banner[data-type="error"]       { border-right-color: var(--color-error);   background: var(--color-error-bg); }
+.vision-banner[data-type="maintenance"] { border-right-color: var(--color-warning); background: var(--color-warning-bg); }
+
+.vision-banner-icon {
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  color: var(--color-primary);
+  margin-top: 2px;
+}
+.vision-banner[data-type="success"]     .vision-banner-icon { color: var(--color-success); }
+.vision-banner[data-type="warning"]     .vision-banner-icon { color: var(--color-warning); }
+.vision-banner[data-type="error"]       .vision-banner-icon { color: var(--color-error); }
+.vision-banner[data-type="maintenance"] .vision-banner-icon { color: var(--color-warning); }
+.vision-banner-content { flex: 1; }
+.vision-banner-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  margin-bottom: var(--space-1);
+}
+.vision-banner-text {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-relaxed);
 }
 
-.pur-modal {
+
+/* ──────────────────────────────────────
+   NOTIFICATION CENTER (widget)
+   ────────────────────────────────────── */
+
+.vision-notification-center {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
-  width: 100%;
-  max-width: 580px;
-  max-height: 85vh;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  box-shadow: var(--shadow-3d-modal);
-  transform: translateY(14px) scale(0.97);
-  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  min-width: 320px;
+  max-width: 420px;
+  box-shadow: var(--shadow-md);
 }
-.pur-modal-overlay.active .pur-modal {
-  transform: translateY(0) scale(1);
+.vision-nc-header { display: flex; align-items: center; justify-content: space-between; padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--color-border-light); }
+.vision-nc-title  { font-size: var(--font-size-md); font-weight: var(--font-weight-bold); color: var(--color-text); margin: 0; }
+.vision-nc-mark-all {
+  font-size: var(--font-size-xs); color: var(--color-primary);
+  background: none; border: none; cursor: pointer;
+  font-family: var(--font-family); font-weight: var(--font-weight-semibold);
+  padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm);
+  transition: var(--transition-fast);
 }
-
-/* Mobile: modal becomes full-screen */
-@media (max-width: 640px) {
-  .pur-modal {
-    max-width: 100%;
-    max-height: 100vh;
-    height: 100vh;
-    border-radius: 0;
-    transform: translateY(100%);
-  }
-  .pur-modal-overlay.active .pur-modal {
-    transform: translateY(0);
-  }
-  .pur-modal-overlay {
-    padding: 0;
-  }
-  .vision-modal {
-    max-width: 100%;
-    max-height: 100vh;
-    height: 100vh;
-    border-radius: 0;
-    transform: translateY(100%);
-  }
-  .vision-modal-overlay--visible .vision-modal {
-    transform: translateY(0);
-  }
-}
-
-/* Header */
-.pur-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-5) var(--space-6);
+.vision-nc-mark-all:hover { background: var(--color-primary-bg); }
+.vision-nc-list   { max-height: 420px; overflow-y: auto; }
+.vision-nc-empty  { padding: var(--space-8); text-align: center; color: var(--color-text-muted); font-size: var(--font-size-sm); }
+.vision-nc-item {
+  display: flex; align-items: flex-start; gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
   border-bottom: 1px solid var(--color-border-light);
-  flex-shrink: 0;
-  background: linear-gradient(180deg, rgba(255,255,255,0.025) 0%, transparent 100%);
+  cursor: pointer; transition: var(--transition-fast);
 }
-.pur-modal-title {
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text);
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
+.vision-nc-item:last-child { border-bottom: none; }
+.vision-nc-item:hover { background: var(--color-surface-raised); }
+.vision-nc-item--read { opacity: 0.5; }
+.vision-nc-item-icon {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--color-surface-raised);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-size: 0.8rem; color: var(--color-primary);
 }
-
-/* Body */
-.pur-modal-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: var(--space-6);
+.vision-nc-item[data-type="success"] .vision-nc-item-icon { color: var(--color-success); }
+.vision-nc-item[data-type="warning"] .vision-nc-item-icon { color: var(--color-warning); }
+.vision-nc-item[data-type="error"]   .vision-nc-item-icon { color: var(--color-error); }
+.vision-nc-item-content { flex: 1; min-width: 0; }
+.vision-nc-item-title   { font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--color-text); margin-bottom: 2px; }
+.vision-nc-item-message { font-size: var(--font-size-xs); color: var(--color-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vision-nc-item-time    { font-size: 0.65rem; color: var(--color-text-muted); margin-top: var(--space-1); font-variant-numeric: tabular-nums; }
+.vision-nc-item-dismiss {
+  background: none; border: none; color: var(--color-text-muted);
+  cursor: pointer; font-size: 1rem; flex-shrink: 0;
+  transition: var(--transition-fast); padding: 0 var(--space-1); line-height: 1;
 }
-
-/* Footer */
-.pur-modal-footer {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--space-3);
-  padding: var(--space-4) var(--space-6);
-  border-top: 1px solid var(--color-border-light);
-  flex-shrink: 0;
-  flex-wrap: wrap;
-}
+.vision-nc-item-dismiss:hover { color: var(--color-error); }

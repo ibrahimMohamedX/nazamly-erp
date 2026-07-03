@@ -754,15 +754,66 @@
     _scheduleRender();
   }
 
+  /**
+   * Defensive Timestamp constructor. firebase.firestore is a namespace
+   * object attached by firebase-firestore-compat.js — normally guaranteed
+   * present by the time this runs (AuthGuard.protect()'s onReady only
+   * fires after Firebase has fully resolved, per the auth-guard.js v2
+   * fix). This guard is a second line of defense against any edge case
+   * (e.g. a corrupted CDN cache) that could leave the namespace missing,
+   * so a single bad load can degrade gracefully instead of throwing an
+   * uncaught TypeError that halts the entire dashboard render.
+   * @param {Date} date
+   * @returns {firebase.firestore.Timestamp|Date} a real Timestamp, or the
+   *   raw Date as a fallback (Firestore query operators also accept Date
+   *   objects directly, so queries still function, just less precisely).
+   */
+  function _safeTimestamp(date) {
+    try {
+      if (
+        typeof firebase !== 'undefined' &&
+        firebase.firestore &&
+        firebase.firestore.Timestamp &&
+        typeof firebase.firestore.Timestamp.fromDate === 'function'
+      ) {
+        return firebase.firestore.Timestamp.fromDate(date);
+      }
+      console.warn('[Dashboard] firebase.firestore.Timestamp unavailable — falling back to raw Date.');
+      return date;
+    } catch (e) {
+      console.warn('[Dashboard] _safeTimestamp failed, using raw Date fallback:', e);
+      return date;
+    }
+  }
+
   function _loadData() {
+    /* Defensive guard: firebase.firestore() itself must resolve before
+       any query can be built. If this throws, mark every source loaded
+       with empty data so _render()'s REQUIRED_SOURCES gate is satisfied
+       and the page shows an empty (not frozen) dashboard, with a visible
+       error toast so the failure is never silent. */
+    let db;
+    try {
+      db = firebase.firestore();
+    } catch (e) {
+      console.error('[Dashboard] firebase.firestore() failed:', e);
+      window.VisionOverlays?.toast({
+        type: 'error',
+        title: 'تعذّر الاتصال بقاعدة البيانات',
+        message: 'يرجى إعادة تحميل الصفحة. إذا استمرت المشكلة تواصل مع الدعم الفني.',
+      });
+      REQUIRED_SOURCES.forEach(k => _markLoaded(k, []));
+      return;
+    }
+
     /* Load last 13 months so all period options are covered */
     const cutoff = new Date();
     cutoff.setMonth(cutoff.getMonth() - 13);
-    const cutoffTs = window.db.Timestamp.fromDate(cutoff);
+    const cutoffTs = _safeTimestamp(cutoff);
 
     /* Real-time: orders */
     _unsubs.push(
-      window.db.collection('orders')
+      db.collection('orders')
         .where('createdAt', '>=', cutoffTs)
         .orderBy('createdAt', 'desc')
         .onSnapshot(
@@ -773,7 +824,7 @@
 
     /* Real-time: expenses */
     _unsubs.push(
-      window.db.collection('expenses')
+      db.collection('expenses')
         .where('date', '>=', cutoffTs)
         .onSnapshot(
           snap => _markLoaded('expenses', snap.docs.map(d => ({ id: d.id, ...d.data() }))),
@@ -783,11 +834,11 @@
 
     /* One-time static reference collections (batched for efficiency) */
     Promise.all([
-      window.db.collection('statuses').get(),
-      window.db.collection('employees').get(),
-      window.db.collection('products').get(),
-      window.db.collection('platforms').get(),
-      window.db.collection('shippingCompanies').get(),
+      db.collection('statuses').get(),
+      db.collection('employees').get(),
+      db.collection('products').get(),
+      db.collection('platforms').get(),
+      db.collection('shippingCompanies').get(),
     ]).then(([st, em, pr, pl, sh]) => {
       _markLoaded('statuses',          st.docs.map(d => ({ id: d.id, ...d.data() })));
       _markLoaded('employees',         em.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -801,7 +852,7 @@
     });
 
     /* Goals: silent failure is acceptable */
-    window.db.collection('goals').doc('main').get()
+    db.collection('goals').doc('main').get()
       .then(doc => { Store.goals = doc.exists ? doc.data() : null; })
       .catch(() => { Store.goals = null; });
   }

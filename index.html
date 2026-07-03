@@ -5,18 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>الرئيسية — Nazamly</title>
     <link rel="icon" type="image/png" href="nazamly.png" />
-    <!-- Cairo Font with graceful fallback -->
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="stylesheet" href="styles/variables.css" />
     <link rel="stylesheet" href="styles/base.css" />
     <link rel="stylesheet" href="styles/overlays.css" />
     <link rel="stylesheet" href="styles/components.css" />
     <link rel="stylesheet" href="styles/pages/dashboard.css" />
-    <!-- Updated Firebase to v10.12.2 -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="core/vision-init.js"></script>
   </head>
   <body>
@@ -30,6 +28,12 @@
           <div class="skeleton" style="height:96px;border-radius:var(--radius-xl);"></div>
           <div class="skeleton" style="height:96px;border-radius:var(--radius-xl);"></div>
           <div class="skeleton" style="height:96px;border-radius:var(--radius-xl);"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-4);">
+          <div class="skeleton" style="height:72px;border-radius:var(--radius-xl);"></div>
+          <div class="skeleton" style="height:72px;border-radius:var(--radius-xl);"></div>
+          <div class="skeleton" style="height:72px;border-radius:var(--radius-xl);"></div>
+          <div class="skeleton" style="height:72px;border-radius:var(--radius-xl);"></div>
         </div>
         <div class="skeleton" style="height:280px;border-radius:var(--radius-xl);"></div>
       </div>
@@ -47,7 +51,7 @@
             <div class="hero-card-inner">
               <div>
                 <div class="hero-greeting">
-                  <span id="heroGreeting">أهلاً</span>、
+                  <span id="heroGreeting">أهلاً</span>،
                   <span id="heroUserName">مدير</span> 👋
                 </div>
                 <p class="hero-sub" id="heroBrandName">Nazamly ERP</p>

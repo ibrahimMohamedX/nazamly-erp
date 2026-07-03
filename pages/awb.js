@@ -26,7 +26,7 @@
   let _selected  = new Set();
   let _labelSize = '100x150';
   let _page      = 1;
-  let _isLoading = false;
+  let _isLoading = true;        /* start in loading state until data resolves */
   let _hasError  = false;
   const PAGE_SIZE = 50;
   let _unsubOrders = null;
@@ -166,50 +166,61 @@
     const loading = _el('awbLoading');
     const table   = _el('awbTable');
 
-    /* Show loading state */
+    /* ────────── PANIC-ALARM STATE MACHINE ──────────
+     * Exactly ONE of {loading, error, empty, data-rows}
+     * must be visible at any moment.  Every branch:
+     *   1. chooses the ONE element to show
+     *   2. FORCE-HIDES the other three
+     *   3. returns immediately
+     * ──────────────────────────────────────────────── */
+
+    /* Force-hide helpers — called from EVERY branch to
+     * guarantee no overlap regardless of DOM state */
+    function _showOnly(el) {
+      /* blanket: hide all four candidates first */
+      if (loading) { loading.hidden = true; loading.style.display = 'none'; }
+      if (error)   { error.hidden   = true; error.style.display   = 'none'; }
+      if (empty)   { empty.hidden   = true; empty.style.display   = 'none'; }
+      if (table)   { table.style.display = 'none'; }
+      if (tbody)   tbody.innerHTML = '';
+      /* then unhide ONLY the chosen one */
+      if (el) {
+        if (el === table) { el.style.display = ''; }
+        else              { el.hidden = false;  el.style.display = ''; }
+      }
+    }
+
+    /* ── BRANCH 1: LOADING ── */
     if (_isLoading) {
-      if (tbody) tbody.innerHTML = '';
-      if (empty) empty.hidden = true;
-      if (error) error.hidden = true;
-      if (loading) loading.hidden = false;
-      if (table) table.style.display = 'none';
+      _showOnly(loading);
       _renderPagination(0);
       _updateSelectionUI();
       return;
     }
 
-    /* Show error state */
+    /* ── BRANCH 2: ERROR ── */
     if (_hasError) {
-      if (tbody) tbody.innerHTML = '';
-      if (empty) empty.hidden = true;
-      if (error) error.hidden = false;
-      if (loading) loading.hidden = true;
-      if (table) table.style.display = 'none';
+      _showOnly(error);
       _renderPagination(0);
       _updateSelectionUI();
       return;
     }
 
+    /* ── BRANCH 3: EMPTY ── */
     const maxPage = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
     if (_page > maxPage) _page = maxPage;
-    const start = (_page - 1) * PAGE_SIZE;
-    const rows  = filtered.slice(start, start + PAGE_SIZE);
+    const start   = (_page - 1) * PAGE_SIZE;
+    const rows    = filtered.slice(start, start + PAGE_SIZE);
 
     if (!rows.length) {
-      if (tbody) tbody.innerHTML = '';
-      if (empty) empty.hidden = false;
-      if (error) error.hidden = true;
-      if (loading) loading.hidden = true;
-      if (table) table.style.display = 'none';
+      _showOnly(empty);
       _renderPagination(0);
       _updateSelectionUI();
       return;
     }
 
-    if (empty) empty.hidden = true;
-    if (error) error.hidden = true;
-    if (loading) loading.hidden = true;
-    if (table) table.style.display = '';
+    /* ── BRANCH 4: DATA ROWS ── */
+    _showOnly(table);
 
     tbody.innerHTML = rows.map((o, i) => {
       const sel   = _selected.has(o.id);
@@ -309,11 +320,10 @@
   async function _markPrinted(printed) {
     const ids = [..._selected]; if (!ids.length) return;
     try {
-      const db    = window.db;
-      const batch = db.batch();
-      ids.forEach(id => batch.update(db.collection('orders').doc(id), {
+      const batch = firebase.firestore().batch();
+      ids.forEach(id => batch.update(firebase.firestore().collection('orders').doc(id), {
         printed,
-        printedAt: printed ? window.db.FieldValue.serverTimestamp() : null,
+        printedAt: printed ? firebase.firestore.FieldValue.serverTimestamp() : null,
       }));
       await batch.commit();
       _selected.clear();
@@ -483,43 +493,58 @@
   /* ── DATA LOADING ── */
   function _attachOrdersListener() {
     if (_unsubOrders) { try { _unsubOrders(); } catch (_) {} }
-    const db     = window.db;
     const cutoff = new Date(Math.min(_period.from.getTime(), Date.now() - 32 * 86400000));
 
     _isLoading = true;
     _hasError  = false;
     _scheduleRender();
 
-    _unsubOrders = db.collection('orders')
-      .where('createdAt', '>=', db.Timestamp.fromDate(cutoff))
-      .orderBy('createdAt', 'desc')
-      .onSnapshot(
-        snap => {
-          _orders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-          _isLoading = false;
-          _hasError  = false;
-          _filtersPopulated = false;
-          _scheduleRender();
-        },
-        err  => {
-          console.error('[AWB] orders listener:', err);
-          _isLoading = false;
-          _hasError  = true;
-          _scheduleRender();
-          window.VisionOverlays?.toast({ type: 'error', message: 'فشل تحميل الطلبات' });
-        }
-      );
+    try {
+      _unsubOrders = firebase.firestore().collection('orders')
+        .where('createdAt', '>=', firebase.firestore.Timestamp.fromDate(cutoff))
+        .orderBy('createdAt', 'desc')
+        .onSnapshot(
+          snap => {
+            _orders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            _isLoading = false;
+            _hasError  = false;
+            _filtersPopulated = false;
+            _scheduleRender();
+          },
+          err  => {
+            console.error('[AWB] orders listener:', err);
+            _isLoading = false;
+            _hasError  = true;
+            _scheduleRender();
+            window.VisionOverlays?.toast({ type: 'error', message: 'فشل تحميل الطلبات' });
+          }
+        );
+    } catch (err) {
+      console.error('[AWB] _attachOrdersListener setup:', err);
+      _isLoading = false;
+      _hasError  = true;
+      _scheduleRender();
+      window.VisionOverlays?.toast({ type: 'error', message: 'فشل الاتصال بقاعدة البيانات' });
+    }
   }
 
   function _loadStaticData() {
-    const db = window.db;
-    Promise.all([
-      db.collection('employees').get(),
-      db.collection('statuses').get(),
-    ]).then(([empSnap, stSnap]) => {
-      _employees = empSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-      _statuses  = stSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-    }).catch(err => console.error('[AWB] static load:', err));
+    try {
+      Promise.all([
+        firebase.firestore().collection('employees').get(),
+        firebase.firestore().collection('statuses').get(),
+      ]).then(([empSnap, stSnap]) => {
+        _employees = empSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        _statuses  = stSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        _filtersPopulated = false;
+      }).catch(err => {
+        console.error('[AWB] static load:', err);
+        window.VisionOverlays?.toast({ type: 'error', message: 'تعذر تحميل بيانات الموظفين والحالات' });
+      });
+    } catch (err) {
+      console.error('[AWB] _loadStaticData setup:', err);
+      window.VisionOverlays?.toast({ type: 'error', message: 'حدث خطأ أثناء تحميل البيانات الثابتة' });
+    }
   }
 
   /* ── KEYBOARD SHORTCUTS ── */

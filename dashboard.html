@@ -5,78 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>لوحة التحكم — Nazamly</title>
     <link rel="icon" type="image/png" href="nazamly.png" />
-    <!-- Cairo Font with graceful fallback to sans-serif -->
-    <link
-      href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="stylesheet" href="styles/variables.css" />
     <link rel="stylesheet" href="styles/base.css" />
     <link rel="stylesheet" href="styles/overlays.css" />
     <link rel="stylesheet" href="styles/components.css" />
     <link rel="stylesheet" href="styles/pages/dashboard.css" />
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-    <script src="core/vision-init.js" type="module"></script>
+    <script src="core/vision-init.js"></script>
   </head>
   <body>
+
     <!-- Skeleton shown until auth + data loads -->
     <div id="skeletonLoader">
-      <div
-        style="
-          width: var(--sidebar-width);
-          background: var(--color-surface);
-          border-left: 1px solid var(--color-border-light);
-          flex-shrink: 0;
-        "
-      ></div>
-      <div
-        style="
-          flex: 1;
-          padding: var(--space-8);
-          display: flex;
-          flex-direction: column;
-          gap: var(--space-5);
-        "
-      >
-        <div
-          class="skeleton"
-          style="height: 60px; border-radius: var(--radius-xl)"
-        ></div>
-        <div
-          style="
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: var(--space-4);
-          "
-        >
-          <div
-            class="skeleton"
-            style="height: 120px; border-radius: var(--radius-xl)"
-          ></div>
-          <div
-            class="skeleton"
-            style="height: 120px; border-radius: var(--radius-xl)"
-          ></div>
-          <div
-            class="skeleton"
-            style="height: 120px; border-radius: var(--radius-xl)"
-          ></div>
-          <div
-            class="skeleton"
-            style="height: 120px; border-radius: var(--radius-xl)"
-          ></div>
+      <div style="width:var(--sidebar-width);background:var(--color-surface);border-left:1px solid var(--color-border-light);flex-shrink:0;"></div>
+      <div style="flex:1;padding:var(--space-8);display:flex;flex-direction:column;gap:var(--space-5);">
+        <div class="skeleton" style="height:60px;border-radius:var(--radius-xl);"></div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-4);">
+          <div class="skeleton" style="height:120px;border-radius:var(--radius-xl);"></div>
+          <div class="skeleton" style="height:120px;border-radius:var(--radius-xl);"></div>
+          <div class="skeleton" style="height:120px;border-radius:var(--radius-xl);"></div>
+          <div class="skeleton" style="height:120px;border-radius:var(--radius-xl);"></div>
         </div>
-        <div
-          class="skeleton"
-          style="height: 320px; border-radius: var(--radius-xl)"
-        ></div>
+        <div class="skeleton" style="height:320px;border-radius:var(--radius-xl);"></div>
       </div>
     </div>
 
@@ -86,18 +41,12 @@
         <header class="topbar" role="banner" aria-label="شريط الأدوات"></header>
 
         <main class="page-content">
+
           <!-- Page Header -->
           <div class="page-header">
             <div>
               <h1 class="page-title">
-                <i
-                  class="fas fa-chart-line"
-                  style="
-                    color: var(--color-primary);
-                    margin-left: var(--space-2);
-                  "
-                  aria-hidden="true"
-                ></i>
+                <i class="fas fa-chart-line" style="color:var(--color-primary);margin-left:var(--space-2);" aria-hidden="true"></i>
                 لوحة التحكم
               </h1>
               <p class="page-subtitle">تحليلات الأعمال في الوقت الحقيقي</p>
@@ -105,71 +54,31 @@
           </div>
 
           <!-- Period Selector -->
-          <div
-            class="period-bar"
-            role="group"
-            aria-label="اختيار الفترة الزمنية"
-          >
+          <div class="period-bar" role="group" aria-label="اختيار الفترة الزمنية">
             <span class="period-label">الفترة:</span>
             <button class="period-btn" data-period="today">اليوم</button>
             <button class="period-btn" data-period="yesterday">الأمس</button>
             <button class="period-btn" data-period="7d">آخر 7 أيام</button>
-            <button class="period-btn active" data-period="30d">
-              آخر 30 يوم
-            </button>
+            <button class="period-btn active" data-period="30d">آخر 30 يوم</button>
             <button class="period-btn" data-period="90d">آخر 90 يوم</button>
             <button class="period-btn" data-period="month">هذا الشهر</button>
             <button class="period-btn" data-period="ytd">هذا العام</button>
             <div class="period-custom-range" aria-label="نطاق مخصص">
               <span class="period-label">من</span>
-              <input
-                type="date"
-                id="periodFrom"
-                class="form-input"
-                aria-label="تاريخ البداية"
-              />
+              <input type="date" id="periodFrom" class="form-input" aria-label="تاريخ البداية" />
               <span class="period-label">إلى</span>
-              <input
-                type="date"
-                id="periodTo"
-                class="form-input"
-                aria-label="تاريخ النهاية"
-              />
+              <input type="date" id="periodTo"   class="form-input" aria-label="تاريخ النهاية" />
             </div>
           </div>
 
           <!-- KPI Cards -->
-          <div
-            class="grid-kpi stagger"
-            style="margin-bottom: var(--space-6)"
-            role="region"
-            aria-label="مؤشرات الأداء"
-          >
+          <div class="grid-kpi stagger" style="margin-bottom:var(--space-6);" role="region" aria-label="مؤشرات الأداء">
+
             <div class="kpi-card">
-              <div
-                class="kpi-card-strip"
-                style="background: var(--color-primary)"
-              ></div>
-              <div class="kpi-card-bg-icon">
-                <i class="fas fa-cart-shopping"></i>
-              </div>
-              <div
-                style="
-                  display: flex;
-                  align-items: center;
-                  justify-content: space-between;
-                  margin-bottom: var(--space-3);
-                "
-              >
-                <div
-                  class="kpi-icon"
-                  style="
-                    background: var(--color-primary-bg);
-                    color: var(--color-primary);
-                  "
-                >
-                  <i class="fas fa-cart-shopping"></i>
-                </div>
+              <div class="kpi-card-strip" style="background:var(--color-primary);"></div>
+              <div class="kpi-card-bg-icon"><i class="fas fa-cart-shopping"></i></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-3);">
+                <div class="kpi-icon" style="background:var(--color-primary-bg);color:var(--color-primary);"><i class="fas fa-cart-shopping"></i></div>
                 <span id="kpiOrdersTrend"></span>
               </div>
               <div class="kpi-label">إجمالي الطلبات</div>
@@ -177,68 +86,22 @@
             </div>
 
             <div class="kpi-card">
-              <div
-                class="kpi-card-strip"
-                style="background: var(--color-success)"
-              ></div>
-              <div class="kpi-card-bg-icon">
-                <i class="fas fa-circle-check"></i>
-              </div>
-              <div
-                style="
-                  display: flex;
-                  align-items: center;
-                  justify-content: space-between;
-                  margin-bottom: var(--space-3);
-                "
-              >
-                <div
-                  class="kpi-icon"
-                  style="
-                    background: var(--color-success-bg);
-                    color: var(--color-success);
-                  "
-                >
-                  <i class="fas fa-circle-check"></i>
-                </div>
+              <div class="kpi-card-strip" style="background:var(--color-success);"></div>
+              <div class="kpi-card-bg-icon"><i class="fas fa-circle-check"></i></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-3);">
+                <div class="kpi-icon" style="background:var(--color-success-bg);color:var(--color-success);"><i class="fas fa-circle-check"></i></div>
                 <span id="kpiDeliveryTrend"></span>
               </div>
               <div class="kpi-label">طلبات مسلمة / نسبة التسليم</div>
               <div class="kpi-value" id="kpiDelivered">—</div>
-              <div
-                class="text-sm text-muted"
-                id="kpiDeliveryRate"
-                style="margin-top: var(--space-1)"
-              >
-                —
-              </div>
+              <div class="text-sm text-muted" id="kpiDeliveryRate" style="margin-top:var(--space-1);">—</div>
             </div>
 
             <div class="kpi-card">
-              <div
-                class="kpi-card-strip"
-                style="background: var(--color-warning)"
-              ></div>
-              <div class="kpi-card-bg-icon">
-                <i class="fas fa-money-bill-wave"></i>
-              </div>
-              <div
-                style="
-                  display: flex;
-                  align-items: center;
-                  justify-content: space-between;
-                  margin-bottom: var(--space-3);
-                "
-              >
-                <div
-                  class="kpi-icon"
-                  style="
-                    background: var(--color-warning-bg);
-                    color: var(--color-warning);
-                  "
-                >
-                  <i class="fas fa-money-bill-wave"></i>
-                </div>
+              <div class="kpi-card-strip" style="background:var(--color-warning);"></div>
+              <div class="kpi-card-bg-icon"><i class="fas fa-money-bill-wave"></i></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-3);">
+                <div class="kpi-icon" style="background:var(--color-warning-bg);color:var(--color-warning);"><i class="fas fa-money-bill-wave"></i></div>
                 <span id="kpiRevenueTrend"></span>
               </div>
               <div class="kpi-label">إجمالي الإيرادات</div>
@@ -246,30 +109,10 @@
             </div>
 
             <div class="kpi-card">
-              <div
-                class="kpi-card-strip"
-                style="background: var(--color-success)"
-              ></div>
-              <div class="kpi-card-bg-icon">
-                <i class="fas fa-chart-pie"></i>
-              </div>
-              <div
-                style="
-                  display: flex;
-                  align-items: center;
-                  justify-content: space-between;
-                  margin-bottom: var(--space-3);
-                "
-              >
-                <div
-                  class="kpi-icon"
-                  style="
-                    background: var(--color-success-bg);
-                    color: var(--color-success);
-                  "
-                >
-                  <i class="fas fa-chart-pie"></i>
-                </div>
+              <div class="kpi-card-strip" style="background:var(--color-success);"></div>
+              <div class="kpi-card-bg-icon"><i class="fas fa-chart-pie"></i></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-3);">
+                <div class="kpi-icon" style="background:var(--color-success-bg);color:var(--color-success);"><i class="fas fa-chart-pie"></i></div>
                 <span id="kpiProfitTrend"></span>
               </div>
               <div class="kpi-label">صافي الربح</div>
@@ -277,220 +120,90 @@
             </div>
 
             <div class="kpi-card">
-              <div
-                class="kpi-card-strip"
-                style="background: var(--color-error)"
-              ></div>
+              <div class="kpi-card-strip" style="background:var(--color-error);"></div>
               <div class="kpi-card-bg-icon"><i class="fas fa-receipt"></i></div>
-              <div
-                style="
-                  display: flex;
-                  align-items: center;
-                  justify-content: space-between;
-                  margin-bottom: var(--space-3);
-                "
-              >
-                <div
-                  class="kpi-icon"
-                  style="
-                    background: var(--color-error-bg);
-                    color: var(--color-error);
-                  "
-                >
-                  <i class="fas fa-receipt"></i>
-                </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-3);">
+                <div class="kpi-icon" style="background:var(--color-error-bg);color:var(--color-error);"><i class="fas fa-receipt"></i></div>
               </div>
               <div class="kpi-label">إجمالي المصاريف</div>
               <div class="kpi-value" id="kpiExpenses">—</div>
             </div>
 
             <div class="kpi-card">
-              <div
-                class="kpi-card-strip"
-                style="background: var(--color-success)"
-              ></div>
+              <div class="kpi-card-strip" style="background:var(--color-alert);"></div>
               <div class="kpi-card-bg-icon"><i class="fas fa-tag"></i></div>
-              <div
-                style="
-                  display: flex;
-                  align-items: center;
-                  justify-content: space-between;
-                  margin-bottom: var(--space-3);
-                "
-              >
-                <div
-                  class="kpi-icon"
-                  style="
-                    background: var(--color-alert-bg);
-                    color: var(--color-alert);
-                  "
-                >
-                  <i class="fas fa-tag"></i>
-                </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-3);">
+                <div class="kpi-icon" style="background:var(--color-alert-bg);color:var(--color-alert);"><i class="fas fa-tag"></i></div>
               </div>
               <div class="kpi-label">متوسط قيمة الطلب</div>
               <div class="kpi-value" id="kpiAOV">—</div>
             </div>
 
             <div class="kpi-card">
-              <div
-                class="kpi-card-strip"
-                style="background: var(--color-update)"
-              ></div>
+              <div class="kpi-card-strip" style="background:var(--color-update);"></div>
               <div class="kpi-card-bg-icon"><i class="fas fa-users"></i></div>
-              <div
-                style="
-                  display: flex;
-                  align-items: center;
-                  justify-content: space-between;
-                  margin-bottom: var(--space-3);
-                "
-              >
-                <div
-                  class="kpi-icon"
-                  style="
-                    background: var(--color-update-bg);
-                    color: var(--color-update);
-                  "
-                >
-                  <i class="fas fa-users"></i>
-                </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-3);">
+                <div class="kpi-icon" style="background:var(--color-update-bg);color:var(--color-update);"><i class="fas fa-users"></i></div>
               </div>
               <div class="kpi-label">العملاء الفريدون</div>
               <div class="kpi-value" id="kpiActiveCustomers">—</div>
             </div>
 
             <div class="kpi-card">
-              <div
-                class="kpi-card-strip"
-                style="background: var(--color-error)"
-              ></div>
-              <div class="kpi-card-bg-icon">
-                <i class="fas fa-xmark-circle"></i>
-              </div>
-              <div
-                style="
-                  display: flex;
-                  align-items: center;
-                  justify-content: space-between;
-                  margin-bottom: var(--space-3);
-                "
-              >
-                <div
-                  class="kpi-icon"
-                  style="
-                    background: var(--color-error-bg);
-                    color: var(--color-error);
-                  "
-                >
-                  <i class="fas fa-xmark-circle"></i>
-                </div>
+              <div class="kpi-card-strip" style="background:var(--color-error);"></div>
+              <div class="kpi-card-bg-icon"><i class="fas fa-xmark-circle"></i></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-3);">
+                <div class="kpi-icon" style="background:var(--color-error-bg);color:var(--color-error);"><i class="fas fa-xmark-circle"></i></div>
               </div>
               <div class="kpi-label">ملغية / مرتجعة</div>
               <div class="kpi-value" id="kpiCancelled">—</div>
             </div>
+
           </div>
 
           <!-- Tab Navigation -->
-          <nav
-            class="dash-tabs-bar"
-            role="tablist"
-            aria-label="أقسام لوحة التحكم"
-          >
-            <button
-              class="dash-tab active"
-              data-tab="overview"
-              role="tab"
-              aria-selected="true"
-            >
-              <i class="fas fa-house"></i> الرئيسية
-            </button>
-            <button class="dash-tab" data-tab="financial" role="tab">
-              <i class="fas fa-chart-line"></i> التحليل المالي
-            </button>
-            <button class="dash-tab" data-tab="orders" role="tab">
-              <i class="fas fa-boxes-stacked"></i> تحليل الطلبات
-            </button>
-            <button class="dash-tab" data-tab="customers" role="tab">
-              <i class="fas fa-users"></i> العملاء
-            </button>
-            <button class="dash-tab" data-tab="shipping" role="tab">
-              <i class="fas fa-truck"></i> الشحن
-            </button>
-            <button class="dash-tab" data-tab="marketing" role="tab">
-              <i class="fas fa-bullhorn"></i> التسويق
-            </button>
-            <button class="dash-tab" data-tab="employees" role="tab">
-              <i class="fas fa-user-tie"></i> الموظفون
-            </button>
+          <nav class="dash-tabs-bar" role="tablist" aria-label="أقسام لوحة التحكم">
+            <button class="dash-tab active" data-tab="overview"  role="tab" aria-selected="true"><i class="fas fa-house"></i> الرئيسية</button>
+            <button class="dash-tab"        data-tab="financial" role="tab"><i class="fas fa-chart-line"></i> التحليل المالي</button>
+            <button class="dash-tab"        data-tab="orders"    role="tab"><i class="fas fa-boxes-stacked"></i> تحليل الطلبات</button>
+            <button class="dash-tab"        data-tab="customers" role="tab"><i class="fas fa-users"></i> العملاء</button>
+            <button class="dash-tab"        data-tab="shipping"  role="tab"><i class="fas fa-truck"></i> الشحن</button>
+            <button class="dash-tab"        data-tab="marketing" role="tab"><i class="fas fa-bullhorn"></i> التسويق</button>
+            <button class="dash-tab"        data-tab="employees" role="tab"><i class="fas fa-user-tie"></i> الموظفون</button>
           </nav>
 
           <!-- TAB: OVERVIEW -->
-          <section
-            class="dash-panel active"
-            data-panel="overview"
-            role="tabpanel"
-          >
+          <section class="dash-panel active" data-panel="overview" role="tabpanel">
             <div class="dash-grid-2-1 dash-section">
               <div class="chart-card">
                 <div class="chart-card-header">
-                  <div>
-                    <div class="chart-card-title">
-                      <i class="fas fa-chart-area"></i> الإيرادات عبر الزمن
-                    </div>
-                    <div class="chart-card-subtitle">الطلبات المسلمة فقط</div>
-                  </div>
+                  <div><div class="chart-card-title"><i class="fas fa-chart-area"></i> الإيرادات عبر الزمن</div><div class="chart-card-subtitle">الطلبات المسلمة فقط</div></div>
                 </div>
-                <div class="chart-wrap chart-wrap--lg">
-                  <canvas id="revenueChart"></canvas>
-                </div>
+                <div class="chart-wrap chart-wrap--lg"><canvas id="revenueChart"></canvas></div>
               </div>
               <div class="chart-card">
-                <div class="chart-card-header">
-                  <div class="chart-card-title">
-                    <i class="fas fa-chart-donut"></i> توزيع الحالات
-                  </div>
-                </div>
-                <div class="chart-wrap chart-wrap--lg">
-                  <canvas id="statusChart"></canvas>
-                </div>
+                <div class="chart-card-header"><div class="chart-card-title"><i class="fas fa-chart-donut"></i> توزيع الحالات</div></div>
+                <div class="chart-wrap chart-wrap--lg"><canvas id="statusChart"></canvas></div>
               </div>
             </div>
             <div class="chart-card dash-section">
-              <div class="chart-card-header">
-                <div class="chart-card-title">
-                  <i class="fas fa-calendar-days"></i> مقارنة آخر 6 أشهر
-                </div>
-              </div>
-              <div class="chart-wrap chart-wrap--md">
-                <canvas id="monthlyChart"></canvas>
-              </div>
+              <div class="chart-card-header"><div class="chart-card-title"><i class="fas fa-calendar-days"></i> مقارنة آخر 6 أشهر</div></div>
+              <div class="chart-wrap chart-wrap--md"><canvas id="monthlyChart"></canvas></div>
             </div>
           </section>
 
           <!-- TAB: FINANCIAL -->
           <section class="dash-panel" data-panel="financial" role="tabpanel">
             <div class="dash-section">
-              <h2 class="dash-section-title">
-                <i class="fas fa-file-invoice-dollar"></i> قائمة الدخل
-              </h2>
+              <h2 class="dash-section-title"><i class="fas fa-file-invoice-dollar"></i> قائمة الدخل</h2>
               <div id="profitLossStatement"></div>
             </div>
             <div class="chart-card dash-section">
-              <div class="chart-card-header">
-                <div class="chart-card-title">
-                  <i class="fas fa-chart-line"></i> الإيرادات والمصاريف والأرباح
-                  يومياً
-                </div>
-              </div>
-              <div class="chart-wrap chart-wrap--xl">
-                <canvas id="financialDailyChart"></canvas>
-              </div>
+              <div class="chart-card-header"><div class="chart-card-title"><i class="fas fa-chart-line"></i> الإيرادات والمصاريف والأرباح يومياً</div></div>
+              <div class="chart-wrap chart-wrap--xl"><canvas id="financialDailyChart"></canvas></div>
             </div>
             <div class="dash-section">
-              <h2 class="dash-section-title">
-                <i class="fas fa-bullseye"></i> الأهداف والمستهدفات
-              </h2>
+              <h2 class="dash-section-title"><i class="fas fa-bullseye"></i> الأهداف والمستهدفات</h2>
               <div id="goalsContainer"></div>
             </div>
           </section>
@@ -499,26 +212,16 @@
           <section class="dash-panel" data-panel="orders" role="tabpanel">
             <div class="dash-grid-equal dash-section">
               <div class="chart-card">
-                <div class="chart-card-header">
-                  <div class="chart-card-title">
-                    <i class="fas fa-arrow-trend-up"></i> متوسط قيمة الطلب (AOV)
-                  </div>
-                </div>
-                <div class="chart-wrap chart-wrap--md">
-                  <canvas id="aovTrendChart"></canvas>
-                </div>
+                <div class="chart-card-header"><div class="chart-card-title"><i class="fas fa-arrow-trend-up"></i> متوسط قيمة الطلب (AOV)</div></div>
+                <div class="chart-wrap chart-wrap--md"><canvas id="aovTrendChart"></canvas></div>
               </div>
               <div>
-                <h2 class="dash-section-title">
-                  <i class="fas fa-calendar-week"></i> أفضل أيام الأسبوع
-                </h2>
+                <h2 class="dash-section-title"><i class="fas fa-calendar-week"></i> أفضل أيام الأسبوع</h2>
                 <div id="bestDaysContainer"></div>
               </div>
             </div>
             <div class="dash-section">
-              <h2 class="dash-section-title">
-                <i class="fas fa-trophy"></i> أفضل المنتجات أرباحاً
-              </h2>
+              <h2 class="dash-section-title"><i class="fas fa-trophy"></i> أفضل المنتجات أرباحاً</h2>
               <div id="topProductsContainer"></div>
             </div>
           </section>
@@ -527,34 +230,16 @@
           <section class="dash-panel" data-panel="customers" role="tabpanel">
             <div class="dash-grid-3 dash-section">
               <div class="chart-card">
-                <div class="chart-card-header">
-                  <div class="chart-card-title">
-                    <i class="fas fa-venus-mars"></i> توزيع الجنس
-                  </div>
-                </div>
-                <div class="chart-wrap chart-wrap--md">
-                  <canvas id="genderChart"></canvas>
-                </div>
+                <div class="chart-card-header"><div class="chart-card-title"><i class="fas fa-venus-mars"></i> توزيع الجنس</div></div>
+                <div class="chart-wrap chart-wrap--md"><canvas id="genderChart"></canvas></div>
               </div>
               <div class="chart-card">
-                <div class="chart-card-header">
-                  <div class="chart-card-title">
-                    <i class="fas fa-user-plus"></i> جدد مقابل عائدين
-                  </div>
-                </div>
-                <div class="chart-wrap chart-wrap--md">
-                  <canvas id="customerTypeChart"></canvas>
-                </div>
+                <div class="chart-card-header"><div class="chart-card-title"><i class="fas fa-user-plus"></i> جدد مقابل عائدين</div></div>
+                <div class="chart-wrap chart-wrap--md"><canvas id="customerTypeChart"></canvas></div>
               </div>
               <div class="chart-card">
-                <div class="chart-card-header">
-                  <div class="chart-card-title">
-                    <i class="fas fa-map-pin"></i> أعلى المحافظات
-                  </div>
-                </div>
-                <div class="chart-wrap chart-wrap--md">
-                  <canvas id="topGovernoratesChart"></canvas>
-                </div>
+                <div class="chart-card-header"><div class="chart-card-title"><i class="fas fa-map-pin"></i> أعلى المحافظات</div></div>
+                <div class="chart-wrap chart-wrap--md"><canvas id="topGovernoratesChart"></canvas></div>
               </div>
             </div>
           </section>
@@ -563,24 +248,12 @@
           <section class="dash-panel" data-panel="shipping" role="tabpanel">
             <div class="dash-grid-equal dash-section">
               <div class="chart-card">
-                <div class="chart-card-header">
-                  <div class="chart-card-title">
-                    <i class="fas fa-truck"></i> توزيع شركات الشحن
-                  </div>
-                </div>
-                <div class="chart-wrap chart-wrap--md">
-                  <canvas id="shippingDistributionChart"></canvas>
-                </div>
+                <div class="chart-card-header"><div class="chart-card-title"><i class="fas fa-truck"></i> توزيع شركات الشحن</div></div>
+                <div class="chart-wrap chart-wrap--md"><canvas id="shippingDistributionChart"></canvas></div>
               </div>
               <div class="chart-card">
-                <div class="chart-card-header">
-                  <div class="chart-card-title">
-                    <i class="fas fa-credit-card"></i> طريقة الدفع
-                  </div>
-                </div>
-                <div class="chart-wrap chart-wrap--md">
-                  <canvas id="paymentTypeChart"></canvas>
-                </div>
+                <div class="chart-card-header"><div class="chart-card-title"><i class="fas fa-credit-card"></i> طريقة الدفع</div></div>
+                <div class="chart-wrap chart-wrap--md"><canvas id="paymentTypeChart"></canvas></div>
               </div>
             </div>
           </section>
@@ -588,14 +261,8 @@
           <!-- TAB: MARKETING -->
           <section class="dash-panel" data-panel="marketing" role="tabpanel">
             <div class="chart-card dash-section">
-              <div class="chart-card-header">
-                <div class="chart-card-title">
-                  <i class="fas fa-bullhorn"></i> مصادر الطلبات
-                </div>
-              </div>
-              <div class="chart-wrap chart-wrap--lg">
-                <canvas id="platformsChart"></canvas>
-              </div>
+              <div class="chart-card-header"><div class="chart-card-title"><i class="fas fa-bullhorn"></i> مصادر الطلبات</div></div>
+              <div class="chart-wrap chart-wrap--lg"><canvas id="platformsChart"></canvas></div>
             </div>
           </section>
 
@@ -603,56 +270,32 @@
           <section class="dash-panel" data-panel="employees" role="tabpanel">
             <div class="dash-grid-2-1 dash-section">
               <div>
-                <h2 class="dash-section-title">
-                  <i class="fas fa-medal"></i> ترتيب الموظفين
-                </h2>
+                <h2 class="dash-section-title"><i class="fas fa-medal"></i> ترتيب الموظفين</h2>
                 <div id="employeesLeaderboard"></div>
               </div>
               <div class="chart-card">
-                <div class="chart-card-header">
-                  <div class="chart-card-title">
-                    <i class="fas fa-chart-donut"></i> نسبة التسليم لكل موظف
-                  </div>
-                </div>
-                <div class="chart-wrap chart-wrap--md">
-                  <canvas id="employeeDeliveryChart"></canvas>
-                </div>
+                <div class="chart-card-header"><div class="chart-card-title"><i class="fas fa-chart-donut"></i> نسبة التسليم لكل موظف</div></div>
+                <div class="chart-wrap chart-wrap--md"><canvas id="employeeDeliveryChart"></canvas></div>
               </div>
             </div>
             <div class="dash-section">
-              <h2 class="dash-section-title">
-                <i class="fas fa-table"></i> تفاصيل الموظفين
-              </h2>
+              <h2 class="dash-section-title"><i class="fas fa-table"></i> تفاصيل الموظفين</h2>
               <div class="table-wrapper">
                 <table class="table" aria-label="تفاصيل أداء الموظفين">
                   <thead>
                     <tr>
-                      <th>الموظف</th>
-                      <th>إجمالي الطلبات</th>
-                      <th>مسلمة</th>
-                      <th>ملغية</th>
-                      <th>نسبة التسليم</th>
-                      <th>الإيرادات</th>
+                      <th>الموظف</th><th>إجمالي الطلبات</th><th>مسلمة</th>
+                      <th>ملغية</th><th>نسبة التسليم</th><th>الإيرادات</th>
                     </tr>
                   </thead>
                   <tbody id="employeesDetailTableBody">
-                    <tr>
-                      <td
-                        colspan="6"
-                        style="
-                          text-align: center;
-                          padding: var(--space-8);
-                          color: var(--color-text-muted);
-                        "
-                      >
-                        جاري التحميل...
-                      </td>
-                    </tr>
+                    <tr><td colspan="6" style="text-align:center;padding:var(--space-8);color:var(--color-text-muted);">جاري التحميل...</td></tr>
                   </tbody>
                 </table>
               </div>
             </div>
           </section>
+
         </main>
       </div>
     </div>
@@ -660,6 +303,6 @@
     <script src="shared/auth-guard.js"></script>
     <script src="shared/sidebar.js"></script>
     <script src="shared/topbar.js"></script>
-    <script src="pages/dashboard.js" type="module"></script>
+    <script src="pages/dashboard.js"></script>
   </body>
 </html>

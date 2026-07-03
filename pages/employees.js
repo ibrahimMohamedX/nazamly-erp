@@ -265,7 +265,7 @@
       await tempAuth.signOut();
 
       /* Write employee doc with default permissions */
-      await window.db.collection('employees').doc(uid).set({
+      await window.firebase.firestore().collection('employees').doc(uid).set({
         name,
         email,
         role,
@@ -273,7 +273,7 @@
         permissions: role === 'admin'
           ? Object.fromEntries(PERMISSIONS.map(p => [p.key, true]))
           : Object.fromEntries(PERMISSIONS.map(p => [p.key, false])),
-        createdAt: window.db.FieldValue.serverTimestamp(),
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       });
 
       window.VisionOverlays?.toast({ type: 'success', title: 'تم الإنشاء', message: `تم إنشاء حساب ${name} بنجاح` });
@@ -371,9 +371,9 @@
     if (text)    text.textContent = 'جاري الحفظ...';
 
     try {
-      await window.db.collection('employees').doc(empId).update({
+      await window.firebase.firestore().collection('employees').doc(empId).update({
         name, role, status, permissions,
-        updatedAt: window.db.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       });
       window.VisionOverlays?.toast({ type: 'success', message: 'تم تحديث بيانات الموظف بنجاح' });
       _closeEditModal();
@@ -408,9 +408,9 @@
     if (confirmed !== 'confirm') return;
 
     try {
-      await window.db.collection('employees').doc(empId).update({
+      await window.firebase.firestore().collection('employees').doc(empId).update({
         status: newStatus,
-        updatedAt: window.db.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       });
       window.VisionOverlays?.toast({
         type: isSuspended ? 'success' : 'warning',
@@ -427,30 +427,44 @@
      ────────────────────────────────────── */
 
   function _loadData() {
-    const db = window.db;
+    try {
+      /* Real-time employees listener */
+      _unsubs.push(
+        firebase.firestore().collection('employees').onSnapshot(
+          snap => {
+            _employees = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            _render();
+          },
+          err => {
+            console.error('[Employees] listener:', err);
+            const skel = document.getElementById('skeletonLoader');
+            if (skel) skel.classList.add('hidden');
+          }
+        )
+      );
 
-    /* Real-time employees listener */
-    _unsubs.push(
-      db.collection('employees').onSnapshot(
-        snap => {
-          _employees = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      /* One-time orders load for performance stats */
+      const cutoff = new Date();
+      cutoff.setMonth(cutoff.getMonth() - 3);
+      firebase.firestore().collection('orders')
+        .where('createdAt', '>=', firebase.firestore.Timestamp.fromDate(cutoff))
+        .get()
+        .then(snap => {
+          _orders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
           _render();
-        },
-        err => console.error('[Employees] listener:', err)
-      )
-    );
-
-    /* One-time orders load for performance stats */
-    const cutoff = new Date();
-    cutoff.setMonth(cutoff.getMonth() - 3);
-    db.collection('orders')
-      .where('createdAt', '>=', db.Timestamp.fromDate(cutoff))
-      .get()
-      .then(snap => {
-        _orders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        _render();
-      })
-      .catch(err => console.error('[Employees] orders load:', err));
+        })
+        .catch(err => {
+          console.error('[Employees] orders load:', err);
+          const skel = document.getElementById('skeletonLoader');
+          if (skel) skel.classList.add('hidden');
+          window.VisionOverlays?.toast({ type: 'error', message: 'تعذر تحميل بيانات الطلبات للإحصائيات' });
+        });
+    } catch (err) {
+      console.error('[Employees] _loadData fatal:', err);
+      const skel = document.getElementById('skeletonLoader');
+      if (skel) skel.classList.add('hidden');
+      window.VisionOverlays?.toast({ type: 'error', message: 'حدث خطأ أثناء تحميل بيانات الموظفين' });
+    }
   }
 
   /* ──────────────────────────────────────

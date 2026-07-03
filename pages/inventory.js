@@ -327,13 +327,13 @@
     try {
       const db = window.db;
       if (editId) {
-        await db.collection('products').doc(editId)
+        await firebase.firestore().collection('products').doc(editId)
           .update({ ...payload, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
         window.VisionOverlays?.toast({ type: 'success', message: 'تم تحديث المنتج' });
       } else {
         payload.sold      = 0;
         payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-        await db.collection('products').add(payload);
+        await firebase.firestore().collection('products').add(payload);
         window.VisionOverlays?.toast({ type: 'success', message: `تم إضافة "${name}"` });
       }
       _closeProductModal();
@@ -408,9 +408,9 @@
     try {
       const db = window.db;
       if (editId) {
-        await db.collection('product_categories').doc(editId).update({ name });
+        await firebase.firestore().collection('product_categories').doc(editId).update({ name });
       } else {
-        await db.collection('product_categories').add({
+        await firebase.firestore().collection('product_categories').add({
           name, order: Store.categories.length,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         });
@@ -467,7 +467,7 @@
         if (!name) return;
         const priceCents = _toCents(row['السعر']  || row['price'] || 0);
         const costCents  = _toCents(row['التكلفة'] || row['cost']  || 0);
-        const ref = db.collection('products').doc();
+        const ref = firebase.firestore().collection('products').doc();
         batch.set(ref, {
           name,
           description:    String(row['الوصف']   || row['description'] || ''),
@@ -533,14 +533,14 @@
   function _loadData() {
     const db = window.db;
     _unsubs.push(
-      db.collection('products').orderBy('name')
+      firebase.firestore().collection('products').orderBy('name')
         .onSnapshot(
           snap => { Store.products = snap.docs.map(d => ({ id: d.id, ...d.data() })); _scheduleRender(); },
           err  => console.error('[Inventory] products:', err)
         )
     );
     _unsubs.push(
-      db.collection('product_categories').orderBy('order')
+      firebase.firestore().collection('product_categories').orderBy('order')
         .onSnapshot(
           snap => { Store.categories = snap.docs.map(d => ({ id: d.id, ...d.data() })); _scheduleRender(); },
           err  => console.error('[Inventory] categories:', err)
