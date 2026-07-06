@@ -68,7 +68,7 @@
    */
   function _handleError(error, context) {
     _err(context + " error:", error);
-    if (window.VisionOverlays) {
+    if (window.VisionOverlays && typeof window.VisionOverlays.toast === "function") {
       window.VisionOverlays.toast({
         type: "warning",
         title: "تحذير: مشكلة في الاتصال",
@@ -104,18 +104,31 @@
     _ctx.prefix = options.collectionPrefix || "";
     _ctx.offline = !!options.offlinePersistence;
 
+    // Apply Firestore settings with merge so we don't clobber host/defaults
+    try {
+      _ctx.db.settings({
+        merge: true,
+        cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED,
+      });
+    } catch (e) {
+      // settings may throw if called after Firestore has already started;
+      // that's fine — the defaults are reasonable.
+      _log("settings skipped (Firestore already started)");
+    }
+
+    // Only enable offline persistence when explicitly requested.
+    // Uses plain enablePersistence() to avoid the deprecated
+    // enableMultiTabIndexedDbPersistence() codepath, and silently
+    // swallows any failure so bootstrap is never blocked.
     if (_ctx.offline) {
       try {
-        await _ctx.db.enablePersistence({ synchronizeTabs: true });
+        await _ctx.db.enablePersistence();
         _log("offline persistence enabled");
       } catch (e) {
-        if (e.code === "failed-precondition") {
-          _log("offline persistence skipped — multiple tabs open");
-        } else if (e.code === "unimplemented") {
-          _log("offline persistence not supported in this browser");
-        } else {
-          _err("enablePersistence error", e);
-        }
+        // All failures are non-fatal — the SDK falls back to memory cache.
+        // Common codes: failed-precondition (another tab or newer SDK used),
+        // unimplemented (browser lacks IndexedDB).
+        _log("offline persistence skipped — " + (e.code || "unknown") + ": " + (e.message || e));
       }
     }
 
@@ -301,7 +314,7 @@
 
     const key = "subscription_" + userId;
     if (_unsubs[key]) {
-      _unsubs[key]();
+      try { _unsubs[key](); } catch (e) { /* ignore — listener may already be dead */ }
       delete _unsubs[key];
     } // reset if already watching
 
@@ -333,12 +346,12 @@
           if (window.VisionNotifications)
             window.VisionNotifications.subscriptionStatus(sub);
         },
-        (error) => _err("syncSubscription error for " + userId, error),
+        (error) => _handleError(error, "syncSubscription(" + userId + ")"),
       );
 
       _unsubs[key] = unsub;
     } catch (e) {
-      _err("syncSubscription setup error", e);
+      _handleError(e, "syncSubscription(" + userId + ") setup");
     }
   }
 
@@ -353,6 +366,9 @@
    */
   async function sendNotification(notification) {
     _assertInit("sendNotification", true);
+    if (!notification || (!notification.title && !notification.message)) {
+      throw new Error("[VisionFirebase] sendNotification: title or message required");
+    }
     const data = Object.assign(
       {
         type: "info",
@@ -365,6 +381,14 @@
       },
       notification,
     );
+
+    // Validate before writing
+    if (window.VisionSecurity) {
+      const result = window.VisionSecurity.validateNotification(data);
+      if (!result.valid) {
+        throw new Error("[VisionFirebase] sendNotification: validation failed — " + result.errors.join('; '));
+      }
+    }
 
     const ref = await _ctx.db.collection(_col("notifications")).add(data);
     return ref.id;
@@ -425,15 +449,7 @@
 
     _log("setMaintenanceMode: " + JSON.stringify({ enabled: data.enabled }));
 
-    // 1. Ensure the document exists first (create if needed)
-    const docRef = _ctx.db.collection("system").doc("status");
-    await docRef.set(
-      { updatedAt: firebase.firestore.FieldValue.serverTimestamp() },
-      { merge: true }
-    );
-    _log("document ensured");
-
-    // 2. Now write the maintenance data
+    // Write maintenance data with merge (creates doc if it doesn't exist)
     await updateSystemStatus(payload);
     _log("maintenance data written");
 

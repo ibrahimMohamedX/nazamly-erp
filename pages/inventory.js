@@ -303,6 +303,34 @@
       _el('prodPrice')?.focus(); return;
     }
 
+    /* ── Usage cap check for NEW products only (Phase 4) ── */
+    if (!editId) {
+      var maxProducts = 200; /* sensible default */
+      if (window.VisionLicensing && typeof window.VisionLicensing.getUsageCaps === 'function') {
+        var caps = window.VisionLicensing.getUsageCaps();
+        maxProducts = caps.maxProducts || maxProducts;
+      } else if (window.VisionConfig) {
+        var lic = window.VisionConfig.get('licensing');
+        if (lic && lic.usageCaps && lic.usageCaps.maxProducts) {
+          maxProducts = lic.usageCaps.maxProducts;
+        }
+      }
+      if (Store.products.length >= maxProducts) {
+        window.VisionOverlays?.modal({
+          title: 'الحد الأقصى للمنتجات',
+          body: '<div style="text-align:right;line-height:1.8;">' +
+            '<p style="color:var(--color-warning);font-weight:bold;margin-bottom:8px;">' +
+            '<i class="fas fa-triangle-exclamation" style="margin-left:6px;"></i>' +
+            'تم الوصول للحد الأقصى لعدد المنتجات (' + maxProducts + ').</p>' +
+            '<p style="color:var(--color-text-secondary);">' +
+            'يرجى ترقية الاشتراك لإضافة المزيد من المنتجات. تواصل مع مالك النظام.</p>' +
+            '</div>',
+          buttons: [{ label: 'حسناً', value: true, primary: true }]
+        });
+        return;
+      }
+    }
+
     const saveBtn = _el('saveProductBtn');
     const spinner = _el('saveProductSpinner');
     const text    = _el('saveProductText');

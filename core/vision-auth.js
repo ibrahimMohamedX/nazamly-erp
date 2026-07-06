@@ -32,6 +32,19 @@
 
     const ROLE_RANK = { admin: 3, user: 2, guest: 1 };
 
+    /** Translate Firebase auth error codes to Arabic */
+    function _firebaseAuthErrorMsg(code) {
+        switch (code) {
+            case 'auth/wrong-password':
+            case 'auth/invalid-credential':   return 'كلمة المرور غير صحيحة.';
+            case 'auth/invalid-email':        return 'صيغة البريد الإلكتروني غير صحيحة.';
+            case 'auth/user-disabled':        return 'هذا الحساب معطّل.';
+            case 'auth/too-many-requests':    return 'محاولات كثيرة. يرجى الانتظار.';
+            case 'auth/network-request-failed': return 'لا يوجد اتصال بالإنترنت.';
+            default:                          return null; // caller decides fallback
+        }
+    }
+
     /* ─────────────────────────────────────────────
      * FIREBASE HELPERS
      * ───────────────────────────────────────────── */
@@ -40,16 +53,33 @@
         return typeof firebase !== 'undefined' && firebase.auth && firebase.auth();
     }
 
-    /** Sync user data from a Firebase Auth user object + ID-token claims */
+    /** Sync user data from a Firebase Auth user object + Firestore employee record */
     async function _syncFirebaseUser(fbUser) {
         try {
-            const result = await fbUser.getIdTokenResult();
+            // 1. Get ID token + custom claims (parallel fetch)
+            const tokenPromise = fbUser.getIdTokenResult();
+
+            // 2. Read employee record from Firestore for authoritative role + permissions
+            let employeeData = null;
+            if (typeof firebase !== 'undefined' && firebase.firestore) {
+                try {
+                    const empSnap = await firebase.firestore()
+                        .collection('employees').doc(fbUser.uid).get();
+                    if (empSnap.exists) {
+                        employeeData = empSnap.data();
+                    }
+                } catch (e) {
+                    console.warn('[VisionAuth] Firestore employee read failed, using claims fallback:', e.message);
+                }
+            }
+
+            const result = await tokenPromise;
             const claims = result.claims || {};
 
             _state.user = {
                 uid:           fbUser.uid,
                 email:         fbUser.email,
-                displayName:   fbUser.displayName || fbUser.email.split('@')[0],
+                displayName:   fbUser.displayName || (employeeData && employeeData.name) || fbUser.email.split('@')[0],
                 emailVerified: fbUser.emailVerified,
                 photoURL:      fbUser.photoURL || null,
                 metadata: {
@@ -58,9 +88,17 @@
                 }
             };
 
-            // Role: prefer custom claim, then localStorage (set by login.html), then default
-            _state.role        = claims.role || localStorage.getItem('userRole') || 'user';
-            _state.permissions = claims.permissions || {};
+            // Role resolution: Firestore employee record > token custom claims > localStorage > default
+            _state.role = (employeeData && employeeData.role)
+                || claims.role
+                || localStorage.getItem('userRole')
+                || 'user';
+
+            // Permissions: Firestore employee record > token claims > empty
+            _state.permissions = (employeeData && employeeData.permissions)
+                || claims.permissions
+                || {};
+
             _state.token       = result.token;
             _state.tokenExpiry = result.expirationTime
                 ? new Date(result.expirationTime).getTime()
@@ -167,6 +205,9 @@
             await firebase.auth().signOut();
         }
         _clearState();
+        // Clear any stale localStorage auth artifacts
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('employeeName');
         _notify(null);
     }
 
@@ -189,7 +230,17 @@
 
     /** @returns {boolean} */
     function isAdmin() {
-        return _state.role === 'admin' || (ROLE_RANK[_state.role] || 0) >= ROLE_RANK['admin'];
+        return _state.role === 'admin' || _state.role === 'super_admin' || (ROLE_RANK[_state.role] || 0) >= ROLE_RANK['admin'];
+    }
+
+    /**
+     * Check if the current user is a super admin.
+     * Super admins have limited sidebar access (orders, inventory, AWB, dashboard)
+     * but possess the highest privilege level — including the ability to wipe all data.
+     * @returns {boolean}
+     */
+    function isSuperAdmin() {
+        return _state.role === 'super_admin';
     }
 
     /**
@@ -296,9 +347,10 @@
                         await signOut();
                         resolve(false);
                     }
-                } catch (_) {
+                } catch (e) {
+                    console.error('[VisionAuth] promptAdminLogin signIn error:', e);
                     if (errEl) {
-                        errEl.textContent = 'بيانات الدخول غير صحيحة';
+                        errEl.textContent = _firebaseAuthErrorMsg(e && e.code) || 'بيانات الدخول غير صحيحة';
                         errEl.style.display = 'block';
                     }
                     resolve(false);
@@ -340,6 +392,7 @@
         onAuthStateChanged,
         isAuthenticated,
         isAdmin,
+        isSuperAdmin,
         hasPermission,
         getUser,
         getRole,

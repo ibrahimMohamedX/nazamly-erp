@@ -38,7 +38,7 @@
     ]);
 
     /** Whitelist of attributes that survive sanitizeHtml() */
-    const ALLOWED_ATTRS = new Set(['href', 'title', 'target', 'class', 'dir', 'lang']);
+    const ALLOWED_ATTRS = new Set(['href', 'title', 'target', 'class', 'dir', 'lang', 'id', 'type', 'placeholder', 'autocomplete', 'aria-label']);
 
     /** Valid notification type strings */
     const VALID_TYPES = new Set([

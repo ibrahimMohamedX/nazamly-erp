@@ -46,6 +46,14 @@
   const _setText = (id, v) => { const e = _el(id); if (e) e.textContent = v; };
   const _fmtCurrency = n => (Number(n)||0).toLocaleString('ar-EG', { maximumFractionDigits: 0 }) + ' ج.م';
 
+  /**
+   * Returns employees filtered for display — excludes super_admin accounts
+   * so the root owner is invisible to tenant admins.
+   */
+  function _visibleEmployees() {
+    return _employees.filter(e => e.role !== 'super_admin');
+  }
+
   /* Status type from orders (mirrors dashboard logic) */
   function _isDelivered(o) {
     const lc = (o.status || '').toLowerCase();
@@ -65,11 +73,12 @@
      ────────────────────────────────────── */
 
   function _render() {
+    const visible = _visibleEmployees();
     const filtered = _search
-      ? _employees.filter(e =>
+      ? visible.filter(e =>
           (e.name  || '').toLowerCase().includes(_search) ||
           (e.email || '').toLowerCase().includes(_search))
-      : _employees;
+      : visible;
 
     _renderStats();
     _renderTable(filtered);
@@ -80,13 +89,14 @@
   }
 
   function _renderStats() {
-    const total     = _employees.length;
-    const active    = _employees.filter(e => e.status !== 'suspended').length;
+    const visible   = _visibleEmployees();
+    const total     = visible.length;
+    const active    = visible.filter(e => e.status !== 'suspended').length;
     const suspended = total - active;
 
     /* Top seller by delivered order count */
     let topEmp = null, topCount = 0;
-    _employees.forEach(e => {
+    visible.forEach(e => {
       const { delivered } = _empStats(e.id);
       if (delivered > topCount) { topCount = delivered; topEmp = e; }
     });
@@ -97,7 +107,7 @@
     _setText('statSuspendedEmployees',suspended);
     _setText('statTopSeller',    topEmp?.name || '—');
     _setText('statTopSellerAmount', topEmp ? _fmtCurrency(topRevenue) : '');
-    _setText('empCount', `${_employees.length} موظف`);
+    _setText('empCount', `${visible.length} موظف`);
   }
 
   function _renderTable(employees) {
@@ -242,6 +252,33 @@
     }
     if (password.length < 6) {
       window.VisionOverlays?.toast({ type: 'error', message: 'كلمة المرور يجب أن تكون 6 أحرف على الأقل' });
+      return;
+    }
+
+    /* ── Usage cap check (Phase 4) ── */
+    var maxEmployees = 5; /* sensible default */
+    if (window.VisionLicensing && typeof window.VisionLicensing.getUsageCaps === 'function') {
+      var caps = window.VisionLicensing.getUsageCaps();
+      maxEmployees = caps.maxEmployees || maxEmployees;
+    } else if (window.VisionConfig) {
+      var lic = window.VisionConfig.get('licensing');
+      if (lic && lic.usageCaps && lic.usageCaps.maxEmployees) {
+        maxEmployees = lic.usageCaps.maxEmployees;
+      }
+    }
+    var currentVisible = _visibleEmployees().length;
+    if (currentVisible >= maxEmployees) {
+      window.VisionOverlays?.modal({
+        title: 'الحد الأقصى للموظفين',
+        body: '<div style="text-align:right;line-height:1.8;">' +
+          '<p style="color:var(--color-warning);font-weight:bold;margin-bottom:8px;">' +
+          '<i class="fas fa-triangle-exclamation" style="margin-left:6px;"></i>' +
+          'تم الوصول للحد الأقصى لعدد الموظفين (' + maxEmployees + ').</p>' +
+          '<p style="color:var(--color-text-secondary);">' +
+          'يرجى ترقية الاشتراك لإضافة المزيد من الموظفين. تواصل مع مالك النظام.</p>' +
+          '</div>',
+        buttons: [{ label: 'حسناً', value: true, primary: true }]
+      });
       return;
     }
 

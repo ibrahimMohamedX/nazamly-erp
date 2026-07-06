@@ -137,7 +137,8 @@
      * @param {*}      [data]
      */
     function emit(event, data) {
-        (_listeners[event] || []).forEach(cb => {
+        // Snapshot listeners array to prevent mutation during iteration
+        (_listeners[event] || []).slice().forEach(cb => {
             try { cb(data); } catch (e) {
                 console.error('[VisionConfig] Error in listener for "' + event + '":', e);
             }

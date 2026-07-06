@@ -906,6 +906,804 @@
   }
 
   /* ──────────────────────────────────────
+     SUPER ADMIN & DANGER ZONE
+     ────────────────────────────────────── */
+
+  /* ── Super Admin Panel: Subscription Control ── */
+
+  /* Map action codes to Arabic labels */
+  const ACTION_LABELS = {
+    created:      'إنشاء',
+    renewed:      'تجديد',
+    paused:       'تعليق',
+    resumed:      'استئناف',
+    caps_updated: 'تحديث الحدود'
+  };
+
+  /* Map action codes to icons */
+  const ACTION_ICONS = {
+    created:      'fa-star',
+    renewed:      'fa-rotate',
+    paused:       'fa-pause-circle',
+    resumed:      'fa-play-circle',
+    caps_updated: 'fa-sliders'
+  };
+
+  /**
+   * Reveal the super admin control panel for subscription management.
+   *
+   * Uses VisionAuth.isSuperAdmin() to gate visibility. Subscribes
+   * to VisionLicensing.onStatusChanged() for real-time updates.
+   */
+  function _setupSuperAdminPanel() {
+    if (!window.VisionAuth || !window.VisionAuth.isSuperAdmin()) return;
+
+    var panel = _el('superAdminPanel');
+    if (!panel) return;
+    panel.style.display = '';
+
+    /* Bind UI interactions */
+    _bindSubscriptionPanel();
+
+    /* Subscribe to real-time licensing changes */
+    if (window.VisionLicensing && typeof window.VisionLicensing.onStatusChanged === 'function') {
+      var unsubLicensing = window.VisionLicensing.onStatusChanged(function (status) {
+        _updateSubscriptionUI(status);
+      });
+      _unsubs.push(unsubLicensing);
+    } else {
+      /* Fallback: read once from cache */
+      var status = window.VisionLicensing
+        ? window.VisionLicensing.getStatus()
+        : (window.VisionConfig ? window.VisionConfig.get('licensing') : null);
+      if (status) _updateSubscriptionUI(status);
+    }
+  }
+
+  /**
+   * Update all subscription panel UI elements from a status object.
+   * @param {Object} status — { isActive, startDate, endDate, subscriptionHistory, usageCaps }
+   */
+  function _updateSubscriptionUI(status) {
+    if (!status) return;
+
+    var now = Date.now();
+    var endMs   = status.endDate ? new Date(status.endDate).getTime() : null;
+    var startMs = status.startDate ? new Date(status.startDate).getTime() : null;
+    var daysRemaining = endMs ? Math.ceil((endMs - now) / 86_400_000) : null;
+
+    /* ── Status badge ── */
+    var badge = _el('saStatusBadge');
+    if (badge) {
+      if (!status.isActive) {
+        badge.textContent = 'معطل';
+        badge.className   = 'sub-status-badge sub-status-badge--paused';
+      } else if (daysRemaining !== null && daysRemaining <= 0) {
+        badge.textContent = 'منتهي';
+        badge.className   = 'sub-status-badge sub-status-badge--expired';
+      } else {
+        badge.textContent = 'نشط';
+        badge.className   = 'sub-status-badge sub-status-badge--active';
+      }
+    }
+
+    /* ── Countdown ── */
+    var countdownVal  = _el('saCountdownValue');
+    var countdownUnit = _el('saCountdownUnit');
+    var countdown     = _el('saCountdown');
+    if (countdownVal && countdownUnit) {
+      if (daysRemaining === null) {
+        countdownVal.textContent = '—';
+        countdownUnit.textContent = '';
+      } else {
+        var absDays = Math.abs(daysRemaining);
+        countdownVal.textContent = _fmt(absDays);
+        countdownUnit.textContent = absDays === 1 ? 'يوم' : 'يوم';
+
+        /* Color coding */
+        if (countdown) {
+          countdown.className = 'sub-countdown' +
+            (daysRemaining <= 0 ? ' sub-countdown--expired' :
+             daysRemaining <= 3 ? ' sub-countdown--critical' :
+             daysRemaining <= 7 ? ' sub-countdown--warning' : '');
+        }
+      }
+    }
+
+    /* ── Dates ── */
+    _setText('saStartDate', startMs
+      ? new Date(startMs).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })
+      : '—');
+    _setText('saEndDate', endMs
+      ? new Date(endMs).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })
+      : '—');
+
+    /* ── Pause/Resume toggle ── */
+    var toggleBtn  = _el('saTogglePauseBtn');
+    var toggleIcon = toggleBtn ? toggleBtn.querySelector('i') : null;
+    var toggleSpan = _el('saTogglePauseLabel');
+    if (toggleBtn && toggleSpan) {
+      if (status.isActive) {
+        toggleSpan.textContent = 'تعليق النظام';
+        if (toggleIcon) { toggleIcon.className = 'fas fa-pause-circle'; }
+        toggleBtn.className = 'btn btn-lg btn-warning';
+      } else {
+        toggleSpan.textContent = 'استئناف النظام';
+        if (toggleIcon) { toggleIcon.className = 'fas fa-play-circle'; }
+        toggleBtn.className = 'btn btn-lg btn-success';
+      }
+    }
+
+    /* ── Usage caps inputs ── */
+    var empInput  = _el('saMaxEmployees');
+    var prodInput = _el('saMaxProducts');
+    if (empInput)  empInput.value  = status.usageCaps ? (status.usageCaps.maxEmployees || 5) : 5;
+    if (prodInput) prodInput.value = status.usageCaps ? (status.usageCaps.maxProducts  || 200) : 200;
+
+    /* ── Current counts ── */
+    _setText('saCurrentEmployees', 'الحالي: ' + Store.employees.length + ' موظف');
+    _setText('saCurrentProducts',  'الحالي: ' + Store.products.length + ' منتج');
+
+    /* ── History table ── */
+    _renderHistoryTable(status.subscriptionHistory || []);
+  }
+
+  /**
+   * Render the subscription history table.
+   * Entries are displayed in reverse chronological order.
+   * @param {Array} history
+   */
+  function _renderHistoryTable(history) {
+    var tbody = _el('saHistoryTableBody');
+    if (!tbody) return;
+
+    if (!history.length) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:var(--space-6);color:var(--color-text-muted);">لا توجد عمليات مسجلة</td></tr>';
+      return;
+    }
+
+    /* Sort newest first */
+    var sorted = history.slice().sort(function (a, b) {
+      var da = a.date ? (a.date.seconds ? a.date.seconds * 1000 : new Date(a.date).getTime()) : 0;
+      var db = b.date ? (b.date.seconds ? b.date.seconds * 1000 : new Date(b.date).getTime()) : 0;
+      return db - da;
+    });
+
+    tbody.innerHTML = sorted.map(function (entry) {
+      var dateStr = '—';
+      if (entry.date) {
+        var d = entry.date.seconds
+          ? new Date(entry.date.seconds * 1000)
+          : new Date(entry.date);
+        if (!isNaN(d.getTime())) {
+          dateStr = d.toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' }) +
+            ' — ' + d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+        }
+      }
+
+      var actionLabel = ACTION_LABELS[entry.action] || entry.action || '—';
+      var actionIcon  = ACTION_ICONS[entry.action]  || 'fa-circle';
+      var duration    = entry.durationMonths
+        ? entry.durationMonths + ' ' + (entry.durationMonths === 1 ? 'شهر' : 'أشهر')
+        : '—';
+      var by = entry.by || '—';
+
+      return '<tr>' +
+        '<td class="td-muted">' + dateStr + '</td>' +
+        '<td><span class="history-action"><i class="fas ' + actionIcon + '" aria-hidden="true"></i> ' + actionLabel + '</span></td>' +
+        '<td class="td-numeric">' + duration + '</td>' +
+        '<td class="td-muted">' + by + '</td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  /**
+   * Bind event listeners for the subscription panel.
+   * Pause/resume toggle, renewal buttons, and caps save.
+   */
+  function _bindSubscriptionPanel() {
+    /* ── Pause / Resume toggle ── */
+    var toggleBtn = _el('saTogglePauseBtn');
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', function () {
+        var status = window.VisionLicensing
+          ? window.VisionLicensing.getStatus()
+          : (window.VisionConfig ? window.VisionConfig.get('licensing') : null);
+        if (!status) return;
+
+        var currentlyActive = status.isActive;
+
+        /* Confirm before pausing */
+        if (currentlyActive) {
+          if (!window.VisionOverlays) return;
+          window.VisionOverlays.modal({
+            title: 'تأكيد تعليق النظام',
+            body: '<div style="text-align:right;line-height:1.8;">' +
+              '<p style="color:var(--color-warning);font-weight:bold;margin-bottom:12px;">' +
+              '<i class="fas fa-triangle-exclamation" style="margin-left:6px;"></i>' +
+              'هل أنت متأكد من تعليق النظام؟</p>' +
+              '<p style="color:var(--color-text-secondary);">' +
+              'لن يتمكن أي موظف أو عميل من الوصول إلى النظام حتى تقوم باستئنافه. ' +
+              'حساب المالك فقط سيبقى قادراً على الدخول.</p>' +
+              '</div>',
+            buttons: [
+              { label: 'إلغاء', value: false },
+              { label: 'تعليق النظام', value: true, primary: true }
+            ]
+          }).then(function (confirmed) {
+            if (confirmed && window.VisionLicensing) {
+              window.VisionLicensing.togglePause(false).catch(function (e) {
+                console.error('[Dashboard] togglePause failed:', e);
+              });
+            }
+          });
+        } else {
+          /* Resume — no confirmation needed */
+          if (window.VisionLicensing) {
+            window.VisionLicensing.togglePause(true).catch(function (e) {
+              console.error('[Dashboard] togglePause failed:', e);
+            });
+          }
+        }
+      });
+    }
+
+    /* ── Renewal buttons ── */
+    document.querySelectorAll('.renewal-btn[data-months]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var months = parseInt(btn.dataset.months, 10);
+        if (!months || months <= 0) return;
+
+        if (!window.VisionOverlays) return;
+
+        /* Compute the new end date for the confirmation message */
+        var status = window.VisionLicensing
+          ? window.VisionLicensing.getStatus()
+          : (window.VisionConfig ? window.VisionConfig.get('licensing') : null);
+        var base = status && status.endDate
+          ? new Date(status.endDate)
+          : new Date();
+        if (base.getTime() < Date.now()) base.setTime(Date.now());
+        base.setMonth(base.getMonth() + months);
+        var newEndStr = base.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
+
+        window.VisionOverlays.modal({
+          title: 'تأكيد تجديد الاشتراك',
+          body: '<div style="text-align:right;line-height:1.8;">' +
+            '<p style="color:var(--color-text-secondary);margin-bottom:8px;">' +
+            'سيتم تمديد الاشتراك بمقدار <strong>' + months + ' ' + (months === 1 ? 'شهر' : 'أشهر') + '</strong>.</p>' +
+            '<p style="color:var(--color-text-secondary);margin-bottom:12px;">' +
+            'تاريخ الانتهاء الجديد: <strong style="color:var(--color-success);">' + newEndStr + '</strong></p>' +
+            '<p style="color:var(--color-text-muted);font-size:0.85rem;">' +
+            'سيتم تفعيل النظام تلقائياً إذا كان معلقاً.</p>' +
+            '</div>',
+          buttons: [
+            { label: 'إلغاء', value: false },
+            { label: 'تأكيد التجديد', value: true, primary: true }
+          ]
+        }).then(function (confirmed) {
+          if (confirmed && window.VisionLicensing) {
+            window.VisionLicensing.renew(months).catch(function (e) {
+              console.error('[Dashboard] renew failed:', e);
+              if (window.VisionOverlays) {
+                window.VisionOverlays.toast({
+                  type: 'error',
+                  title: 'فشل التجديد',
+                  message: 'حدث خطأ أثناء تجديد الاشتراك. يرجى المحاولة مرة أخرى.',
+                });
+              }
+            });
+          }
+        });
+      });
+    });
+
+    /* ── Custom date renewal ── */
+    var customDateInput = _el('saCustomEndDate');
+    var customRenewBtn  = _el('saCustomRenewBtn');
+    var customHint      = _el('saCustomRenewHint');
+    if (customDateInput && customRenewBtn) {
+      /* Set min date to tomorrow */
+      var tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      customDateInput.min = tomorrow.toISOString().split('T')[0];
+
+      customDateInput.addEventListener('change', function () {
+        var selected = customDateInput.value;
+        if (!selected) {
+          if (customHint) customHint.textContent = '';
+          return;
+        }
+        var target = new Date(selected);
+        var now = new Date();
+        var diffDays = Math.ceil((target.getTime() - now.getTime()) / 86_400_000);
+        var diffMonths = (diffDays / 30).toFixed(1);
+        if (customHint) {
+          customHint.textContent = 'المدة المتبقية بعد التمديد: ~' +
+            diffDays + ' يوم (' + diffMonths + ' شهر)';
+        }
+      });
+
+      customRenewBtn.addEventListener('click', function () {
+        var selected = customDateInput.value;
+        if (!selected) {
+          if (window.VisionOverlays) {
+            window.VisionOverlays.toast({
+              type: 'error',
+              message: 'يرجى اختيار تاريخ أولاً.',
+            });
+          }
+          return;
+        }
+
+        var targetDate = new Date(selected);
+        var now = new Date();
+        if (targetDate.getTime() <= now.getTime()) {
+          if (window.VisionOverlays) {
+            window.VisionOverlays.toast({
+              type: 'error',
+              message: 'يجب أن يكون التاريخ في المستقبل.',
+            });
+          }
+          return;
+        }
+
+        /* Confirm */
+        var targetStr = targetDate.toLocaleDateString('ar-EG', {
+          year: 'numeric', month: 'long', day: 'numeric'
+        });
+        var diffDays = Math.ceil((targetDate.getTime() - now.getTime()) / 86_400_000);
+
+        if (!window.VisionOverlays) return;
+        window.VisionOverlays.modal({
+          title: 'تأكيد تمديد الاشتراك',
+          body: '<div style="text-align:right;line-height:1.8;">' +
+            '<p style="color:var(--color-text-secondary);margin-bottom:8px;">' +
+            'سيتم تمديد الاشتراك حتى تاريخ:</p>' +
+            '<p style="color:var(--color-success);font-weight:bold;font-size:1.1rem;margin-bottom:12px;">' +
+            targetStr + '</p>' +
+            '<p style="color:var(--color-text-muted);font-size:0.85rem;">' +
+            'المدة المضافة: ~' + diffDays + ' يوم</p>' +
+            '</div>',
+          buttons: [
+            { label: 'إلغاء', value: false },
+            { label: 'تأكيد التمديد', value: true, primary: true }
+          ]
+        }).then(function (confirmed) {
+          if (!confirmed || !window.VisionLicensing) return;
+
+          customRenewBtn.disabled = true;
+          window.VisionLicensing.extendToDate(targetDate.toISOString()).then(function () {
+            customRenewBtn.disabled = false;
+            customDateInput.value = '';
+            if (customHint) customHint.textContent = '';
+          }).catch(function (e) {
+            console.error('[Dashboard] extendToDate failed:', e);
+            customRenewBtn.disabled = false;
+            if (window.VisionOverlays) {
+              window.VisionOverlays.toast({
+                type: 'error',
+                title: 'فشل التمديد',
+                message: 'حدث خطأ أثناء تمديد الاشتراك. يرجى المحاولة مرة أخرى.',
+              });
+            }
+          });
+        });
+      });
+    }
+
+    /* ── Save usage caps ── */
+    var saveCapsBtn = _el('saSaveCapsBtn');
+    if (saveCapsBtn) {
+      saveCapsBtn.addEventListener('click', function () {
+        var empVal  = parseInt(_el('saMaxEmployees')?.value, 10);
+        var prodVal = parseInt(_el('saMaxProducts')?.value, 10);
+
+        if (!empVal || empVal < 1 || !prodVal || prodVal < 10) {
+          if (window.VisionOverlays) {
+            window.VisionOverlays.toast({
+              type: 'error',
+              message: 'يرجى إدخال قيم صحيحة (الموظفون: 1-500، المنتجات: 10-10000)',
+            });
+          }
+          return;
+        }
+
+        if (window.VisionLicensing) {
+          saveCapsBtn.disabled = true;
+          window.VisionLicensing.updateUsageCaps({
+            maxEmployees: empVal,
+            maxProducts:  prodVal
+          }).then(function () {
+            saveCapsBtn.disabled = false;
+          }).catch(function (e) {
+            console.error('[Dashboard] updateUsageCaps failed:', e);
+            saveCapsBtn.disabled = false;
+            if (window.VisionOverlays) {
+              window.VisionOverlays.toast({
+                type: 'error',
+                title: 'فشل الحفظ',
+                message: 'حدث خطأ أثناء حفظ حدود الاستخدام.',
+              });
+            }
+          });
+        }
+      });
+    }
+  }
+
+  /* ── Danger Zone ── */
+
+  /**
+   * Reveal the danger zone section for super admins and bind
+   * the wipe-all-data button with a two-step confirmation flow.
+   *
+   * Uses VisionAuth.isSuperAdmin() which checks if the employee
+   * record has role === 'super_admin'.
+   */
+  function _setupDangerZone() {
+    if (!window.VisionAuth || !window.VisionAuth.isSuperAdmin()) return;
+
+    var zone = _el('dangerZone');
+    if (!zone) return;
+    zone.style.display = '';
+
+    var btn = _el('btnWipeAllData');
+    if (!btn) return;
+
+    btn.addEventListener('click', function () {
+      _confirmWipeAllData();
+    });
+  }
+
+  /**
+   * Two-step confirmation for wiping all data.
+   *
+   * Step 1: General warning modal explaining the scope.
+   * Step 2: Type-to-confirm modal — user must type a specific
+   *         Arabic phrase to prove they understand the gravity.
+   * Step 3: Execute the wipe with spinner feedback.
+   */
+  function _confirmWipeAllData() {
+    if (!window.VisionOverlays) return;
+
+    /* ── Step 1: Initial warning ── */
+    window.VisionOverlays.modal({
+      title: 'تحذير: حذف جميع بيانات النظام',
+      body: '<div style="text-align:right;line-height:1.8;">' +
+        '<p style="color:var(--color-error);font-weight:bold;font-size:1.1rem;margin-bottom:12px;">' +
+        '<i class="fas fa-triangle-exclamation" style="margin-left:6px;"></i>' +
+        'هذا الإجراء خطير ولا يمكن التراجع عنه!</p>' +
+        '<p style="color:var(--color-text-secondary);margin-bottom:8px;">' +
+        'سيتم حذف <strong>جميع</strong> البيانات من المجموعات التالية:</p>' +
+        '<ul style="color:var(--color-text-secondary);padding-right:20px;margin-bottom:12px;">' +
+        '<li>الطلبات (Orders)</li>' +
+        '<li>المصاريف (Expenses)</li>' +
+        '<li>المنتجات (Products)</li>' +
+        '<li>الموظفون (Employees)</li>' +
+        '<li>شركات الشحن (Shipping Companies)</li>' +
+        '<li>المنصات (Platforms)</li>' +
+        '<li>الحالات (Statuses)</li>' +
+        '<li>الأهداف (Goals)</li>' +
+        '</ul>' +
+        '<p style="color:var(--color-text-muted);font-size:0.85rem;">' +
+        'النظام نفسه (إعدادات، صلاحيات، هيكل) لن يتأثر. سيتم حذف البيانات التشغيلية فقط.</p>' +
+        '</div>',
+      buttons: [
+        { label: 'إلغاء', value: false },
+        { label: 'متابعة', value: true, primary: true }
+      ]
+    }).then(function (proceed) {
+      if (!proceed) return;
+
+      /* ── Step 2: Type-to-confirm ── */
+      var confirmPhrase = 'أوافق على حذف جميع البيانات';
+
+      /*
+       * Build the body as a DOM fragment, NOT an HTML string.
+       * This bypasses VisionSecurity.sanitizeHtml() entirely, so
+       * attributes like id, type, placeholder are preserved.
+       */
+      var frag = document.createDocumentFragment();
+
+      var wrapper = document.createElement('div');
+      wrapper.style.cssText = 'text-align:right;line-height:1.8;';
+
+      var heading = document.createElement('p');
+      heading.style.cssText = 'color:var(--color-error);font-weight:bold;margin-bottom:12px;';
+      heading.innerHTML = '<i class="fas fa-skull-crossbones" style="margin-left:6px;"></i>' +
+        'التأكيد النهائي — آخر فرصة للتراجع';
+      wrapper.appendChild(heading);
+
+      var instr = document.createElement('p');
+      instr.style.cssText = 'color:var(--color-text-secondary);margin-bottom:12px;';
+      instr.textContent = 'للمتابعة، اكتب العبارة التالية بالضبط في الحقل أدناه:';
+      wrapper.appendChild(instr);
+
+      var phraseBox = document.createElement('div');
+      phraseBox.style.cssText = 'background:var(--color-surface-raised);border:1px solid var(--color-border);' +
+        'border-radius:var(--radius-md);padding:12px;text-align:center;' +
+        'font-weight:bold;color:var(--color-error);font-size:1rem;margin-bottom:16px;' +
+        'font-family:monospace;direction:rtl;user-select:none;';
+      phraseBox.textContent = confirmPhrase;
+      wrapper.appendChild(phraseBox);
+
+      var input = document.createElement('input');
+      input.type = 'text';
+      input.id   = 'wipeConfirmInput';
+      input.className = 'form-input';
+      input.setAttribute('placeholder', 'اكتب العبارة هنا...');
+      input.style.cssText = 'direction:rtl;width:100%;';
+      input.setAttribute('autocomplete', 'off');
+      wrapper.appendChild(input);
+
+      var errEl = document.createElement('div');
+      errEl.id = 'wipeConfirmError';
+      errEl.style.cssText = 'color:var(--color-error);font-size:0.8rem;margin-top:8px;display:none;';
+      errEl.textContent = 'العبارة غير متطابقة. حاول مرة أخرى.';
+      wrapper.appendChild(errEl);
+
+      frag.appendChild(wrapper);
+
+      /*
+       * Pass the DOM fragment as body. VisionOverlays.modal() detects
+       * it's an HTMLElement/DocumentFragment and appends it directly
+       * without running through the HTML sanitizer.
+       */
+      var step2Promise = window.VisionOverlays.modal({
+        title: 'تأكيد نهائي',
+        body: frag,
+        buttons: [
+          { label: 'إلغاء', value: false },
+          { label: 'تأكيد الحذف النهائي', value: true, primary: true }
+        ],
+        closeOnBackdrop: false
+      });
+
+      /*
+       * Dialog is now in the DOM. Find the confirm button (last button
+       * in the footer) and wire up input validation. The confirm button
+       * starts DISABLED — only becomes clickable when the user types the
+       * exact confirmation phrase.
+       *
+       * We use the input reference we already have (created above) rather
+       * than querying by ID, since the node is the same one now appended
+       * to the modal's DOM.
+       */
+      (function _wireConfirmInput() {
+        var dialogs = document.querySelectorAll('.vision-modal');
+        var targetDialog = dialogs[dialogs.length - 1];
+        if (!targetDialog) return;
+
+        var footerBtns = targetDialog.querySelectorAll('.vision-modal-footer button');
+        var confirmBtn = footerBtns[footerBtns.length - 1];
+        if (!confirmBtn) return;
+
+        /* Start disabled */
+        confirmBtn.disabled = true;
+        confirmBtn.style.opacity = '0.5';
+        confirmBtn.style.cursor = 'not-allowed';
+
+        /* input and errEl are already in the DOM via the fragment.
+           Query them inside the dialog as a safety check, but they
+           should be the same nodes we created above. */
+        var inputInDom = targetDialog.querySelector('#wipeConfirmInput');
+        var errInDom   = targetDialog.querySelector('#wipeConfirmError');
+        if (!inputInDom) return;
+
+        inputInDom.addEventListener('input', function () {
+          var matches = inputInDom.value.trim() === confirmPhrase;
+          confirmBtn.disabled = !matches;
+          confirmBtn.style.opacity = matches ? '' : '0.5';
+          confirmBtn.style.cursor = matches ? '' : 'not-allowed';
+          if (errInDom) errInDom.style.display = matches ? 'none' : '';
+        });
+
+        setTimeout(function () { inputInDom.focus(); }, 100);
+      })();
+
+      step2Promise.then(function (confirmed) {
+        if (!confirmed) return;
+
+        /*
+         * IMPORTANT: By the time this .then() runs, the modal's DOM has
+         * already been removed (overlay.remove() happens before resolve()).
+         * So we CANNOT use document.getElementById() to check the input.
+         *
+         * However, the confirm button was only enabled when the input
+         * matched the phrase (via the 'input' event listener). The fact
+         * that the button was clickable means the phrase matched.
+         * So we can proceed directly.
+         *
+         * Step 2 modal takes 300ms to animate out (vision-overlays line
+         * 652). We add a matching delay so the overlay is fully gone
+         * before showing the wipe spinner.
+         */
+        setTimeout(function () {
+          _executeWipeAllData();
+        }, 350);
+      });
+    });
+  }
+
+  /**
+   * Delete all documents from all operational Firestore collections.
+   *
+   * Strategy: Batch-delete in parallel using Promise.all on individual
+   * document deletes. Shows a spinner during the operation and reports
+   * results via toast.
+   */
+  function _executeWipeAllData() {
+    var overlays = window.VisionOverlays;
+    if (!overlays) {
+      console.error('[Dashboard] _executeWipeAllData: VisionOverlays not available');
+      return;
+    }
+
+    overlays.showSpinner({ text: 'جاري حذف جميع البيانات...' });
+
+    var db;
+    try {
+      db = firebase.firestore();
+    } catch (e) {
+      console.error('[Dashboard] Firestore access failed:', e);
+      overlays.hideSpinner();
+      overlays.toast({
+        type: 'error',
+        title: 'فشل الاتصال بقاعدة البيانات',
+        message: 'تعذر الوصول إلى Firestore. يرجى المحاولة مرة أخرى.'
+      });
+      return;
+    }
+
+    /*
+     * IMPORTANT: Capture the current super_admin's UID BEFORE any
+     * deletion starts. The super_admin account must survive the wipe
+     * — they are the root owner and must never be affected by system
+     * operations. We'll skip their employee document during deletion.
+     */
+    var superAdminUid = null;
+    if (window.VisionAuth && window.VisionAuth.isSuperAdmin()) {
+      var saUser = window.VisionAuth.getUser();
+      if (saUser) superAdminUid = saUser.uid;
+    }
+
+    /* All operational collections to wipe */
+    var collections = [
+      'orders',
+      'expenses',
+      'products',
+      'employees',
+      'shippingCompanies',
+      'platforms',
+      'statuses',
+      'goals'
+    ];
+
+    /**
+     * Helper: Delete all documents in a collection.
+     * Fetches all doc IDs first, then deletes in batches.
+     * For the 'employees' collection, the super_admin's own document
+     * is preserved — all other employee docs are deleted.
+     *
+     * @param {string} colName
+     * @returns {Promise<{name:string, count:number, skipped:number, error:string|null}>}
+     */
+    function _deleteCollection(colName) {
+      return db.collection(colName).get().then(function (snap) {
+        if (snap.empty) return { name: colName, count: 0, skipped: 0, error: null };
+
+        var docs = snap.docs;
+
+        /* Exclude super_admin's own employee doc from wipe */
+        var skipped = 0;
+        if (colName === 'employees' && superAdminUid) {
+          var before = docs.length;
+          docs = docs.filter(function (doc) {
+            return doc.id !== superAdminUid;
+          });
+          skipped = before - docs.length;
+        }
+
+        if (!docs.length) {
+          return { name: colName, count: 0, skipped: skipped, error: null };
+        }
+
+        /*
+         * Firestore batches can hold up to 500 operations, but if any
+         * single operation fails (e.g. security rules, missing doc),
+         * the ENTIRE batch fails. We wrap each batch commit in its own
+         * catch so one bad batch doesn't kill the whole collection.
+         * We also delete documents individually for small collections
+         * to avoid cascading failures.
+         */
+        var totalDeleted = 0;
+        var deletePromises = [];
+
+        /*
+         * Strategy: use individual deletions. While slower than batches,
+         * this ensures each document deletion succeeds or fails
+         * independently — a single problematic doc won't block
+         * the rest of the collection.
+         *
+         * Firestore allows deleting documents even if they have
+         * subcollections (the subcollections become orphaned and
+         * inaccessible through the console, but are still stored).
+         * So subcollections won't block deletion.
+         */
+        docs.forEach(function (doc) {
+          deletePromises.push(
+            doc.ref.delete().then(function () {
+              totalDeleted++;
+            }).catch(function (err) {
+              console.warn('[Dashboard] Failed to delete doc ' +
+                colName + '/' + doc.id + ':', err.message || err);
+              /* Continue — don't let one failure block others */
+            })
+          );
+        });
+
+        return Promise.all(deletePromises).then(function () {
+          return { name: colName, count: totalDeleted, skipped: skipped, error: null };
+        });
+      }).catch(function (err) {
+        console.error('[Dashboard] Failed to wipe collection ' + colName + ':', err);
+        return { name: colName, count: 0, skipped: 0, error: err.message || 'Unknown error' };
+      });
+    }
+
+    /* Execute all collection deletions in parallel */
+    Promise.all(collections.map(_deleteCollection)).then(function (results) {
+      overlays.hideSpinner();
+
+      var totalDeleted = results.reduce(function (s, r) { return s + r.count; }, 0);
+      var totalSkipped = results.reduce(function (s, r) { return s + (r.skipped || 0); }, 0);
+      var failures = results.filter(function (r) { return r.error; });
+
+      if (failures.length === 0) {
+        var successMsg = 'تم حذف ' + totalDeleted + ' مستند من ' + results.length + ' مجموعات. النظام نظيف الآن.';
+        if (totalSkipped > 0) {
+          successMsg += ' (تم الحفاظ على ' + totalSkipped + ' مستند لمالك النظام)';
+        }
+        overlays.toast({
+          type: 'success',
+          title: 'تم حذف جميع البيانات بنجاح',
+          message: successMsg,
+          duration: 8000
+        });
+      } else if (totalDeleted > 0) {
+        overlays.toast({
+          type: 'warning',
+          title: 'تم الحذف جزئياً',
+          message: 'تم حذف ' + totalDeleted + ' مستند. فشل في ' + failures.length + ' مجموعات: ' +
+            failures.map(function (f) { return f.name; }).join('، ') + '.',
+          duration: 0
+        });
+      } else {
+        overlays.toast({
+          type: 'error',
+          title: 'فشل حذف البيانات',
+          message: 'لم يتم حذف أي مستند. فشلت جميع العمليات: ' +
+            failures.map(function (f) { return f.name + ': ' + f.error; }).join('؛ ') + '.',
+          duration: 0
+        });
+      }
+
+      /* Reload the dashboard with fresh (empty) data */
+      _scheduleRender();
+    }).catch(function (err) {
+      overlays.hideSpinner();
+      console.error('[Dashboard] _executeWipeAllData fatal error:', err);
+      overlays.toast({
+        type: 'error',
+        title: 'خطأ غير متوقع',
+        message: 'حدث خطأ أثناء حذف البيانات: ' + (err.message || 'خطأ غير معروف'),
+        duration: 0
+      });
+    });
+  }
+
+  /* ──────────────────────────────────────
      CLEANUP
      ────────────────────────────────────── */
 
@@ -937,6 +1735,8 @@
         _bindPeriodBar();
         _bindTabs();
         _loadData();
+        _setupDangerZone();
+        _setupSuperAdminPanel();
       },
     });
 

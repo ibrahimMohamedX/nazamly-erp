@@ -24,7 +24,7 @@
   gap: var(--space-4);
   margin-bottom: var(--space-5);
 }
-@media (max-width: 900px) { .pur-stats-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 1024px) { .pur-stats-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 480px) { .pur-stats-grid { grid-template-columns: 1fr; } }
 
 
@@ -104,6 +104,12 @@
   transform: scale(0.95) translateY(12px);
   transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   margin: auto;
+}
+@media (max-width: 768px) {
+  .pur-modal {
+    max-width: 100%;
+    border-radius: var(--radius-lg);
+  }
 }
 .pur-modal-overlay.active .pur-modal { transform: scale(1) translateY(0); }
 
@@ -215,6 +221,41 @@
 .send-option-title { font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); color: var(--color-text); }
 .send-option-desc  { font-size: var(--font-size-xs); color: var(--color-text-muted); }
 
+
+/* ──────────────────────────────────────
+   MOBILE CARD VIEW (≤768px)
+   ────────────────────────────────────── */
+@media (max-width: 768px) {
+  #purTable thead { display: none; }
+  #purTable, #purTable tbody, #purTable tr, #purTable td { display: block; }
+  #purTable tr {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-xl);
+    margin-bottom: var(--space-3);
+    padding: var(--space-3);
+  }
+  #purTable td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-2) var(--space-1);
+    border: none;
+    border-bottom: 1px solid var(--color-border-light);
+    font-size: var(--font-size-sm);
+  }
+  #purTable td:last-child { border-bottom: none; }
+  #purTable td::before {
+    content: attr(data-label);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
+    flex-shrink: 0;
+    width: 42%;
+  }
+  .pur-filters-row .form-input { max-width: none; }
+  .pur-filters-row { flex-direction: column; align-items: stretch; }
+}
 
 /* ──────────────────────────────────────
    VIEW PURCHASE MODAL

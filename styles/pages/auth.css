@@ -115,7 +115,7 @@
 
 /* ── Inline error panel ── */
 .auth-error {
-  display: flex;
+  display: none;                      /* hidden by default; overridden below */
   align-items: flex-start;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
@@ -125,6 +125,11 @@
   font-size: var(--font-size-sm);
   color: var(--color-error);
   line-height: var(--line-height-base);
+}
+
+/* Show only when hidden attribute is explicitly removed (not via CSS override) */
+.auth-error:not([hidden]) {
+  display: flex;
 }
 .auth-error i { flex-shrink: 0; margin-top: 2px; }
 

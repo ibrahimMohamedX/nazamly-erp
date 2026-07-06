@@ -859,6 +859,30 @@
       return;
     }
 
+    // Quantity-inventory check: warn if ordered quantity exceeds stock (new orders only)
+    if (!_editingId) {
+      const lowStock = data.items
+        .filter(item => item.productId)
+        .map(item => {
+          const prod = Ref.products.find(p => p.id === item.productId);
+          const stock = (prod && prod.quantity) || 0;
+          return { name: item.name, needed: item.qty, stock };
+        })
+        .filter(item => item.stock < item.needed);
+
+      if (lowStock.length) {
+        const msg = lowStock
+          .map(i => `${i.name}: المطلوب ${i.needed} والمتوفر ${i.stock} فقط`)
+          .join(' | ');
+        window.VisionOverlays?.toast({
+          type: 'warning',
+          title: 'تحذير: الكمية غير كافية',
+          message: msg,
+          duration: 0,
+        });
+      }
+    }
+
     if (saveBtn) saveBtn.disabled = true;
     if (spinner) spinner.hidden = false;
     if (text)    text.textContent = 'جاري الحفظ...';
@@ -871,11 +895,30 @@
         const orderRef = db.collection('orders').doc(_editingId);
 
         await db.runTransaction(async tx => {
-          /* Read inside the transaction for a consistent snapshot */
+          /* ── Phase 1: ALL reads (Firestore rule) ── */
           const [orderSnap, statsSnap] = await Promise.all([tx.get(orderRef), tx.get(statsRef)]);
           if (!orderSnap.exists) throw new Error('order-not-found');
           const before = orderSnap.data();
 
+          /* Determine which product docs we need to read before any write */
+          const beforeItems = before.items || [];
+          const afterItems  = data.items || [];
+
+          const beforeMap = new Map();
+          for (const it of beforeItems) { if (it.productId) beforeMap.set(it.productId, it.qty || 0); }
+          const afterMap  = new Map();
+          for (const it of afterItems)  { if (it.productId) afterMap.set(it.productId, it.qty || 0); }
+
+          const allIds = new Set([...beforeMap.keys(), ...afterMap.keys()]);
+          const prodSnaps = new Map(); // pid → DocumentSnapshot
+          for (const pid of allIds) {
+            const oldQty = beforeMap.get(pid) || 0;
+            const newQty = afterMap.get(pid) || 0;
+            if (newQty - oldQty === 0) continue; // no change for this product
+            prodSnaps.set(pid, await tx.get(db.collection('products').doc(pid)));
+          }
+
+          /* ── Phase 2: ALL writes ── */
           tx.update(orderRef, { ...data, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
 
           /* Stats delta: remove old bucket/revenue, add new bucket/revenue */
@@ -892,6 +935,19 @@
             pending:   oldBucket.pending   + newBucket.pending,
             totalRevenueCents: revenueDelta,
           });
+
+          /* Inventory: apply computed deltas from Phase 1 snapshots */
+          for (const [pid, prodSnap] of prodSnaps) {
+            if (!prodSnap.exists) continue;
+            const oldQty = beforeMap.get(pid) || 0;
+            const newQty = afterMap.get(pid)  || 0;
+            const delta  = newQty - oldQty;
+            const cur     = prodSnap.data();
+            tx.update(db.collection('products').doc(pid), {
+              quantity: Math.max(0, (cur.quantity || 0) - delta),
+              sold:     Math.max(0, (cur.sold     || 0) + delta),
+            });
+          }
         });
 
         window.VisionOverlays?.toast({ type: 'success', title: 'تم التعديل', message: 'تم تحديث بيانات الطلب بنجاح' });
@@ -899,7 +955,17 @@
         const orderRef = db.collection('orders').doc();
 
         await db.runTransaction(async tx => {
+          /* ── Phase 1: ALL reads (Firestore rule) ── */
           const statsSnap = await tx.get(statsRef);
+
+          // Read all product docs before any write
+          const prodSnaps = new Map(); // productId → DocumentSnapshot
+          for (const item of data.items) {
+            if (!item.productId) continue; // skip custom/manual entries
+            prodSnaps.set(item.productId, await tx.get(db.collection('products').doc(item.productId)));
+          }
+
+          /* ── Phase 2: ALL writes ── */
           tx.set(orderRef, { ...data, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
 
           const bucket = _bucketDelta(data.statusType, 1);
@@ -910,6 +976,17 @@
             pending:   bucket.pending,
             totalRevenueCents: data.statusType === 'delivered' ? (data.totalCents || 0) : 0,
           });
+
+          /* Inventory: decrement quantity, increment sold (using pre-read snapshots) */
+          for (const item of data.items) {
+            if (!item.productId) continue;
+            const prodSnap = prodSnaps.get(item.productId);
+            if (!prodSnap || !prodSnap.exists) continue;
+            const cur = prodSnap.data();
+            const newQty  = Math.max(0, (cur.quantity || 0) - item.qty);
+            const newSold = (cur.sold || 0) + item.qty;
+            tx.update(db.collection('products').doc(item.productId), { quantity: newQty, sold: newSold });
+          }
         });
 
         window.VisionOverlays?.toast({ type: 'success', title: 'تمت الإضافة', message: 'تم إضافة الطلب الجديد بنجاح' });

@@ -330,7 +330,8 @@
   max-width: 540px;
   padding: var(--space-4);
 }
-.vision-overlay-container.active .vision-maintenance-overlay {
+/* Compound selector: both classes on the same element (JS attaches both to container) */
+.vision-overlay-container.vision-maintenance-overlay.active .vision-maintenance-content {
   animation: modalSlideIn 0.4s ease forwards;
 }
 
@@ -496,7 +497,7 @@
    ────────────────────────────────────── */
 
 .vision-banner {
-  display: flex;
+  display: none;                      /* hidden by default */
   align-items: flex-start;
   gap: var(--space-3);
   padding: var(--space-4) var(--space-5);
@@ -504,6 +505,9 @@
   border-right: 4px solid var(--color-primary);
   background: var(--color-primary-bg);
   margin-bottom: var(--space-4);
+}
+.vision-banner:not([hidden]) {
+  display: flex;
 }
 .vision-banner[data-type="success"]     { border-right-color: var(--color-success); background: var(--color-success-bg); }
 .vision-banner[data-type="warning"]     { border-right-color: var(--color-warning); background: var(--color-warning-bg); }

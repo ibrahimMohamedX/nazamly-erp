@@ -41,7 +41,7 @@
   ];
 
   /* Role display map */
-  var ROLE_LABEL = { admin: 'مدير النظام', user: 'موظف', guest: 'ضيف' };
+  var ROLE_LABEL = { super_admin: 'المالك', admin: 'مدير النظام', user: 'موظف', guest: 'ضيف' };
 
   /* Stored cleanup references */
   var _cleanupFns = [];
@@ -74,6 +74,7 @@
   }
 
   function _buildHtml(activePage, isAdmin, userName, userRole, brand) {
+    var roleDisplay = ROLE_LABEL[userRole] || userRole;
     return ''
       + '<nav id="sidebar" class="sidebar custom-scroll" role="navigation" aria-label="القائمة الرئيسية">'
       +   '<div class="sidebar-header">'
@@ -91,7 +92,7 @@
       +       '<div class="sidebar-user-avatar"><i class="fas fa-user-tie" aria-hidden="true"></i></div>'
       +       '<div class="sidebar-user-info sidebar-text">'
       +         '<div class="sidebar-user-name" id="sidebarUserName">' + _esc(userName) + '</div>'
-      +         '<div class="sidebar-user-role" id="sidebarUserRole">' + _esc(ROLE_LABEL[userRole] || userRole) + '</div>'
+      +         '<div class="sidebar-user-role" id="sidebarUserRole">' + _esc(roleDisplay) + '</div>'
       +       '</div>'
       +     '</div>'
       +     '<button class="sidebar-item sidebar-text" id="sidebarSignOutBtn" aria-label="تسجيل الخروج" title="تسجيل الخروج">'

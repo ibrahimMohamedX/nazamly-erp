@@ -66,6 +66,7 @@
     let   _maintenanceEl    = null;
     let   _maintenanceTimer = null;
     let   _spinnerEl        = null;
+    let   _bodyLockCount    = 0;     // overflow:hidden reference counter
     const _modalStack       = [];     // for Escape-key priority
 
     /* ─────────────────────────────────────────────
@@ -86,6 +87,21 @@
         i.className = 'fas ' + (FA[type] || 'fa-circle-info');
         span.appendChild(i);
         return span;
+    }
+
+    /** Lock body scroll (reference-counted). Safe to call multiple times. */
+    function _lockBody() {
+        _bodyLockCount++;
+        if (_bodyLockCount === 1) {
+            document.body.style.overflow = 'hidden';
+        }
+    }
+    /** Unlock body scroll. When count reaches 0, overflow is restored. */
+    function _unlockBody() {
+        if (_bodyLockCount > 0) _bodyLockCount--;
+        if (_bodyLockCount === 0) {
+            document.body.style.overflow = '';
+        }
     }
 
     /** Run a requestAnimationFrame double-tick (forces a paint before class add) */
@@ -270,8 +286,26 @@
      *   onAdminBypass– callback when bypass button clicked
      */
     function showMaintenance(options) {
-        if (_maintenanceEl) return;   // already visible
         options = options || {};
+
+        // If already visible, update content in-place (handles Firestore sync updates)
+        if (_maintenanceEl) {
+            var existingTitleEl = _maintenanceEl.querySelector('.vision-maintenance-title');
+            if (existingTitleEl) existingTitleEl.textContent = options.title || existingTitleEl.textContent;
+            var existingMsgEl = _maintenanceEl.querySelector('.vision-maintenance-message');
+            if (existingMsgEl) existingMsgEl.textContent = options.message || existingMsgEl.textContent;
+            if (options.endTime) {
+                // Create timer if it doesn't exist yet
+                var contentCard = _maintenanceEl.querySelector('.vision-maintenance-content');
+                var existingTimer = _maintenanceEl.querySelector('.vision-maintenance-timer');
+                if (!existingTimer && contentCard) {
+                    contentCard.appendChild(_buildTimerElement(options.endTime));
+                }
+                _stopCountdown();
+                _startCountdown(options.endTime);
+            }
+            return;
+        }
 
         const overlay = document.createElement('div');
         overlay.className = 'vision-overlay-container vision-maintenance-overlay';
@@ -308,32 +342,7 @@
 
         // Countdown timer
         if (options.endTime) {
-            const timerEl = document.createElement('div');
-            timerEl.className = 'vision-maintenance-timer';
-            timerEl.id = 'vo-maintenance-timer';
-
-            const units  = ['days', 'hours', 'minutes', 'seconds'];
-            const labels = { days: 'يوم', hours: 'ساعة', minutes: 'دقيقة', seconds: 'ثانية' };
-
-            units.forEach(unit => {
-                const unitDiv  = document.createElement('div');
-                unitDiv.className = 'vo-timer-unit';
-
-                const valEl  = document.createElement('div');
-                valEl.className = 'vo-timer-value';
-                valEl.id = 'vo-timer-' + unit;
-                valEl.textContent = '00';
-
-                const labelEl  = document.createElement('div');
-                labelEl.className   = 'vo-timer-label';
-                labelEl.textContent = labels[unit];
-
-                unitDiv.appendChild(valEl);
-                unitDiv.appendChild(labelEl);
-                timerEl.appendChild(unitDiv);
-            });
-
-            card.appendChild(timerEl);
+            card.appendChild(_buildTimerElement(options.endTime));
             _startCountdown(options.endTime);
         }
 
@@ -355,10 +364,12 @@
 
         overlay.appendChild(card);
         document.body.appendChild(overlay);
-        document.body.style.overflow = 'hidden';
+        _lockBody();
 
         if (!_reducedMotion()) {
-            _nextPaint(() => overlay.classList.add('vision-maintenance-overlay--visible'));
+            _nextPaint(() => overlay.classList.add('active'));
+        } else {
+            overlay.classList.add('active');
         }
 
         _maintenanceEl = overlay;
@@ -373,7 +384,7 @@
         const cleanup = () => {
             if (el.parentNode) el.remove();
             if (_maintenanceEl === el) _maintenanceEl = null;
-            document.body.style.overflow = '';
+            _unlockBody();
         };
 
         if (!_reducedMotion()) {
@@ -382,6 +393,36 @@
         } else {
             cleanup();
         }
+    }
+
+    /** Build the reusable countdown timer DOM element */
+    function _buildTimerElement(endTime) {
+        var timerEl = document.createElement('div');
+        timerEl.className = 'vision-maintenance-timer';
+        timerEl.id = 'vo-maintenance-timer';
+
+        var units  = ['days', 'hours', 'minutes', 'seconds'];
+        var labels = { days: 'يوم', hours: 'ساعة', minutes: 'دقيقة', seconds: 'ثانية' };
+
+        units.forEach(function (unit) {
+            var unitDiv  = document.createElement('div');
+            unitDiv.className = 'vo-timer-unit';
+
+            var valEl  = document.createElement('div');
+            valEl.className = 'vo-timer-value';
+            valEl.id = 'vo-timer-' + unit;
+            valEl.textContent = '00';
+
+            var labelEl  = document.createElement('div');
+            labelEl.className   = 'vo-timer-label';
+            labelEl.textContent = labels[unit];
+
+            unitDiv.appendChild(valEl);
+            unitDiv.appendChild(labelEl);
+            timerEl.appendChild(unitDiv);
+        });
+
+        return timerEl;
     }
 
     function _startCountdown(endTime) {
@@ -446,7 +487,7 @@
         overlay.appendChild(spinner);
         overlay.appendChild(textEl);
         document.body.appendChild(overlay);
-        document.body.style.overflow = 'hidden';
+        _lockBody();
         _spinnerEl = overlay;
     }
 
@@ -455,7 +496,7 @@
         if (!_spinnerEl) return;
         _spinnerEl.remove();
         _spinnerEl = null;
-        if (!_maintenanceEl) document.body.style.overflow = '';
+        _unlockBody();
     }
 
     /* ═══════════════════════════════════════════════

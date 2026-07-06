@@ -102,6 +102,7 @@
       "vision-notifications.js", // needs VisionConfig, VisionOverlays
       "vision-auth.js", // needs VisionConfig, VisionOverlays
       "vision-firebase.js", // needs all above
+      "vision-licensing.js", // needs VisionFirebase, VisionConfig, VisionAuth
     ];
 
     // Chain loads sequentially so each module finds the previous ones on window
@@ -235,6 +236,14 @@
     } else {
       warn("VisionFirebase not loaded");
     }
+
+    // VisionLicensing — synchronous init (listener started in startSyncs)
+    if (window.VisionLicensing) {
+      window.VisionLicensing.init();
+      log("VisionLicensing initialized");
+    } else {
+      warn("VisionLicensing not loaded");
+    }
   }
 
   /* ─────────────────────────────────────────────
@@ -259,6 +268,16 @@
       err("syncNotifications failed", e);
     }
 
+    // System licensing sync — real-time listener on system_status/config
+    if (window.VisionLicensing) {
+      try {
+        window.VisionLicensing.startSync();
+        log("licensing sync started");
+      } catch (e) {
+        err("licensing sync failed", e);
+      }
+    }
+
     // Per-user subscription sync — starts when a user logs in
     if (window.VisionAuth) {
       window.VisionAuth.onAuthStateChanged(function (user) {
@@ -280,6 +299,9 @@
   window.addEventListener("beforeunload", function () {
     if (window.VisionFirebase) {
       window.VisionFirebase.disconnect();
+    }
+    if (window.VisionLicensing) {
+      window.VisionLicensing.disconnect();
     }
   });
 

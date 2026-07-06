@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>النظام معلق — Nazamly</title>
+    <link rel="icon" type="image/png" href="nazamly.png" />
+
+    <!-- Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <!-- Design System -->
+    <link rel="stylesheet" href="styles/variables.css" />
+    <link rel="stylesheet" href="styles/base.css" />
+    <link rel="stylesheet" href="styles/components.css" />
+    <link rel="stylesheet" href="styles/pages/suspended.css" />
+
+    <!-- Firebase compat SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+    <!-- Vision system bootstrap -->
+    <script src="core/vision-init.js"></script>
+  </head>
+
+  <body class="suspended-body">
+
+    <!-- Ambient glow orbs -->
+    <div class="suspended-glow suspended-glow--amber" aria-hidden="true"></div>
+    <div class="suspended-glow suspended-glow--red" aria-hidden="true"></div>
+
+    <main class="suspended-container" role="main">
+      <div class="suspended-card">
+
+        <!-- Logo -->
+        <header class="suspended-header">
+          <img
+            src="nazamly.png"
+            alt="شعار Nazamly"
+            class="suspended-logo"
+            width="72"
+            height="72"
+          />
+        </header>
+
+        <!-- Lock icon -->
+        <div class="suspended-icon-ring">
+          <i class="fas fa-lock" aria-hidden="true"></i>
+        </div>
+
+        <!-- Primary message -->
+        <h1 class="suspended-title">النظام معلق حالياً</h1>
+        <p class="suspended-message">
+          انتهت فترة الاشتراك أو تم تعليق النظام من قبل المالك.
+          <br />
+          يرجى التواصل لاستئناف الخدمة.
+        </p>
+
+        <!-- WhatsApp contact -->
+        <a
+          id="whatsappContactBtn"
+          class="suspended-whatsapp-btn"
+          href="https://wa.me/?text=السلام عليكم، أرغب في استئناف اشتراك نظام Nazamly."
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <i class="fab fa-whatsapp" aria-hidden="true"></i>
+          <span>تواصل عبر واتساب</span>
+        </a>
+
+        <!-- Super admin bypass hint -->
+        <p class="suspended-hint">
+          إذا كنت مالك النظام، يرجى تسجيل الدخول بحساب المالك للوصول.
+        </p>
+
+        <!-- Recovery link -->
+        <p style="font-size:var(--font-size-xs);color:var(--color-text-muted);text-align:center;margin:0;">
+          <a href="recovery.html" style="color:var(--color-text-muted);text-decoration:underline;">
+            فقدت صلاحيات المالك؟ استعادة الحساب
+          </a>
+        </p>
+
+        <!-- Bottom login link -->
+        <a class="suspended-login-link" href="login.html">
+          <i class="fas fa-arrow-left" aria-hidden="true"></i>
+          <span>تسجيل الدخول</span>
+        </a>
+      </div>
+
+      <!-- Branding credit -->
+      <p class="suspended-watermark" aria-hidden="true">Powered by Nazamly ERP</p>
+    </main>
+
+    <!-- Page logic: super_admin detection + WhatsApp number config -->
+    <script>
+      (function () {
+        'use strict';
+
+        /*
+         * WhatsApp contact number — edit this to set the owner's phone.
+         * Format: full international number without + or leading zeros.
+         * Example: '201234567890' (Egypt)
+         */
+        var WHATSAPP_NUMBER = '201234567890';
+        var WHATSAPP_MESSAGE = 'السلام عليكم، أرغب في استئناف اشتراك نظام Nazamly.';
+
+        /*
+         * On vision-ready, check if the current user is super_admin.
+         * Firebase session may need a moment to restore from IndexedDB,
+         * so we subscribe to VisionAuth's onAuthStateChanged wrapper
+         * and react on the first non-null signal.
+         */
+        function init() {
+          /* Update WhatsApp link with configured number */
+          var btn = document.getElementById('whatsappContactBtn');
+          if (btn) {
+            btn.href = 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent(WHATSAPP_MESSAGE);
+          }
+
+          if (!window.VisionAuth) {
+            console.warn('[Suspended] VisionAuth not loaded — showing suspended UI');
+            return;
+          }
+
+          /*
+           * Subscribe to VisionAuth. The immediate replay may be null
+           * (Firebase session still restoring). We wait for a non-null
+           * user or until 3 seconds pass, then decide.
+           */
+          var settled = false;
+          var unsubscribe = window.VisionAuth.onAuthStateChanged(function (user) {
+            if (settled) return;
+            if (user) {
+              settled = true;
+              unsubscribe();
+              if (window.VisionAuth.isSuperAdmin()) {
+                /* Owner bypass — redirect to dashboard */
+                window.location.replace('dashboard.html');
+              }
+              /* else: non-super_admin — stay on suspended page */
+            }
+          });
+
+          /* Fallback timeout: after 3 seconds, check synchronously */
+          setTimeout(function () {
+            if (settled) return;
+            settled = true;
+            unsubscribe();
+
+            var user = window.VisionAuth.getUser();
+            if (user && window.VisionAuth.isSuperAdmin()) {
+              window.location.replace('dashboard.html');
+            }
+            /* else: stay on suspended page */
+          }, 3000);
+        }
+
+        if (typeof window.CLIENT_BRAND !== 'undefined') {
+          /* vision-ready already fired */
+          Promise.resolve().then(init);
+        } else {
+          window.addEventListener('vision-ready', init, { once: true });
+        }
+      })();
+    </script>
+
+  </body>
+</html>

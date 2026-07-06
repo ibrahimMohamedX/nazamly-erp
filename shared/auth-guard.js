@@ -1,5 +1,5 @@
 /**
- * shared/auth-guard.js — Page Auth Protection  (v2: async-safe)
+ * shared/auth-guard.js — Page Auth Protection  (v3: +subscription lockdown)
  *
  * ════════════════════════════════════════════════════════════════════════
  * BUG FIX: onAuthStateChanged race condition → login bounce loop
@@ -23,6 +23,11 @@
  * instead we wait an extra beat for VisionAuth's role/permission claims
  * (which need one more async hop: fbUser.getIdTokenResult()) via a short,
  * timeout-guarded subscription to VisionAuth's own event system.
+ *
+ * v3 ADDITION — SaaS Subscription Lockdown:
+ * After user is confirmed, check VisionLicensing.isSystemActive().
+ * super_admin always bypasses. Non-super_admin users with an inactive
+ * or expired subscription are redirected to suspended.html.
  * ════════════════════════════════════════════════════════════════════════
  */
 (function (window) {
@@ -91,6 +96,44 @@
   }
 
   /**
+   * Check whether the system is under subscription lockdown.
+   * super_admin always bypasses — they are the root owner.
+   *
+   * This is called AFTER VisionAuth has synced role data, so
+   * VisionAuth.isSuperAdmin() is reliable by this point.
+   *
+   * @returns {boolean} true if the user should be sent to suspended.html
+   */
+  function _isSystemLocked() {
+    // 1. super_admin always bypasses
+    if (window.VisionAuth && window.VisionAuth.isSuperAdmin()) {
+      return false;
+    }
+
+    // 2. If VisionLicensing is loaded, use its authoritative check
+    if (window.VisionLicensing && typeof window.VisionLicensing.isSystemActive === 'function') {
+      return !window.VisionLicensing.isSystemActive();
+    }
+
+    // 3. Fallback: read VisionConfig licensing cache directly
+    if (window.VisionConfig) {
+      var lic = window.VisionConfig.get('licensing');
+      if (lic) {
+        if (lic.isActive === false) return true;
+        if (lic.endDate) {
+          var end = new Date(lic.endDate).getTime();
+          if (Date.now() > end) return true;
+        }
+        return false;
+      }
+    }
+
+    // 4. No licensing data available — allow access (graceful degradation)
+    console.warn('[AuthGuard] No licensing data available — allowing access');
+    return false;
+  }
+
+  /**
    * Protect the current page.
    *
    * @param {Object}   [options]
@@ -146,14 +189,24 @@
 
         /* A persisted Firebase session exists. Wait for VisionAuth to
            finish syncing role/permission claims before evaluating
-           adminOnly or calling onReady — downstream code (Sidebar,
-           Topbar, page controllers) assumes VisionAuth.isAdmin() and
-           .getUser() are already correct by the time onReady fires. */
+           adminOnly, subscription lockdown, or calling onReady.
+           Downstream code (Sidebar, Topbar, page controllers) assumes
+           VisionAuth.isAdmin() and .getUser() are already correct by
+           the time onReady fires. */
         _waitForVisionAuthUser(fbUser.uid).then(function (enrichedUser) {
+          // ── Role guard ──
           if (options.adminOnly && window.VisionAuth && !window.VisionAuth.isAdmin()) {
             window.location.replace('orders.html');
             return;
           }
+
+          // ── Subscription lockdown (v3) ──
+          if (_isSystemLocked()) {
+            console.warn('[AuthGuard] System locked — redirecting to suspended.html');
+            window.location.replace('suspended.html');
+            return;
+          }
+
           if (typeof options.onReady === 'function') {
             options.onReady(enrichedUser || fbUser);
           }
@@ -163,6 +216,6 @@
   }
 
   window.AuthGuard = { protect };
-  console.info('[AuthGuard] ready (async-safe v2)');
+  console.info('[AuthGuard] ready (async-safe v3 +licensing lockdown)');
 
 })(window);

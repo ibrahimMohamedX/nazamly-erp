@@ -296,7 +296,210 @@
             </div>
           </section>
 
-        </main>
+        <!-- Super Admin Panel (super_admin only — subscription management) -->
+        <div id="superAdminPanel" style="display:none;" aria-label="لوحة تحكم المالك">
+
+          <!-- Subscription Status Card -->
+          <section class="dash-panel active admin-panel-section" data-panel="subscription" role="region" aria-label="حالة الاشتراك">
+            <div class="admin-panel-card admin-panel-card--gold">
+              <div class="admin-panel-header">
+                <h2 class="admin-panel-title">
+                  <i class="fas fa-crown" aria-hidden="true"></i>
+                  الاشتراك وصلاحيات النظام
+                </h2>
+                <div class="admin-panel-subtitle">إدارة اشتراك النظام التجاري — يظهر فقط لمالك النظام</div>
+              </div>
+              <div class="admin-panel-body">
+                <!-- Status row: badge + countdown + dates -->
+                <div class="sub-status-row">
+                  <div class="sub-status-group">
+                    <div class="sub-status-label">حالة النظام</div>
+                    <span id="saStatusBadge" class="sub-status-badge">—</span>
+                  </div>
+                  <div class="sub-status-group">
+                    <div class="sub-status-label">الوقت المتبقي</div>
+                    <div class="sub-countdown" id="saCountdown">
+                      <span class="sub-countdown-value" id="saCountdownValue">—</span>
+                      <span class="sub-countdown-unit" id="saCountdownUnit">يوم</span>
+                    </div>
+                  </div>
+                  <div class="sub-status-group">
+                    <div class="sub-status-label">تاريخ البداية</div>
+                    <div class="sub-date-value" id="saStartDate">—</div>
+                  </div>
+                  <div class="sub-status-group">
+                    <div class="sub-status-label">تاريخ الانتهاء</div>
+                    <div class="sub-date-value" id="saEndDate">—</div>
+                  </div>
+                </div>
+                <!-- Pause / Resume toggle -->
+                <div class="sub-action-row">
+                  <button class="btn btn-lg" id="saTogglePauseBtn" type="button">
+                    <i class="fas fa-pause-circle" aria-hidden="true"></i>
+                    <span id="saTogglePauseLabel">تعليق النظام</span>
+                  </button>
+                  <span class="admin-panel-hint" id="saPauseHint">
+                    <i class="fas fa-circle-info" aria-hidden="true"></i>
+                    تعليق النظام يمنع جميع الموظفين والعملاء من الوصول حتى يتم استئنافه. حساب المالك يبقى مستثنى.
+                  </span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Renewal Card -->
+          <section class="dash-panel active admin-panel-section" data-panel="renewal" role="region" aria-label="تجديد الاشتراك">
+            <div class="admin-panel-card">
+              <div class="admin-panel-header">
+                <h2 class="admin-panel-title">
+                  <i class="fas fa-rotate" aria-hidden="true"></i>
+                  تجديد الاشتراك
+                </h2>
+                <div class="admin-panel-subtitle">تمديد فترة الاشتراك — يتم احتساب المدة من تاريخ الانتهاء الحالي (أو اليوم إذا انتهى)</div>
+              </div>
+              <div class="admin-panel-body">
+                <div class="renewal-btn-group">
+                  <button class="renewal-btn" data-months="1" type="button">
+                    <span class="renewal-months">1</span>
+                    <span class="renewal-unit">شهر</span>
+                    <span class="renewal-hint">+30 يوم</span>
+                  </button>
+                  <button class="renewal-btn" data-months="3" type="button">
+                    <span class="renewal-months">3</span>
+                    <span class="renewal-unit">أشهر</span>
+                    <span class="renewal-hint">+90 يوم</span>
+                  </button>
+                  <button class="renewal-btn renewal-btn--recommended" data-months="6" type="button">
+                    <span class="renewal-months">6</span>
+                    <span class="renewal-unit">أشهر</span>
+                    <span class="renewal-hint">+180 يوم</span>
+                    <span class="renewal-badge">موصى به</span>
+                  </button>
+                  <button class="renewal-btn" data-months="12" type="button">
+                    <span class="renewal-months">12</span>
+                    <span class="renewal-unit">شهر</span>
+                    <span class="renewal-hint">+365 يوم</span>
+                  </button>
+                </div>
+
+                <!-- Custom date extension -->
+                <div class="renewal-custom">
+                  <div class="renewal-custom-divider">
+                    <span>أو تمديد حتى تاريخ محدد</span>
+                  </div>
+                  <div class="renewal-custom-row">
+                    <input type="date" id="saCustomEndDate" class="form-input renewal-custom-input"
+                      aria-label="تاريخ الانتهاء المخصص" />
+                    <button class="btn btn-primary" id="saCustomRenewBtn" type="button">
+                      <i class="fas fa-calendar-check" aria-hidden="true"></i>
+                      <span>تمديد حتى هذا التاريخ</span>
+                    </button>
+                  </div>
+                  <div class="renewal-custom-hint" id="saCustomRenewHint"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Usage Caps Card -->
+          <section class="dash-panel active admin-panel-section" data-panel="usage-caps" role="region" aria-label="حدود الاستخدام">
+            <div class="admin-panel-card">
+              <div class="admin-panel-header">
+                <h2 class="admin-panel-title">
+                  <i class="fas fa-sliders" aria-hidden="true"></i>
+                  حدود الاستخدام
+                </h2>
+                <div class="admin-panel-subtitle">تحديد السعة القصوى للنظام — يتم منع الإضافات الجديدة عند بلوغ الحد</div>
+              </div>
+              <div class="admin-panel-body">
+                <div class="caps-form">
+                  <div class="caps-field">
+                    <label class="caps-label" for="saMaxEmployees">
+                      <i class="fas fa-users" aria-hidden="true"></i>
+                      الحد الأقصى للموظفين
+                    </label>
+                    <div class="caps-input-row">
+                      <input type="number" id="saMaxEmployees" class="form-input caps-input"
+                        min="1" max="500" value="5" />
+                      <span class="caps-current" id="saCurrentEmployees">الحالي: —</span>
+                    </div>
+                  </div>
+                  <div class="caps-field">
+                    <label class="caps-label" for="saMaxProducts">
+                      <i class="fas fa-boxes-stacked" aria-hidden="true"></i>
+                      الحد الأقصى للمنتجات
+                    </label>
+                    <div class="caps-input-row">
+                      <input type="number" id="saMaxProducts" class="form-input caps-input"
+                        min="10" max="10000" value="200" />
+                      <span class="caps-current" id="saCurrentProducts">الحالي: —</span>
+                    </div>
+                  </div>
+                  <button class="btn btn-primary" id="saSaveCapsBtn" type="button">
+                    <i class="fas fa-floppy-disk" aria-hidden="true"></i>
+                    حفظ حدود الاستخدام
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Subscription History -->
+          <section class="dash-panel active admin-panel-section" data-panel="history" role="region" aria-label="سجل الاشتراك">
+            <div class="admin-panel-card">
+              <div class="admin-panel-header">
+                <h2 class="admin-panel-title">
+                  <i class="fas fa-clock-rotate-left" aria-hidden="true"></i>
+                  سجل الاشتراك
+                </h2>
+                <div class="admin-panel-subtitle">سجل زمني بكل عمليات التجديد والتعليق وتغيير الحدود</div>
+              </div>
+              <div class="admin-panel-body">
+                <div class="table-wrapper">
+                  <table class="table" aria-label="سجل عمليات الاشتراك">
+                    <thead>
+                      <tr>
+                        <th>التاريخ</th>
+                        <th>الإجراء</th>
+                        <th>المدة</th>
+                        <th>بواسطة</th>
+                      </tr>
+                    </thead>
+                    <tbody id="saHistoryTableBody">
+                      <tr><td colspan="4" style="text-align:center;padding:var(--space-6);color:var(--color-text-muted);">جاري التحميل...</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </section>
+
+        </div>
+
+        <!-- Danger Zone (super admin only) -->
+        <section class="danger-zone dash-section" id="dangerZone" style="display:none;" aria-label="منطقة العمليات الحرجة">
+          <div class="danger-zone-card">
+            <div class="danger-zone-header">
+              <div class="danger-zone-title">
+                <i class="fas fa-skull-crossbones" aria-hidden="true"></i>
+                منطقة العمليات الحرجة
+              </div>
+              <div class="danger-zone-subtitle">خيارات متقدمة لحذف البيانات — تظهر فقط للمدير الأعلى</div>
+            </div>
+            <div class="danger-zone-actions">
+              <button class="btn btn-danger btn-lg" id="btnWipeAllData" type="button">
+                <i class="fas fa-trash-can" aria-hidden="true"></i>
+                حذف جميع بيانات النظام
+              </button>
+              <span class="danger-zone-hint">
+                <i class="fas fa-circle-exclamation" aria-hidden="true"></i>
+                هذا الإجراء لا يمكن التراجع عنه. سيتم حذف كل الطلبات والمصاريف والمنتجات والموظفين.
+              </span>
+            </div>
+          </div>
+        </section>
+
+      </main>
       </div>
     </div>
 

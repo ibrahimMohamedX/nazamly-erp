@@ -565,9 +565,56 @@
 
   async function _updateStatus(purchaseId, newStatus) {
     try {
-      await window.firebase.firestore().collection('purchases').doc(purchaseId)
+      const db = window.firebase.firestore();
+      const user = window.VisionAuth?.getUser();
+      await db.collection('purchases').doc(purchaseId)
         .update({ status: newStatus, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
       window.VisionOverlays?.toast({ type: 'success', message: `الحالة: ${_statusLabel(newStatus)}` });
+
+      /* When goods are received, update product inventory */
+      if (newStatus === 'received') {
+        // Read the purchase to get its items
+        const snap = await db.collection('purchases').doc(purchaseId).get();
+        if (!snap.exists) return;
+        const items = snap.data().items || [];
+
+        // Separate existing products (with productId) from new products (without)
+        const existingItems = items.filter(it => it.productId);
+        const newItems       = items.filter(it => !it.productId && it.name);
+
+        // Increment each existing product's quantity in parallel
+        const incrementOps = existingItems.map(it =>
+          db.collection('products').doc(it.productId).update({
+            quantity: firebase.firestore.FieldValue.increment(it.qty || 0),
+          })
+        );
+
+        // Create new products for items that don't exist in inventory yet
+        const createOps = newItems.map(it =>
+          db.collection('products').add({
+            name: it.name,
+            quantity: it.qty || 0,
+            cost: it.unitCostCents || 0,
+            price: 0,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            createdBy: user?.displayName || user?.email?.split('@')[0] || 'مدير',
+            createdByUid: user?.uid || '',
+          })
+        );
+
+        const results = await Promise.allSettled([...incrementOps, ...createOps]);
+
+        // Log any failures but don't block the UI — the status update already succeeded
+        const failed = results.filter(r => r.status === 'rejected');
+        if (failed.length) {
+          console.error('[Purchases] inventory update failures:', failed.map(f => f.reason));
+        }
+
+        const created = newItems.length;
+        if (created) {
+          window.VisionOverlays?.toast({ type: 'success', message: `تمت إضافة ${created} منتجات جديدة للمخزون` });
+        }
+      }
     } catch (err) {
       console.error('[Purchases] status update:', err);
       window.VisionOverlays?.toast({ type: 'error', message: 'تعذّر تحديث الحالة' });

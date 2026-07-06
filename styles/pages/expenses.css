@@ -41,7 +41,7 @@
   gap: var(--space-4);
   margin-bottom: var(--space-5);
 }
-@media (max-width: 900px) { .exp-metrics-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 1024px) { .exp-metrics-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 480px) { .exp-metrics-grid { grid-template-columns: 1fr; } }
 
 .exp-metric-card {
@@ -290,6 +290,50 @@
 
 
 /* ──────────────────────────────────────
+   MOBILE CARD VIEW (≤768px)
+   ────────────────────────────────────── */
+@media (max-width: 768px) {
+  #expTable thead { display: none; }
+  #expTable, #expTable tbody, #expTable tr, #expTable td { display: block; }
+  #expTable tr {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-xl);
+    margin-bottom: var(--space-3);
+    padding: var(--space-3);
+  }
+  #expTable td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-2) var(--space-1);
+    border: none;
+    border-bottom: 1px solid var(--color-border-light);
+    font-size: var(--font-size-sm);
+  }
+  #expTable td:last-child { border-bottom: none; }
+  #expTable td::before {
+    content: attr(data-label);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
+    flex-shrink: 0;
+    width: 42%;
+  }
+  .exp-filters-row { flex-direction: column; align-items: stretch; }
+  .exp-filters-row .form-input { max-width: none; }
+  .exp-filters-row .search-wide { max-width: none; }
+  .exp-custom-range { border-right: none; padding-right: 0; flex-wrap: wrap; }
+  .exp-custom-range .form-input { width: auto; flex: 1; }
+  .exp-period-bar { flex-direction: column; align-items: stretch; }
+  .exp-period-bar select.form-input { width: 100%; }
+  .cat-row-responsive { flex-wrap: wrap; }
+  .cat-amount { width: auto; }
+  .cat-count { width: auto; }
+  .cat-pct { width: auto; }
+}
+
+/* ──────────────────────────────────────
    RECURRING EXPENSE ITEMS
    ────────────────────────────────────── */
 
@@ -390,6 +434,13 @@
   box-shadow: var(--shadow-lg);
   transform: scale(0.95) translateY(12px);
   transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@media (max-width: 540px) {
+  .exp-modal {
+    max-width: 100%;
+    border-radius: var(--radius-lg);
+    max-height: 96vh;
+  }
 }
 .exp-modal-overlay.active .exp-modal { transform: scale(1) translateY(0); }
 .exp-modal-header {

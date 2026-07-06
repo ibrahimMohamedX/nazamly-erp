@@ -107,7 +107,7 @@
    cards on screens narrower than 900px.
    ────────────────────────────────────── */
 
-@media (max-width: 900px) {
+@media (max-width: 768px) {
   #invTable thead { display: none; }
 
   #invTable,

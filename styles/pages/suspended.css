@@ -1,0 +1,192 @@
+/* ============================================================
+   SUSPENDED.CSS — Subscription Suspension Lock Screen
+   Depends on: variables.css, base.css, components.css
+   Aesthetic: matches auth.css dark-theme card, amber/red accent
+   ============================================================ */
+
+/* ── Page body ── */
+.suspended-body {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── Ambient glow orbs ── */
+.suspended-glow {
+  position: fixed;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  filter: blur(100px);
+  pointer-events: none;
+  z-index: 0;
+}
+.suspended-glow--amber {
+  top: -10%;
+  right: -5%;
+  background: rgba(245, 158, 11, 0.10);
+}
+.suspended-glow--red {
+  bottom: -10%;
+  left: -5%;
+  background: rgba(239, 68, 68, 0.06);
+}
+
+/* ── Container ── */
+.suspended-container {
+  position: relative;
+  z-index: var(--z-raised);
+  width: 100%;
+  max-width: 480px;
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* ── Card ── */
+.suspended-card {
+  width: 100%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-8);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-5);
+}
+
+/* ── Header / Logo ── */
+.suspended-header {
+  margin-bottom: var(--space-2);
+}
+.suspended-logo {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-xl);
+  object-fit: contain;
+  filter: drop-shadow(0 0 18px rgba(239, 68, 68, 0.25));
+  opacity: 0.85;
+}
+
+/* ── Lock icon ring ── */
+.suspended-icon-ring {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.10);
+  border: 2px solid rgba(239, 68, 68, 0.20);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-error);
+  font-size: 2rem;
+  margin-bottom: var(--space-2);
+}
+
+/* ── Title ── */
+.suspended-title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--color-text);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+/* ── Message ── */
+.suspended-message {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-relaxed);
+  margin: 0;
+  max-width: 360px;
+}
+
+/* ── WhatsApp button ── */
+.suspended-whatsapp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-8);
+  background: #25D366;
+  color: #fff;
+  border-radius: var(--radius-xl);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  text-decoration: none;
+  transition: var(--transition-fast);
+  box-shadow: 0 4px 16px rgba(37, 211, 102, 0.30);
+  margin-top: var(--space-2);
+}
+.suspended-whatsapp-btn:hover {
+  background: #20BD5A;
+  box-shadow: 0 6px 24px rgba(37, 211, 102, 0.40);
+  transform: translateY(-1px);
+}
+.suspended-whatsapp-btn i {
+  font-size: 1.4rem;
+}
+
+/* ── Hint (super admin bypass info) ── */
+.suspended-hint {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin: 0;
+  max-width: 320px;
+  line-height: var(--line-height-base);
+}
+
+/* ── Login link at bottom ── */
+.suspended-login-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  transition: var(--transition-fast);
+}
+.suspended-login-link:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+
+/* ── Watermark ── */
+.suspended-watermark {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  opacity: 0.5;
+  text-align: center;
+  user-select: none;
+}
+
+/* ── Mobile ── */
+@media (max-width: 480px) {
+  .suspended-card {
+    padding: var(--space-6) var(--space-5);
+    border-radius: var(--radius-xl);
+  }
+  .suspended-icon-ring {
+    width: 72px;
+    height: 72px;
+    font-size: 1.5rem;
+  }
+  .suspended-whatsapp-btn {
+    padding: var(--space-3) var(--space-6);
+    font-size: var(--font-size-sm);
+  }
+}

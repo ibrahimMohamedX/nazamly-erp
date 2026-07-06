@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>استعادة حساب المالك — Nazamly</title>
+    <link rel="icon" type="image/png" href="nazamly.png" />
+
+    <!-- Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <!-- Design System -->
+    <link rel="stylesheet" href="styles/variables.css" />
+    <link rel="stylesheet" href="styles/base.css" />
+    <link rel="stylesheet" href="styles/components.css" />
+    <link rel="stylesheet" href="styles/pages/auth.css" />
+
+    <!-- Firebase compat SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+    <!-- Vision system bootstrap -->
+    <script src="core/vision-init.js"></script>
+  </head>
+
+  <body class="auth-body">
+
+    <!-- Ambient glow orbs -->
+    <div class="auth-glow auth-glow--primary" aria-hidden="true"></div>
+    <div class="auth-glow auth-glow--secondary" aria-hidden="true"></div>
+
+    <main class="auth-container" role="main">
+      <div class="auth-card">
+
+        <!-- Logo -->
+        <header class="auth-header">
+          <img
+            src="nazamly.png"
+            alt="شعار Nazamly"
+            class="auth-logo"
+            width="64"
+            height="64"
+          />
+        </header>
+
+        <div class="auth-icon-ring">
+          <i class="fas fa-user-shield" aria-hidden="true"></i>
+        </div>
+
+        <h1 class="auth-title">استعادة حساب المالك</h1>
+        <p class="auth-subtitle" id="recoveryStatus">
+          جاري التحقق من الجلسة...
+        </p>
+
+        <div id="recoveryActions" style="display:none;">
+          <button id="btnRecover" class="btn btn-primary btn-lg w-full" type="button">
+            <i class="fas fa-rotate" aria-hidden="true"></i>
+            <span>استعادة صلاحيات المالك</span>
+          </button>
+          <p style="color:var(--color-text-muted);font-size:var(--font-size-xs);margin-top:var(--space-3);text-align:center;">
+            سيتم إعادة إنشاء مستند الموظف الخاص بك مع صلاحيات المالك الكاملة.
+          </p>
+        </div>
+
+        <div id="recoveryResult" style="display:none;"></div>
+
+        <a class="auth-bottom-link" href="login.html">
+          <i class="fas fa-arrow-left" aria-hidden="true"></i>
+          <span>العودة لتسجيل الدخول</span>
+        </a>
+      </div>
+    </main>
+
+    <script>
+      (function () {
+        'use strict';
+
+        var statusEl   = document.getElementById('recoveryStatus');
+        var actionsEl  = document.getElementById('recoveryActions');
+        var resultEl   = document.getElementById('recoveryResult');
+        var recoverBtn = document.getElementById('btnRecover');
+
+        function setStatus(msg, isError) {
+          if (statusEl) {
+            statusEl.textContent = msg;
+            statusEl.style.color = isError ? 'var(--color-error)' : '';
+          }
+        }
+
+        function showResult(msg, isSuccess) {
+          if (resultEl) {
+            resultEl.style.display = '';
+            resultEl.style.textAlign = 'center';
+            resultEl.style.marginTop = 'var(--space-4)';
+            resultEl.innerHTML =
+              '<div style="padding:var(--space-4);border-radius:var(--radius-lg);' +
+              'background:' + (isSuccess ? 'rgba(16,185,129,0.10)' : 'rgba(239,68,68,0.10)') + ';' +
+              'border:1px solid ' + (isSuccess ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.25)') + ';' +
+              'color:' + (isSuccess ? 'var(--color-success)' : 'var(--color-error)') + ';' +
+              'font-weight:bold;">' +
+              '<i class="fas ' + (isSuccess ? 'fa-circle-check' : 'fa-circle-xmark') + '" style="margin-left:6px;"></i>' +
+              msg +
+              '</div>';
+          }
+          if (actionsEl) actionsEl.style.display = 'none';
+        }
+
+        function init() {
+          /* Wait for vision-ready so Firebase is initialized */
+          function onReady() {
+            if (!firebase.auth || !firebase.firestore) {
+              setStatus('تعذر الاتصال بقاعدة البيانات. تأكد من اتصالك بالإنترنت.', true);
+              return;
+            }
+
+            var auth = firebase.auth();
+
+            /*
+             * Check if there's an already-logged-in user.
+             * Firebase may still be restoring from IndexedDB — we
+             * subscribe to onAuthStateChanged for the definitive answer.
+             */
+            var settled = false;
+            var unsubscribe = auth.onAuthStateChanged(function (fbUser) {
+              if (settled) return;
+              settled = true;
+              unsubscribe();
+
+              if (!fbUser) {
+                setStatus('لم يتم العثور على جلسة نشطة. يرجى تسجيل الدخول أولاً.', true);
+                return;
+              }
+
+              setStatus('تم العثور على حساب: ' + (fbUser.email || fbUser.uid) +
+                '. اضغط على الزر أدناه لاستعادة صلاحيات المالك.');
+
+              if (actionsEl) actionsEl.style.display = '';
+
+              /* Bind recover button */
+              if (recoverBtn) {
+                recoverBtn.addEventListener('click', function () {
+                  recoverBtn.disabled = true;
+                  recoverBtn.querySelector('span').textContent = 'جاري الاستعادة...';
+
+                  var employeeData = {
+                    name: fbUser.displayName || fbUser.email.split('@')[0] || 'مالك النظام',
+                    email: fbUser.email || '',
+                    role: 'super_admin',
+                    status: 'active',
+                    permissions: {
+                      viewDashboard: true,
+                      viewOrders: true,
+                      editOrders: true,
+                      viewInventory: true,
+                      editInventory: true,
+                      viewPurchases: true,
+                      editPurchases: true,
+                      viewExpenses: true,
+                      editExpenses: true,
+                      viewEmployees: true,
+                      editEmployees: true,
+                      viewAWB: true,
+                      editAWB: true,
+                      viewShipping: true,
+                      editShipping: true,
+                      viewReports: true,
+                      editReports: true,
+                      manageUsers: true
+                    },
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    _recoveredAt: firebase.firestore.FieldValue.serverTimestamp()
+                  };
+
+                  firebase.firestore()
+                    .collection('employees')
+                    .doc(fbUser.uid)
+                    .set(employeeData)
+                    .then(function () {
+                      showResult('تمت استعادة حساب المالك بنجاح! يمكنك الآن العودة لتسجيل الدخول.', true);
+
+                      /* Also update localStorage so the session picks it up */
+                      localStorage.setItem('userRole', 'super_admin');
+
+                      /* Auto-redirect to login after 3 seconds */
+                      setTimeout(function () {
+                        if (window.VisionAuth) {
+                          window.VisionAuth.signOut().finally(function () {
+                            window.location.replace('login.html');
+                          });
+                        } else {
+                          auth.signOut().finally(function () {
+                            window.location.replace('login.html');
+                          });
+                        }
+                      }, 3000);
+                    })
+                    .catch(function (err) {
+                      console.error('[Recovery] Failed to restore:', err);
+                      showResult(
+                        'فشلت عملية الاستعادة: ' + (err.message || 'خطأ غير معروف') +
+                        '. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.',
+                        false
+                      );
+                      recoverBtn.disabled = false;
+                      recoverBtn.querySelector('span').textContent = 'استعادة صلاحيات المالك';
+                    });
+                });
+              }
+            });
+
+            /* Fallback: after 4 seconds, check synchronously */
+            setTimeout(function () {
+              if (settled) return;
+              settled = true;
+              unsubscribe();
+
+              var currentUser = auth.currentUser;
+              if (!currentUser) {
+                setStatus('لم يتم العثور على جلسة نشطة. يرجى تسجيل الدخول أولاً.', true);
+                return;
+              }
+              /* Same as above — rare codepath */
+              setStatus('تم العثور على حساب: ' + (currentUser.email || currentUser.uid) +
+                '. اضغط على الزر أدناه لاستعادة صلاحيات المالك.');
+              if (actionsEl) actionsEl.style.display = '';
+            }, 4000);
+          }
+
+          if (typeof window.CLIENT_BRAND !== 'undefined') {
+            Promise.resolve().then(onReady);
+          } else {
+            window.addEventListener('vision-ready', onReady, { once: true });
+          }
+        }
+
+        init();
+      })();
+    </script>
+
+  </body>
+</html>
