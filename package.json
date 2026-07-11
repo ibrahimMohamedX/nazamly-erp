@@ -1,0 +1,25 @@
+{
+  "name": "nazamly-erp-cli",
+  "version": "1.0.0",
+  "description": "SaaS CLI Automation & Tenant Management System for Nazamly ERP",
+  "private": true,
+  "scripts": {
+    "create-client": "node cli/create-client.js",
+    "deploy": "node cli/deploy.js",
+    "backup": "node cli/backup.js",
+    "restore": "node cli/restore.js",
+    "audit": "node cli/audit.js",
+    "destroy": "node cli/destroy.js"
+  },
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "commander": "^12.1.0",
+    "dotenv": "^16.6.1",
+    "firebase-admin": "^13.10.0",
+    "inquirer": "^8.2.7",
+    "ora": "^5.4.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

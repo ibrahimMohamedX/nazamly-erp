@@ -140,8 +140,9 @@
       /* Cache display name only (non-sensitive; used by sidebar) */
       if (data.name) localStorage.setItem('employeeName', data.name);
 
-      /* Route by Firestore role (role is also in ID-token claims for VisionAuth) */
-      window.location.replace(data.role === 'admin' ? 'index.html' : 'orders.html');
+      /* Route by Firestore role (role is also in ID-token claims for VisionAuth)
+         — all authenticated users land on index (dashboard/home) regardless of role */
+      window.location.replace('index.html');
 
     } catch (err) {
       console.error('[Login] handleLoginLogic error:', err);

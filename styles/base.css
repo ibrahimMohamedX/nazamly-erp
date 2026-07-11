@@ -91,9 +91,11 @@ p  { color: var(--color-text-secondary); line-height: var(--line-height-relaxed)
   display: flex;
   min-height: 100vh;
   position: relative;
+  overflow-x: hidden;
 }
 .app-main {
   flex: 1;
+  min-width: 0;
   margin-right: var(--sidebar-width);
   transition: margin-right var(--sidebar-transition);
   display: flex;
@@ -107,6 +109,8 @@ p  { color: var(--color-text-secondary); line-height: var(--line-height-relaxed)
 }
 .page-content {
   flex: 1;
+  min-width: 0;
+  overflow-x: hidden;
   padding: var(--content-padding);
   padding-top: calc(var(--header-height) + var(--space-6));
 }

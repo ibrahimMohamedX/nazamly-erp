@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>تسجيل الدخول — Nazamly</title>
+    <title>تسجيل الدخول — {{CLIENT_BRAND}}</title>
     <link rel="icon" type="image/png" href="nazamly.png" />
 
     <!-- Fonts -->
@@ -34,14 +34,12 @@
   </head>
 
   <body class="auth-body">
-
     <!-- Ambient glow orbs -->
     <div class="auth-glow auth-glow--primary" aria-hidden="true"></div>
     <div class="auth-glow auth-glow--secondary" aria-hidden="true"></div>
 
     <main class="auth-container" role="main">
       <div class="auth-card">
-
         <!-- Logo + Brand -->
         <header class="auth-header">
           <img
@@ -57,7 +55,6 @@
 
         <!-- Login Form -->
         <form id="loginForm" class="auth-form" novalidate>
-
           <!-- Email -->
           <div class="form-group">
             <label class="form-label" for="email">البريد الإلكتروني</label>
@@ -118,7 +115,6 @@
               hidden
             ></i>
           </button>
-
         </form>
       </div>
 
@@ -128,6 +124,5 @@
 
     <!-- Page controller — all auth logic lives here -->
     <script src="pages/login.js"></script>
-
   </body>
 </html>

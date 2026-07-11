@@ -997,6 +997,10 @@
   max-width: 440px;
 }
 
+/* Also target single-dash variants used by current HTML
+   (order-modal-header / order-modal-body / order-modal-footer)
+   so the same styles apply regardless of naming convention */
+.order-modal-header,
 .order-modal__header {
   display: flex;
   align-items: center;
@@ -1011,6 +1015,7 @@
   backdrop-filter: blur(8px);
 }
 
+.order-modal-title,
 .order-modal__title {
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-bold);
@@ -1055,6 +1060,7 @@
   transform: rotate(90deg);
 }
 
+.order-modal-body,
 .order-modal__body {
   padding: var(--space-6);
   display: flex;
@@ -1062,11 +1068,13 @@
   gap: var(--space-5);
 }
 
+.order-modal-body--compact,
 .order-modal__body--compact {
   padding: var(--space-5);
   gap: var(--space-4);
 }
 
+.order-modal-footer,
 .order-modal__footer {
   display: flex;
   align-items: center;
@@ -1736,14 +1744,28 @@
     padding: var(--space-2);
   }
 
+  .order-modal-body,
   .order-modal__body {
     padding: var(--space-4);
     gap: var(--space-4);
   }
 
+  .order-modal-header,
   .order-modal__header,
+  .order-modal-footer,
   .order-modal__footer {
     padding: var(--space-4) var(--space-5);
+  }
+
+  /* Stack footer buttons full-width on narrow screens */
+  .order-modal-footer,
+  .order-modal__footer {
+    flex-direction: column;
+  }
+  .order-modal-footer .btn,
+  .order-modal__footer .btn {
+    width: 100%;
+    justify-content: center;
   }
 
   .form-section {

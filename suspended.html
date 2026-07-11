@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>النظام معلق — Nazamly</title>
+    <title>النظام معلق — {{CLIENT_BRAND}}</title>
     <link rel="icon" type="image/png" href="nazamly.png" />
 
     <!-- Fonts -->
@@ -106,12 +106,11 @@
         'use strict';
 
         /*
-         * WhatsApp contact number — edit this to set the owner's phone.
-         * Format: full international number without + or leading zeros.
-         * Example: '201234567890' (Egypt)
+         * WhatsApp contact number — injected at deploy time from vault .env.
+         * Placeholder replaced by cli/lib/injection.js.
          */
-        var WHATSAPP_NUMBER = '201234567890';
-        var WHATSAPP_MESSAGE = 'السلام عليكم، أرغب في استئناف اشتراك نظام Nazamly.';
+        var WHATSAPP_NUMBER = '{{SUPPORT_PHONE}}';
+        var WHATSAPP_MESSAGE = 'السلام عليكم، أرغب في استئناف اشتراك نظام {{CLIENT_BRAND}}.';
 
         /*
          * On vision-ready, check if the current user is super_admin.

@@ -217,6 +217,12 @@
   .sidebar.sidebar-collapsed.sidebar-mobile-open {
     transform: translateX(0);
   }
+
+  /* Hide the desktop collapse toggle arrow on mobile —
+     the hamburger menu handles open/close instead */
+  .sidebar-toggle-btn {
+    display: none !important;
+  }
 }
 
 
@@ -1204,6 +1210,18 @@ textarea.form-input {
 }
 .vision-banner--warning .vision-banner__icon {
   color: #F59E0B;
+}
+
+/* Info variant (blue) — used in modal bodies */
+.vision-banner--info {
+  background: rgba(59, 130, 246, 0.08);
+  border-bottom-color: rgba(59, 130, 246, 0.25);
+  color: var(--color-primary);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-4);
+}
+.vision-banner--info .vision-banner__icon {
+  color: var(--color-primary);
 }
 
 /* Mobile */

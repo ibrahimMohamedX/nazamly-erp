@@ -28,15 +28,17 @@
   "use strict";
 
   /* ══════════════════════════════════════════════
-   * ▶ EDIT THIS BLOCK WITH YOUR FIREBASE PROJECT
+   * Firebase config — placeholderized for SaaS CLI injection.
+   * Values are replaced by cli/lib/injection.js at deploy time.
    * ══════════════════════════════════════════════ */
   var FIREBASE_CONFIG = {
-    apiKey: "AIzaSyCfqb7u3Es7rq39E4Mb8cRJM487odXVJa0",
-    authDomain: "erp-website-38fe1.firebaseapp.com",
-    projectId: "erp-website-38fe1",
-    storageBucket: "erp-website-38fe1.firebasestorage.app",
-    messagingSenderId: "74025192730",
-    appId: "1:74025192730:web:392eb58f3d59a33e66f0a3",
+    apiKey: "{{FIREBASE_API_KEY}}",
+    authDomain: "{{FIREBASE_AUTH_DOMAIN}}",
+    projectId: "{{FIREBASE_PROJECT_ID}}",
+    storageBucket: "{{FIREBASE_STORAGE_BUCKET}}",
+    messagingSenderId: "{{FIREBASE_MSG_SENDER_ID}}",
+    appId: "{{FIREBASE_APP_ID}}",
+
     // measurementId: "G-NBW3S78ZLJ"
   };
   // Initialize Firebase

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>طباعة البوليصات — Nazamly</title>
+    <title>طباعة البوليصات — {{CLIENT_BRAND}}</title>
     <link rel="icon" type="image/png" href="nazamly.png" />
     <link
       href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap"
@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="styles/base.css" />
     <link rel="stylesheet" href="styles/overlays.css" />
     <link rel="stylesheet" href="styles/components.css" />
+    <link rel="stylesheet" href="styles/pages/purchases.css" />
     <link rel="stylesheet" href="styles/pages/awb.css" />
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -465,16 +466,14 @@
         </div>
         <div class="pur-modal-body">
           <div
-            class="vision-banner"
-            data-type="info"
-            style="margin-bottom: var(--space-4)"
+            class="vision-banner vision-banner--info"
           >
             <i
-              class="vision-banner-icon fas fa-circle-info"
+              class="vision-banner__icon fas fa-circle-info"
               aria-hidden="true"
             ></i>
-            <div class="vision-banner-content">
-              <div class="vision-banner-text">
+            <div class="vision-banner__body">
+              <div class="vision-banner__text">
                 تُحفظ الإعدادات على هذا الجهاز فقط. تظهر على كل بوليصة تطبعها.
               </div>
             </div>

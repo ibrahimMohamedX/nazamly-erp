@@ -633,7 +633,14 @@
 
 /* ── MODAL OVERRIDES ── */
 .awb-modal--print { max-width: 680px; }
+
 .awb-modal--settings { max-width: 520px; }
+
+/* The pur-modal-body has a default gap from purchases.css.
+   Zero it out here so form-group margins are the sole
+   spacing mechanism — no double gaps. */
+.awb-modal--settings .pur-modal-body { gap: 0; }
+.awb-modal--settings .pur-modal-body > .form-group:first-child { margin-top: var(--space-2); }
 .awb-modal__count {
   margin-right: auto;
   font-size: 0.8rem;

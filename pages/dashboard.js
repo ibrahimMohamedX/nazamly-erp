@@ -1381,6 +1381,8 @@
         '<li>المصاريف (Expenses)</li>' +
         '<li>المنتجات (Products)</li>' +
         '<li>الموظفون (Employees)</li>' +
+        '<li>المشتريات (Purchases)</li>' +
+        '<li>الموردين (Suppliers)</li>' +
         '<li>شركات الشحن (Shipping Companies)</li>' +
         '<li>المنصات (Platforms)</li>' +
         '<li>الحالات (Statuses)</li>' +
@@ -1577,7 +1579,9 @@
       'shippingCompanies',
       'platforms',
       'statuses',
-      'goals'
+      'goals',
+      'purchases',
+      'suppliers'
     ];
 
     /**

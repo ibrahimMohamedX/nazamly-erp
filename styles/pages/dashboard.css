@@ -566,6 +566,14 @@
   .pnl-grid { grid-template-columns: 1fr; }
 }
 
+/* Home bottom grid: stack vertically on mobile so
+   Latest Orders sits UNDER modules, not squeezed beside them */
+@media (max-width: 768px) {
+  .home-bottom-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 /* Modules grid */
 .modules-grid {
   display: grid;

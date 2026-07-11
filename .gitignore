@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# External vault — client secrets MUST stay outside the repo
+../nazamly-clients-vault/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Service account keys (Firebase Admin SDK)
+serviceAccount*.json
+*-service-account.json
+*firebase-adminsdk*.json
+
+# CLI seeder config (super admin credentials)
+cli/seeder-config.json
+cli/seeder-config.js
+
+# Vault master key (encryption passphrase)
+.vault-key
+
+# Build / staging output
+cli/.build-cache/
+build/
+dist/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
