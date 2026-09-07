@@ -87,14 +87,16 @@ function generateFirebaseConfig(workspaceDir, envData) {
       ],
       headers: [
         {
-          // Fingerprinted JS/CSS can be cached aggressively (1 year immutable).
-          // Un-fingerprinted assets (PNG, fonts) use a shorter cache so new
-          // versions are picked up without a manual cache purge.
+          // JS/CSS: moderate cache with must-revalidate so browsers
+          // check for updates on each deploy. The immutable directive
+          // has been REMOVED — it prevented browsers from ever fetching
+          // updated CSS/JS after a redeploy, permanently breaking the
+          // light theme (and any future CSS changes).
           source: '**/*.@(js|css)',
           headers: [
             {
               key: 'Cache-Control',
-              value: 'max-age=31536000, immutable',
+              value: 'max-age=3600, must-revalidate',
             },
           ],
         },

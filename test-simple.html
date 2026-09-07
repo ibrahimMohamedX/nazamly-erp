@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<link rel="stylesheet" href="styles/variables.css" />
+<style>
+body { background-color: var(--color-bg); color: var(--color-text); padding: 30px; font-family: sans-serif; }
+.card { background: var(--color-surface); border: 1px solid var(--color-border); padding: 20px; border-radius: 12px; margin: 10px 0; }
+.card h2 { color: var(--color-text); }
+.card p { color: var(--color-text-secondary); }
+pre { background: var(--color-surface-raised); padding: 10px; border-radius: 6px; color: var(--color-text); }
+button { padding: 10px 20px; cursor: pointer; font-size: 16px; margin: 5px; }
+</style>
+</head>
+<body>
+<h1>Simple Variables Test</h1>
+<button onclick="toggleNow()">Toggle Theme</button>
+<button onclick="checkNow()">Check State</button>
+<div id="debug" style="margin:10px 0;padding:10px;background:white;color:black;border-radius:6px;font-size:13px;"></div>
+
+<div class="card">
+  <h2>Card Title</h2>
+  <p>This is secondary text. This card uses var(--color-surface) for background, var(--color-border) for border, var(--color-text) for heading, and var(--color-text-secondary) for paragraph.</p>
+</div>
+
+<pre>body background: var(--color-bg) — from :root or :root[data-theme="light"]</pre>
+
+<script>
+function toggleNow() {
+  var cur = document.documentElement.getAttribute('data-theme') || '';
+  var next = cur === 'light' ? '' : 'light';
+  if (next === 'light') document.documentElement.setAttribute('data-theme', 'light');
+  else document.documentElement.removeAttribute('data-theme');
+  checkNow();
+}
+
+function checkNow() {
+  var attr = document.documentElement.getAttribute('data-theme') || 'none';
+  var bodyBg = getComputedStyle(document.body).backgroundColor;
+  var cardBg = getComputedStyle(document.querySelector('.card')).backgroundColor;
+  var textColor = getComputedStyle(document.body).color;
+  var el = document.getElementById('debug');
+  el.textContent = 'data-theme="' + attr + '" | body bg: ' + bodyBg + ' | card bg: ' + cardBg + ' | text: ' + textColor;
+}
+window.addEventListener('DOMContentLoaded', checkNow);
+</script>
+</body>
+</html>

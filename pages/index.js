@@ -56,6 +56,137 @@
   }
 
   /* ──────────────────────────────────────
+     SUBSCRIPTION STATUS CARD
+     Reads from VisionLicensing real-time cache.
+     Falls back gracefully when licensing data
+     is not yet available.
+     ────────────────────────────────────── */
+
+  let _unsubLicensing = null;
+
+  /** Days remaining word in Arabic */
+  function _daysWord(n) {
+    const absN = Math.abs(n);
+    if (absN === 1) return 'يوم';
+    if (absN === 2) return 'يومان';
+    if (absN >= 3 && absN <= 10) return 'أيام';
+    return 'يوماً';
+  }
+
+  function _renderSubStatus(status) {
+    if (!status) {
+      // No licensing data yet — show loading/unknown state
+      const icon = _el('subStatusIcon');
+      if (icon) { icon.className = 'sub-status-icon'; icon.querySelector('i').className = 'fas fa-shield-halved'; }
+      _setText('subStatusValue', 'جاري التحميل…');
+      _setText('subStatusDetail', '');
+      const daysEl = _el('subStatusDays');
+      if (daysEl) daysEl.className = 'sub-status-days';
+      _setText('subStatusDaysNum', '—');
+      _setText('subStatusDaysLabel', '');
+      const fill = _el('subStatusBarFill');
+      if (fill) { fill.className = 'sub-status-bar-fill'; fill.style.width = '0%'; }
+      return;
+    }
+
+    const isActive  = status.isActive === true;
+    const endDate   = status.endDate ? new Date(status.endDate) : null;
+    const now       = Date.now();
+    const daysLeft  = endDate ? Math.ceil((endDate.getTime() - now) / 86_400_000) : null;
+
+    // Determine state class suffix
+    let stateClass = 'active';   // green: system running, plenty of time
+    if (!isActive) {
+      stateClass = 'expired';    // red: system paused/expired
+    } else if (daysLeft !== null && daysLeft <= 7) {
+      stateClass = 'expiring';   // yellow: ≤7 days remaining
+    }
+
+    // ── Icon ──
+    const icon = _el('subStatusIcon');
+    if (icon) {
+      icon.className = 'sub-status-icon sub-status-icon--' + stateClass;
+      const i = icon.querySelector('i');
+      if (i) {
+        if (stateClass === 'active')    i.className = 'fas fa-circle-check';
+        else if (stateClass === 'expiring') i.className = 'fas fa-circle-exclamation';
+        else                             i.className = 'fas fa-circle-xmark';
+      }
+    }
+
+    // ── Value text ──
+    if (!isActive) {
+      _setText('subStatusValue', 'النظام متوقف');
+      _setText('subStatusDetail', endDate
+        ? 'انتهى الاشتراك منذ ' + Math.abs(daysLeft) + ' ' + _daysWord(daysLeft)
+        : 'تم تعليق النظام من قبل المالك');
+    } else if (daysLeft === null) {
+      _setText('subStatusValue', 'النظام نشط');
+      _setText('subStatusDetail', 'اشتراك مفتوح (بدون تاريخ انتهاء)');
+    } else if (daysLeft <= 0) {
+      _setText('subStatusValue', 'النظام متوقف');
+      _setText('subStatusDetail', 'انتهت صلاحية الاشتراك اليوم');
+    } else if (daysLeft <= 7) {
+      _setText('subStatusValue', 'النظام نشط — تنتهي الصلاحية قريباً');
+      _setText('subStatusDetail', 'تاريخ الانتهاء: ' + endDate.toLocaleDateString('ar-EG', {
+        year: 'numeric', month: 'long', day: 'numeric'
+      }));
+    } else {
+      _setText('subStatusValue', 'النظام نشط');
+      _setText('subStatusDetail', 'تاريخ الانتهاء: ' + endDate.toLocaleDateString('ar-EG', {
+        year: 'numeric', month: 'long', day: 'numeric'
+      }));
+    }
+
+    // ── Days badge ──
+    const daysEl = _el('subStatusDays');
+    if (daysEl) {
+      daysEl.className = 'sub-status-days sub-status-days--' + stateClass;
+      if (daysLeft === null) {
+        _setText('subStatusDaysNum', '∞');
+        _setText('subStatusDaysLabel', 'مفتوح');
+      } else if (daysLeft <= 0) {
+        _setText('subStatusDaysNum', Math.abs(daysLeft).toLocaleString('ar-EG'));
+        _setText('subStatusDaysLabel', 'منذ');
+      } else {
+        _setText('subStatusDaysNum', daysLeft.toLocaleString('ar-EG'));
+        _setText('subStatusDaysLabel', _daysWord(daysLeft));
+      }
+    }
+
+    // ── Progress bar ──
+    const fill = _el('subStatusBarFill');
+    if (fill) {
+      fill.className = 'sub-status-bar-fill sub-status-bar-fill--' + stateClass;
+      if (!isActive) {
+        fill.style.width = '100%';
+      } else if (daysLeft === null) {
+        fill.style.width = '100%'; // indefinite = full green bar
+      } else {
+        // Show proportion of 30-day window remaining (clamped 0–100%)
+        const pct = Math.max(0, Math.min(100, Math.round((daysLeft / 30) * 100)));
+        fill.style.width = pct + '%';
+      }
+    }
+  }
+
+  function _loadSubStatus() {
+    // Check if VisionLicensing is available
+    if (window.VisionLicensing && typeof window.VisionLicensing.onStatusChanged === 'function') {
+      _unsubLicensing = window.VisionLicensing.onStatusChanged(function (status) {
+        _renderSubStatus(status);
+      });
+    } else if (window.VisionConfig) {
+      // Fallback: read cached licensing from VisionConfig
+      var lic = window.VisionConfig.get('licensing');
+      _renderSubStatus(lic || null);
+    } else {
+      // No licensing data source — show loading state
+      _renderSubStatus(null);
+    }
+  }
+
+  /* ──────────────────────────────────────
      TODAY'S KPIs
      Scoped query: createdAt >= start of today
      ────────────────────────────────────── */
@@ -157,6 +288,9 @@
 
     _renderGreeting(userName);
 
+    /* Start subscription status listener early — it doesn't need auth */
+    _loadSubStatus();
+
     AuthGuard.protect({
       adminOnly: true,
       onReady: () => {
@@ -173,10 +307,11 @@
       },
     });
 
-    /* Cleanup both listeners on unload */
+    /* Cleanup all listeners on unload */
     window.addEventListener('beforeunload', () => {
-      if (_unsubToday)  { try { _unsubToday();  } catch (_) {} }
-      if (_unsubRecent) { try { _unsubRecent(); } catch (_) {} }
+      if (_unsubToday)      { try { _unsubToday();      } catch (_) {} }
+      if (_unsubRecent)     { try { _unsubRecent();     } catch (_) {} }
+      if (_unsubLicensing)  { try { _unsubLicensing();  } catch (_) {} }
     });
   }
 

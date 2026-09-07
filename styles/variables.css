@@ -157,3 +157,81 @@
   --z-spinner:     1100;
   --z-maintenance: 1000000;
 }
+
+/* ============================================================
+   LIGHT THEME — Premium SaaS Aesthetic
+   All tokens overridden under :root[data-theme="light"] on <html>.
+   Higher specificity (0,2,0) guarantees these win over :root (0,1,0).
+   The :root block above is the dark default and remains untouched.
+   ============================================================ */
+
+/* :root[data-theme="light"] = specificity 0,2,0 vs :root 0,1,0
+   This guarantees light tokens ALWAYS override dark defaults
+   regardless of source order or any edge-case cascade behavior. */
+:root[data-theme="light"] {
+  /* ── Background Scale ── */
+  --color-bg:              #F8FAFC;
+  --color-surface:         #FFFFFF;
+  --color-surface-raised:  #F1F5F9;
+  --color-surface-high:    #E2E8F0;
+  --color-surface-glass:   rgba(255, 255, 255, 0.85);
+
+  /* ── Border ── */
+  --color-border:          #CBD5E1;
+  --color-border-light:    #E2E8F0;
+  --color-border-focus:    rgba(59, 130, 246, 0.35);
+
+  /* ── Brand / Primary (unchanged — identical to dark) ── */
+  /* --color-primary, --color-primary-hover, --color-primary-active,
+     --color-primary-dark, --color-primary-bg, --color-primary-glow
+     all stay the same — brand blue pops beautifully on light surfaces */
+
+  /* ── Semantic Colors (unchanged — identical to dark) ── */
+  /* --color-success, --color-success-bg, --color-warning, --color-warning-bg,
+     --color-error, --color-error-bg, --color-alert, --color-alert-bg,
+     --color-update, --color-update-bg — all semantic colors stay the same */
+
+  /* ── Text — flipped for light backgrounds ── */
+  --color-text:            #0F172A;
+  --color-text-secondary:  #475569;
+  --color-text-muted:      #64748B;
+  --color-text-placeholder:#94A3B8;
+  --color-selection-bg:    rgba(59, 130, 246, 0.18);
+  --color-selection-text:  #0F172A;
+
+  /* ── Shadows — lighter, more refined for light surfaces ── */
+  --shadow-xs:      0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm:      0 2px 6px rgba(0, 0, 0, 0.06);
+  --shadow-md:      0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-lg:      0 10px 32px rgba(0, 0, 0, 0.12);
+  --shadow-primary: 0 4px 20px rgba(59, 130, 246, 0.22);
+  --shadow-inset:   inset 0 1px 3px rgba(0, 0, 0, 0.06);
+
+  /* ── Shadows (3D depth layers) — lifted, airy feel ── */
+  --shadow-3d-xs:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 2px 6px rgba(0, 0, 0, 0.03);
+  --shadow-3d-sm:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 4px 12px rgba(0, 0, 0, 0.05);
+  --shadow-3d-md:
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    0 4px 16px rgba(0, 0, 0, 0.06),
+    0 8px 28px rgba(0, 0, 0, 0.05);
+  --shadow-3d-lg:
+    0 2px 4px rgba(0, 0, 0, 0.03),
+    0 8px 24px rgba(0, 0, 0, 0.06),
+    0 16px 48px rgba(0, 0, 0, 0.06);
+  --shadow-3d-modal:
+    0 4px 6px rgba(0, 0, 0, 0.03),
+    0 12px 40px rgba(0, 0, 0, 0.10),
+    0 24px 64px rgba(0, 0, 0, 0.08);
+  --shadow-inset-top: inset 0 1px 0 rgba(0, 0, 0, 0.04);
+  --shadow-inset-sm:  inset 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-button-up:
+    0 1px 2px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.70);
+  --shadow-button-down:
+    inset 0 2px 4px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10);
+}

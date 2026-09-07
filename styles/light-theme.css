@@ -1,0 +1,702 @@
+/* ============================================================
+   LIGHT-THEME.CSS — Additive Light Theme Overrides
+   ============================================================
+   All rules are scoped under [data-theme="light"].
+   Two-layer architecture:
+     Layer 1 — Structural surfaces: direct background/color rules
+              for body, sidebar, cards, app shell, etc. These
+              guarantee the theme switches even if CSS variable
+              inheritance encounters edge cases.
+     Layer 2 — Edge-case fixes: hardcoded gradients, overlay
+              backdrops, inset highlights, watermark SVG, etc.
+              that bypass CSS variables entirely.
+
+   The CSS custom properties live in variables.css
+   under [data-theme="light"] — those cascade everywhere
+   automatically for all var()-using rules.
+
+   IMPORTANT: ZERO modifications to the dark theme.
+   Without [data-theme="light"] on <html>, none of these
+   rules activate.
+   ============================================================ */
+
+/* ═══════════════════════════════════════
+   LAYER 1 — STRUCTURAL SURFACES
+   Direct background/color overrides for the
+   application shell and primary components.
+   These are the BELT to the variable layer's
+   SUSPENDERS — the theme works even without
+   cascade-dependent var() resolution.
+   ═══════════════════════════════════════ */
+
+/* ── Document body ── */
+[data-theme="light"] body {
+  background-color: #F8FAFC;
+  color: #0F172A;
+}
+
+/* ── App shell ── */
+[data-theme="light"] .app-main {
+  background-color: #F8FAFC;
+}
+
+[data-theme="light"] .page-content {
+  background-color: transparent;
+}
+
+/* ── Sidebar ── */
+[data-theme="light"] .sidebar {
+  background: #FFFFFF;
+  border-left-color: #E2E8F0;
+  box-shadow: 1px 0 0 #E2E8F0, 2px 0 8px rgba(0,0,0,0.03);
+}
+
+[data-theme="light"] .sidebar-header {
+  border-bottom-color: #E2E8F0;
+}
+
+[data-theme="light"] .sidebar-footer {
+  border-top-color: #E2E8F0;
+}
+
+[data-theme="light"] .sidebar-brand-name {
+  color: #0F172A;
+}
+
+[data-theme="light"] .sidebar-item {
+  color: #475569;
+}
+
+[data-theme="light"] .sidebar-item:hover {
+  background: rgba(59, 130, 246, 0.10);
+  color: #0F172A;
+}
+
+[data-theme="light"] .sidebar-item.active {
+  background: #3B82F6;
+  color: #FFFFFF;
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.22);
+}
+
+[data-theme="light"] .sidebar-toggle-btn {
+  color: #64748B;
+}
+
+[data-theme="light"] .sidebar-toggle-btn:hover {
+  background: #F1F5F9;
+  color: #0F172A;
+}
+
+[data-theme="light"] .sidebar-user-name {
+  color: #0F172A;
+}
+
+[data-theme="light"] .sidebar-user-role {
+  color: #64748B;
+}
+
+[data-theme="light"] .sidebar-user-avatar {
+  background: rgba(59, 130, 246, 0.10);
+  color: #3B82F6;
+  border-color: rgba(59, 130, 246, 0.10);
+}
+
+[data-theme="light"] .section-label {
+  color: #64748B;
+}
+
+/* ── Cards — universal ── */
+[data-theme="light"] .card {
+  background: #FFFFFF;
+  border-color: #E2E8F0;
+}
+
+[data-theme="light"] .card-header {
+  border-bottom-color: #E2E8F0;
+}
+
+[data-theme="light"] .card-title {
+  color: #0F172A;
+}
+
+[data-theme="light"] .card-footer {
+  border-top-color: #E2E8F0;
+}
+
+/* ── KPI cards ── */
+[data-theme="light"] .kpi-card {
+  background: linear-gradient(145deg, #FFFFFF, #F1F5F9);
+  border-color: #E2E8F0;
+}
+
+/* ── Tables ── */
+[data-theme="light"] .table {
+  color: #0F172A;
+}
+
+[data-theme="light"] .table thead th {
+  color: #475569;
+  border-bottom-color: #CBD5E1;
+}
+
+[data-theme="light"] .table tbody td {
+  color: #0F172A;
+  border-bottom-color: #E2E8F0;
+}
+
+[data-theme="light"] .table tbody tr:hover {
+  background: #F8FAFC;
+}
+
+[data-theme="light"] .table-wrapper {
+  background: #FFFFFF;
+  border-color: #E2E8F0;
+}
+
+/* ── Form inputs & selects ── */
+[data-theme="light"] .form-input,
+[data-theme="light"] .form-select,
+[data-theme="light"] .form-textarea {
+  background: #FFFFFF;
+  border-color: #CBD5E1;
+  color: #0F172A;
+}
+
+[data-theme="light"] .form-input:focus,
+[data-theme="light"] .form-select:focus,
+[data-theme="light"] .form-textarea:focus {
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+[data-theme="light"] .form-input::placeholder,
+[data-theme="light"] .form-textarea::placeholder {
+  color: #94A3B8;
+}
+
+[data-theme="light"] .form-label {
+  color: #475569;
+}
+
+/* ── Badges ── */
+[data-theme="light"] .badge {
+  color: #0F172A;
+}
+
+[data-theme="light"] .badge-dot {
+  background: #F1F5F9;
+  color: #475569;
+}
+
+/* ── Buttons (generic surfaces) ── */
+[data-theme="light"] .btn-ghost {
+  color: #475569;
+}
+
+[data-theme="light"] .btn-ghost:hover {
+  background: #F1F5F9;
+  color: #0F172A;
+}
+
+/* ── Modal/dialog cards ── */
+[data-theme="light"] .vision-modal,
+[data-theme="light"] .order-modal,
+[data-theme="light"] .emp-modal,
+[data-theme="light"] .exp-modal,
+[data-theme="light"] .pur-modal {
+  background: #FFFFFF;
+  border-color: #E2E8F0;
+}
+
+/* ── Skeleton loader ── */
+[data-theme="light"] #skeletonLoader {
+  background: #F8FAFC;
+}
+
+[data-theme="light"] .skeleton {
+  background: #F1F5F9;
+}
+
+/* ── Typography overrides ── */
+[data-theme="light"] h1,
+[data-theme="light"] h2,
+[data-theme="light"] h3,
+[data-theme="light"] h4,
+[data-theme="light"] h5,
+[data-theme="light"] h6 {
+  color: #0F172A;
+}
+
+[data-theme="light"] p {
+  color: #475569;
+}
+
+[data-theme="light"] .text-muted,
+[data-theme="light"] .text-secondary {
+  color: #64748B;
+}
+
+[data-theme="light"] .text-xs {
+  color: #475569;
+}
+
+[data-theme="light"] .font-bold {
+  color: #0F172A;
+}
+
+[data-theme="light"] .page-title {
+  color: #0F172A;
+}
+
+[data-theme="light"] .page-subtitle {
+  color: #64748B;
+}
+
+/* ── Dashboard: Today KPI cards ── */
+[data-theme="light"] .today-kpi {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+}
+
+[data-theme="light"] .today-kpi-label {
+  color: #64748B;
+}
+
+[data-theme="light"] .today-kpi-value {
+  color: #0F172A;
+}
+
+/* ── Dashboard: Quick action cards ── */
+[data-theme="light"] .quick-action {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+}
+
+[data-theme="light"] .quick-action-label {
+  color: #0F172A;
+}
+
+[data-theme="light"] .quick-action-sub {
+  color: #64748B;
+}
+
+/* ── Dashboard: Module cards ── */
+[data-theme="light"] .module-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+}
+
+[data-theme="light"] .module-name {
+  color: #0F172A;
+}
+
+[data-theme="light"] .module-desc {
+  color: #64748B;
+}
+
+/* ── Dashboard: Section titles ── */
+[data-theme="light"] .dash-section-title {
+  color: #0F172A;
+}
+
+/* ── Dashboard: Subscription status card ── */
+[data-theme="light"] .sub-status-card {
+  background: #FFFFFF;
+  border-color: #E2E8F0;
+}
+
+[data-theme="light"] .sub-status-label {
+  color: #64748B;
+}
+
+[data-theme="light"] .sub-status-value {
+  color: #0F172A;
+}
+
+[data-theme="light"] .sub-status-detail {
+  color: #475569;
+}
+
+[data-theme="light"] .sub-status-days {
+  border-color: #E2E8F0;
+}
+
+[data-theme="light"] .sub-status-days-label {
+  color: #64748B;
+}
+
+[data-theme="light"] .sub-status-bar {
+  background: #E2E8F0;
+}
+
+/* ── Badge / Status variations ── */
+[data-theme="light"] .badge-success {
+  background: rgba(16, 185, 129, 0.10);
+  color: #059669;
+}
+
+[data-theme="light"] .badge-warning {
+  background: rgba(245, 158, 11, 0.10);
+  color: #D97706;
+}
+
+[data-theme="light"] .badge-error {
+  background: rgba(239, 68, 68, 0.10);
+  color: #DC2626;
+}
+
+/* ── td-primary text (table primary data) ── */
+[data-theme="light"] .td-primary {
+  color: #0F172A;
+}
+
+/* ── Page header divider ── */
+[data-theme="light"] .page-header-divider {
+  background: linear-gradient(to left, transparent, #CBD5E1, transparent);
+}
+
+/* ── Tabs ── */
+[data-theme="light"] .tab,
+[data-theme="light"] .tab-item {
+  color: #64748B;
+}
+
+[data-theme="light"] .tab.active,
+[data-theme="light"] .tab-item.active {
+  color: #3B82F6;
+  border-bottom-color: #3B82F6;
+}
+
+[data-theme="light"] .tab:hover,
+[data-theme="light"] .tab-item:hover {
+  color: #0F172A;
+}
+
+/* ── Dropdown menus ── */
+[data-theme="light"] .dropdown-menu,
+[data-theme="light"] .select-dropdown {
+  background: #FFFFFF;
+  border-color: #E2E8F0;
+}
+
+[data-theme="light"] .dropdown-item {
+  color: #475569;
+}
+
+[data-theme="light"] .dropdown-item:hover {
+  background: #F1F5F9;
+  color: #0F172A;
+}
+
+/* ── Topbar — glassy header ── */
+[data-theme="light"] .topbar {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid #E2E8F0;
+}
+
+[data-theme="light"] .topbar-title {
+  color: #0F172A;
+}
+
+[data-theme="light"] .topbar-icon-btn {
+  color: #475569;
+}
+
+[data-theme="light"] .topbar-icon-btn:hover {
+  background: #F1F5F9;
+  color: #0F172A;
+}
+
+[data-theme="light"] .topbar-mobile-menu {
+  color: #475569;
+}
+
+[data-theme="light"] .topbar-mobile-menu:hover {
+  background: #F1F5F9;
+  color: #0F172A;
+}
+
+/* ── Scrollbar thumb ── */
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* ═══════════════════════════════════════
+   LAYER 2 — EDGE-CASE HARDCODED FIXES
+   These target specific hardcoded color
+   values that bypass CSS variables.
+   ═══════════════════════════════════════ */
+
+/* ──────────────────────────────────────
+   HERO CARD — index.html welcome banner
+   Dark uses: linear-gradient(130deg, #1a3a6b, #0f2444, #0b1a35)
+   ────────────────────────────────────── */
+
+[data-theme="light"] .hero-card {
+  background: linear-gradient(130deg, #2563EB 0%, #1D4ED8 50%, #1E40AF 100%);
+  border-color: rgba(59, 130, 246, 0.30);
+  color: #fff;
+}
+
+/* Hero glow orb — still primary-blue but subtle */
+[data-theme="light"] .hero-card::before {
+  background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%);
+}
+
+[data-theme="light"] .hero-greeting,
+[data-theme="light"] .hero-sub,
+[data-theme="light"] .hero-motivational {
+  color: #fff;
+}
+
+[data-theme="light"] .hero-sub {
+  color: rgba(255, 255, 255, 0.80);
+}
+
+[data-theme="light"] .hero-motivational {
+  color: rgba(255, 255, 255, 0.60);
+}
+
+/* ──────────────────────────────────────
+   OVERLAY BACKDROPS — modals, spinners
+   Dark uses: rgba(5, 8, 18, 0.78) etc.
+   ────────────────────────────────────── */
+
+[data-theme="light"] .vision-modal-overlay,
+[data-theme="light"] .order-modal-overlay,
+[data-theme="light"] .exp-modal-overlay,
+[data-theme="light"] .pur-modal-overlay,
+[data-theme="light"] .emp-modal-overlay,
+[data-theme="light"] .vision-overlay-container,
+[data-theme="light"] .vision-spinner-overlay {
+  background: rgba(15, 23, 42, 0.55);
+}
+
+[data-theme="light"] .vision-spinner-overlay {
+  background: rgba(248, 250, 252, 0.88);
+}
+
+/* Maintenance overlay */
+[data-theme="light"] .vision-overlay-backdrop {
+  background: rgba(248, 250, 252, 0.96);
+}
+
+/* Mobile sidebar overlay */
+[data-theme="light"] .mobile-sidebar-overlay {
+  background: rgba(15, 23, 42, 0.45);
+}
+
+/* ──────────────────────────────────────
+   TOAST BACKGROUND
+   Dark uses: rgba(17, 24, 39, 0.97)
+   ────────────────────────────────────── */
+
+[data-theme="light"] .vision-toast {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+/* ──────────────────────────────────────
+   SHIPPING MODAL
+   Dark uses: #111c2b
+   ────────────────────────────────────── */
+
+[data-theme="light"] .shipping-modal {
+  background-color: var(--color-surface);
+}
+
+/* ──────────────────────────────────────
+   COMPANY CARD TOP HIGHLIGHT
+   Dark uses: rgba(255,255,255,0.35) which
+   was meant for dark cards — on light cards
+   it's too bright, so we invert it.
+   ────────────────────────────────────── */
+
+[data-theme="light"] .company-card::before {
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.03) 0%,
+    transparent 100%
+  );
+}
+
+/* ──────────────────────────────────────
+   TABLE HEADER GRADIENTS
+   Dark relied on very-subtle white overlays
+   that are invisible on light surfaces —
+   swap to use bg tokens directly.
+   ────────────────────────────────────── */
+
+[data-theme="light"] .table--orders thead th {
+  background: var(--color-surface-raised);
+}
+
+[data-theme="light"] .orders-table-header {
+  background: var(--color-surface);
+}
+
+/* ──────────────────────────────────────
+   STATUS PILL — white inset highlight
+   Dark highlights make buttons pop;
+   on light surfaces the white highlight
+   is invisible, so we use a darker one
+   for contrast.
+   ────────────────────────────────────── */
+
+[data-theme="light"] .status-pill {
+  box-shadow:
+    0 1px 2px rgba(0,0,0,0.04),
+    inset 0 1px 0 rgba(0,0,0,0.04);
+}
+
+/* ──────────────────────────────────────
+   WATERMARK — reduce intensity
+   The watermark SVG is hardcoded in
+   base.css body::after. On light bg
+   it needs higher opacity to be visible.
+   ────────────────────────────────────── */
+
+[data-theme="light"] body::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='140'%3E%3Ctext x='50%25' y='55%25' text-anchor='middle' dominant-baseline='middle' font-family='Cairo%2C sans-serif' font-size='20' font-weight='700' letter-spacing='4' fill='rgba(59%2C130%2C246%2C0.040)' transform='rotate(-28 140 70)'%3ENazamly%3C/text%3E%3C/svg%3E");
+}
+
+/* ──────────────────────────────────────
+   LIVE DOT — green pulsing indicator
+   The success-color glow needs less
+   intensity on light backgrounds.
+   ────────────────────────────────────── */
+
+[data-theme="light"] .live-dot {
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.35);
+}
+
+/* ──────────────────────────────────────
+   AWB LABEL KPI CARDS — already
+   hardcoded with light-friendly gradients
+   (awb.css lines 168-169), so they
+   work fine on light surfaces. No overrides needed.
+   ────────────────────────────────────── */
+
+/* ──────────────────────────────────────
+   FILTERS CARD — shadow refinement
+   ────────────────────────────────────── */
+
+[data-theme="light"] .filters-card {
+  box-shadow:
+    0 1px 3px rgba(0,0,0,0.03),
+    0 1px 2px rgba(0,0,0,0.02);
+}
+
+/* ──────────────────────────────────────
+   CARDS WITH 3D SHADOWS — orders.css
+   ────────────────────────────────────── */
+
+[data-theme="light"] .card--3d {
+  box-shadow:
+    0 1px 3px rgba(0,0,0,0.03),
+    0 4px 12px rgba(0,0,0,0.03);
+}
+
+/* ──────────────────────────────────────
+   EMPTY STATE ICON RING (orders.css)
+   Dark used white inset highlights —
+   swap to dark inset for light mode.
+   ────────────────────────────────────── */
+
+[data-theme="light"] .empty-state__icon-ring {
+  box-shadow:
+    0 4px 16px rgba(0,0,0,0.06),
+    inset 0 2px 4px rgba(0,0,0,0.04);
+}
+
+[data-theme="light"] .empty-state:hover .empty-state__icon-ring {
+  box-shadow:
+    0 8px 24px rgba(0,0,0,0.08),
+    inset 0 2px 4px rgba(0,0,0,0.04);
+}
+
+/* ──────────────────────────────────────
+   SETTINGS SECTION — shipping.css
+   Dark white overlays → dark overlays
+   ────────────────────────────────────── */
+
+[data-theme="light"] .settings-section-icon-wrap::after {
+  box-shadow: inset 0 -2px 4px rgba(0,0,0,0.04);
+}
+
+[data-theme="light"] .company-card-icon::after {
+  box-shadow: inset 0 -2px 4px rgba(0,0,0,0.04);
+}
+
+/* ──────────────────────────────────────
+   CATEGORY MANAGER SWATCH — border
+   Dark used white border for contrast
+   ────────────────────────────────────── */
+
+[data-theme="light"] .cat-manager-swatch {
+  border-color: rgba(0,0,0,0.10);
+}
+
+/* ──────────────────────────────────────
+   FORM SECTION HIGHLIGHTS
+   ────────────────────────────────────── */
+
+[data-theme="light"] .status-badge::before {
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.02),
+    transparent
+  );
+}
+
+/* ──────────────────────────────────────
+   VISION BANNER DISMISS HOVER
+   Dark used rgba(0,0,0,0.10) — fine for both
+   but on light mode the banner bg is already
+   light, so we increase contrast slightly.
+   ────────────────────────────────────── */
+
+[data-theme="light"] .vision-banner__dismiss:hover {
+  background: rgba(0,0,0,0.08);
+}
+
+/* ──────────────────────────────────────
+   AUTH PAGE — form input bg override
+   Dark uses rgba(15,23,42,0.8) directly
+   ────────────────────────────────────── */
+
+[data-theme="light"] .auth-form .form-input {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+}
+
+[data-theme="light"] .auth-form .form-input:focus {
+  background: var(--color-surface);
+}
+
+/* ──────────────────────────────────────
+   PRODUCT PILLS — dark used subtle
+   gradient; light mode uses flat bg
+   ────────────────────────────────────── */
+
+[data-theme="light"] .product-pill {
+  background: var(--color-surface);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+/* ──────────────────────────────────────
+   TRACKING NUMBER — dark background
+   ────────────────────────────────────── */
+
+[data-theme="light"] .tracking-num {
+  background: var(--color-surface-raised);
+}
+
+/* ── End of light-theme.css ── */

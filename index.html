@@ -2,12 +2,16 @@
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
+{{THEME_INIT_SCRIPT}}
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>الرئيسية — {{CLIENT_BRAND}}</title>
     <link rel="icon" type="image/png" href="nazamly.png" />
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="stylesheet" href="styles/variables.css" />
+{{LIGHT_THEME_CSS}}
+
     <link rel="stylesheet" href="styles/base.css" />
     <link rel="stylesheet" href="styles/overlays.css" />
     <link rel="stylesheet" href="styles/components.css" />
@@ -65,6 +69,28 @@
                   <i class="fas fa-chart-line" aria-hidden="true"></i> التحليلات
                 </a>
               </div>
+            </div>
+          </div>
+
+          <!-- Subscription Status Card -->
+          <div class="sub-status-card" role="region" aria-label="حالة الاشتراك" id="subStatusCard">
+            <div class="sub-status-inner">
+              <div class="sub-status-icon" id="subStatusIcon">
+                <i class="fas fa-shield-halved" aria-hidden="true"></i>
+              </div>
+              <div class="sub-status-info">
+                <div class="sub-status-label">حالة النظام</div>
+                <div class="sub-status-value" id="subStatusValue">—</div>
+                <div class="sub-status-detail" id="subStatusDetail">—</div>
+              </div>
+              <div class="sub-status-days" id="subStatusDays">
+                <span class="sub-status-days-num" id="subStatusDaysNum">—</span>
+                <span class="sub-status-days-label">يوم</span>
+              </div>
+            </div>
+            <!-- Thin progress bar showing remaining time -->
+            <div class="sub-status-bar" id="subStatusBarWrap">
+              <div class="sub-status-bar-fill" id="subStatusBarFill" style="width:0%;"></div>
             </div>
           </div>
 

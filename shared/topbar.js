@@ -162,10 +162,68 @@
     return 'منذ ' + Math.floor(h / 24) + ' يوم';
   }
 
+  /* ── Theme toggle ── */
+  var THEME_KEY = 'nazamly-theme';
+
+  function _getTheme() {
+    try {
+      return localStorage.getItem(THEME_KEY) || '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function _setTheme(theme) {
+    try {
+      localStorage.setItem(THEME_KEY, theme);
+    } catch (_) {}
+  }
+
+  function _applyTheme(theme) {
+    if (theme === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+  }
+
+  function _toggleTheme() {
+    var current = document.documentElement.getAttribute('data-theme') || '';
+    var next = current === 'light' ? '' : 'light';
+    _applyTheme(next);
+    _setTheme(next);
+    _updateThemeIcon(next);
+  }
+
+  function _updateThemeIcon(theme) {
+    var btn = document.getElementById('topbarThemeBtn');
+    if (!btn) return;
+    var icon = btn.querySelector('i');
+    if (!icon) return;
+
+    if (theme === 'light') {
+      icon.className = 'fas fa-moon';
+      btn.setAttribute('title', 'الوضع الداكن');
+      btn.setAttribute('aria-label', 'تفعيل الوضع الداكن');
+    } else {
+      icon.className = 'fas fa-sun';
+      btn.setAttribute('title', 'الوضع الفاتح');
+      btn.setAttribute('aria-label', 'تفعيل الوضع الفاتح');
+    }
+  }
+
+  function _bindThemeToggle() {
+    var btn = document.getElementById('topbarThemeBtn');
+    if (!btn) return;
+    btn.addEventListener('click', _toggleTheme);
+  }
+
   /* ── Inject dynamic elements into topbar ── */
   function _inject(title) {
     var bar = document.querySelector('.topbar');
     if (!bar) return;
+
+    var currentTheme = _getTheme();
 
     bar.innerHTML = ''
       /* Mobile menu toggle (sidebar.js binds the click) */
@@ -184,6 +242,13 @@
 
       /* Live clock */
       + '<span id="topbarClock" style="font-size:var(--font-size-xs);color:var(--color-text-muted);font-variant-numeric:tabular-nums;" aria-live="off"></span>'
+
+      /* Theme toggle */
+      + '<button class="topbar-icon-btn" id="topbarThemeBtn"'
+      + ' aria-label="' + (currentTheme === 'light' ? 'تفعيل الوضع الداكن' : 'تفعيل الوضع الفاتح') + '"'
+      + ' title="' + (currentTheme === 'light' ? 'الوضع الداكن' : 'الوضع الفاتح') + '">'
+      + '<i class="fas ' + (currentTheme === 'light' ? 'fa-moon' : 'fa-sun') + '" aria-hidden="true"></i>'
+      + '</button>'
 
       /* Notification button + dropdown */
       + '<div style="position:relative;">'
@@ -219,11 +284,18 @@
   function init(options) {
     options = options || {};
     destroy();
+
+    /* Apply persisted theme BEFORE injecting the topbar so the button
+       icon reflects the correct state from the start. */
+    var savedTheme = _getTheme();
+    _applyTheme(savedTheme);
+
     _inject(options.title || '');
     _startClock();
     _updateBadge();
     /* Mobile menu binding removed — sidebar.js owns this exclusively */
     _bindNotifToggle();
+    _bindThemeToggle();
     _subscribeNotifications();
   }
 

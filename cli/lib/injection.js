@@ -48,6 +48,8 @@ const PLACEHOLDER_MAP = {
   SUPPORT_PHONE:         'SUPPORT_PHONE',
   CLIENT_ID:             'CLIENT_ID',
   CLIENT_DOMAIN:         'CLIENT_DOMAIN',
+  THEME_INIT_SCRIPT:     '__INJECTED__',  // replaced with inline FOUC-prevention script
+  LIGHT_THEME_CSS:       '__INJECTED__',  // replaced with <link> to light-theme.css
 };
 
 /**
@@ -148,7 +150,19 @@ function buildReplacementMap(envData) {
 
   for (const [placeholder, envKey] of Object.entries(PLACEHOLDER_MAP)) {
     const token = `{{${placeholder}}}`;
-    let value = envData[envKey];
+    let value;
+
+    /* Special injected placeholders — not from .env */
+    if (placeholder === 'THEME_INIT_SCRIPT') {
+      // Inline <script> injected at the very top of <head> for FOUC prevention.
+      // Reads localStorage synchronously before any CSS or render-blocking resources.
+      value = '<script>(function(){var t;try{t=localStorage.getItem("nazamly-theme")||"";}catch(_){t="";}if(t==="light"){document.documentElement.setAttribute("data-theme","light");}})();</script>';
+    } else if (placeholder === 'LIGHT_THEME_CSS') {
+      // CSS link for light theme additive overrides.
+      value = '<link rel="stylesheet" href="styles/light-theme.css" />';
+    } else {
+      value = envData[envKey];
+    }
 
     // Use default if value is empty/undefined
     if (value === undefined || value === null || String(value).trim() === '') {
