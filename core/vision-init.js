@@ -46,6 +46,59 @@
   // const analytics = getAnalytics(app);
   /* ══════════════════════════════════════════════ */
 
+  /* ══════════════════════════════════════════════
+   * LOCAL SINGLE-PROJECT MODE (no CLI injection)
+   * ══════════════════════════════════════════════
+   * When the source runs directly on a local server — without the CLI
+   * injection step — the placeholders above stay raw tokens. Fall back
+   * to LOCAL_DEV_CONFIG so the whole app works as one normal project.
+   *
+   * After a real CLI deploy the tokens are replaced with the client's
+   * real keys, the check below never passes, and deployments are
+   * completely unaffected.
+   */
+  var LOCAL_DEV_CONFIG = {
+    // Source: vault client "new-test" (nazamly-clients-vault\new-test\.env)
+    apiKey: "AIzaSyD26Dpe1nHuYiAGiRiGKFYa33EjjSQ2AhU",
+    authDomain: "erp-test-2dcf3.firebaseapp.com",
+    projectId: "erp-test-2dcf3",
+    storageBucket: "erp-test-2dcf3.appspot.com",
+    messagingSenderId: "346930771090",
+    appId: "1:346930771090:web:624fd8e573f7cc0627e24b",
+  };
+  var LOCAL_DEV_BRAND = "Nazamly";
+  var LOCAL_DEV_SUPPORT_PHONE = "01555686164";
+
+  if (
+    typeof FIREBASE_CONFIG.apiKey === "string" &&
+    FIREBASE_CONFIG.apiKey.indexOf("{{") !== -1
+  ) {
+    if (LOCAL_DEV_CONFIG && LOCAL_DEV_CONFIG.apiKey) {
+      FIREBASE_CONFIG = LOCAL_DEV_CONFIG;
+
+      // Expose local values for pages (e.g. suspended.html WhatsApp link)
+      window.VISION_LOCAL_DEV = {
+        brand: LOCAL_DEV_BRAND,
+        supportPhone: LOCAL_DEV_SUPPORT_PHONE,
+      };
+
+      // Fix the unreplaced brand token in the tab title (local only)
+      document.title = document.title.replace(
+        /\{\{CLIENT_BRAND\}\}/g,
+        LOCAL_DEV_BRAND
+      );
+
+      console.log(
+        "[VisionInit] LOCAL MODE — using LOCAL_DEV_CONFIG (core/vision-init.js)"
+      );
+    } else {
+      console.warn(
+        "[VisionInit] Placeholders unreplaced and LOCAL_DEV_CONFIG is empty —" +
+          " fill LOCAL_DEV_CONFIG in core/vision-init.js"
+      );
+    }
+  }
+
   /* ─────────────────────────────────────────────
    * SIMPLE LOGGER
    * ───────────────────────────────────────────── */

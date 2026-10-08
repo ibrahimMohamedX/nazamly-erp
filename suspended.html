@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-{{THEME_INIT_SCRIPT}}
+<script>(function(){var t;try{t=localStorage.getItem("nazamly-theme")||"";}catch(_){t="";}if(t==="light"){document.documentElement.setAttribute("data-theme","light");}})();</script>
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>النظام معلق — {{CLIENT_BRAND}}</title>
@@ -21,7 +21,7 @@
 
     <!-- Design System -->
     <link rel="stylesheet" href="styles/variables.css" />
-{{LIGHT_THEME_CSS}}
+<link rel="stylesheet" href="styles/light-theme.css" />
 
     <link rel="stylesheet" href="styles/base.css" />
     <link rel="stylesheet" href="styles/components.css" />
@@ -115,6 +115,17 @@
          */
         var WHATSAPP_NUMBER = '{{SUPPORT_PHONE}}';
         var WHATSAPP_MESSAGE = 'السلام عليكم، أرغب في استئناف اشتراك نظام {{CLIENT_BRAND}}.';
+
+        /*
+         * Local single-project mode: running without CLI injection keeps the
+         * tokens above raw — fall back to the local dev values exposed by
+         * core/vision-init.js. After a real deploy this branch never runs.
+         */
+        if (WHATSAPP_NUMBER.indexOf('{{') !== -1) {
+          var localDev = window.VISION_LOCAL_DEV || {};
+          WHATSAPP_NUMBER = localDev.supportPhone || '';
+          WHATSAPP_MESSAGE = WHATSAPP_MESSAGE.replace(/\{\{CLIENT_BRAND\}\}/g, localDev.brand || '');
+        }
 
         /*
          * On vision-ready, check if the current user is super_admin.

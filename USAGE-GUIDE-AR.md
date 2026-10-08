@@ -256,6 +256,18 @@ node cli/destroy.js --client elnour --confirm      # التنفيذ الفعلي
 
 ## 7. سيناريوهات شائعة
 
+### التشغيل المحلي كمشروع واحد (Local Mode)
+
+المشروع بيشتغل كمشروع عادي على جهازك من غير الـ CLI:
+
+- `core/vision-init.js` فيه `LOCAL_DEV_CONFIG` (مفاتيح عميل `new-test` من الـ vault) — لو الـ placeholders لسه raw (يعني مفيش injection) بيستخدمها تلقائيًا، وبيصلّح `{{CLIENT_BRAND}}` في عنوان التبويب، وبيعمل expose لـ `window.VISION_LOCAL_DEV`.
+- سكربت الثيم و `<link>` بتاع `light-theme.css` متخبزين مباشرة في الـ HTML (قيمتهم ثابتة لكل العملاء فمفيش أي تأثير على الرفع).
+- `suspended.html` بيرجع لقيم الـ local mode لو `{{SUPPORT_PHONE}}` اتلقاها raw.
+
+التشغيل: `npx serve .` (لازم http:// مش file://) وسجّل دخول بحساب أدمن `new-test` (الإيميل والباسورد في `nazamly-clients-vault\new-test\.env`).
+
+**لو عايز تجرب على عميل تاني محليًا:** غيّر قيم `LOCAL_DEV_CONFIG` و `LOCAL_DEV_BRAND` و `LOCAL_DEV_SUPPORT_PHONE` في `core/vision-init.js`. وأول ما ترفع بأي أمر deploy الشرط بيبقى false تلقائيًا والـ generator بيشتغل زي ما هو من غير أي تغيير.
+
 ### عملت تعديل في الكود وعايز كل العملاء ياخدوه
 
 ```bash
