@@ -28,12 +28,12 @@
 .suspended-glow--amber {
   top: -10%;
   right: -5%;
-  background: rgba(245, 158, 11, 0.10);
+  background: var(--color-warning-bg);
 }
 .suspended-glow--red {
   bottom: -10%;
   left: -5%;
-  background: rgba(239, 68, 68, 0.06);
+  background: color-mix(in srgb, var(--color-error) 6%, transparent);
 }
 
 /* ── Container ── */
@@ -73,7 +73,7 @@
   height: 72px;
   border-radius: var(--radius-xl);
   object-fit: contain;
-  filter: drop-shadow(0 0 18px rgba(239, 68, 68, 0.25));
+  filter: drop-shadow(0 0 18px color-mix(in srgb, var(--color-error) 25%, transparent));
   opacity: 0.85;
 }
 
@@ -82,8 +82,8 @@
   width: 88px;
   height: 88px;
   border-radius: 50%;
-  background: rgba(239, 68, 68, 0.10);
-  border: 2px solid rgba(239, 68, 68, 0.20);
+  background: var(--color-error-bg);
+  border: 2px solid color-mix(in srgb, var(--color-error) 20%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;

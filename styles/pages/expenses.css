@@ -130,10 +130,10 @@
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-base);
 }
-.insight-card--up    { background: var(--color-error-bg);   border-color: rgba(239,68,68,0.2);   color: var(--color-error); }
-.insight-card--down  { background: var(--color-success-bg); border-color: rgba(16,185,129,0.2);  color: var(--color-success); }
-.insight-card--info  { background: var(--color-primary-bg); border-color: rgba(59,130,246,0.2);  color: var(--color-primary); }
-.insight-card--warn  { background: var(--color-warning-bg); border-color: rgba(245,158,11,0.2);  color: var(--color-warning); }
+.insight-card--up    { background: var(--color-error-bg);   border-color: color-mix(in srgb, var(--color-error) 20%, transparent);   color: var(--color-error); }
+.insight-card--down  { background: var(--color-success-bg); border-color: color-mix(in srgb, var(--color-success) 20%, transparent);  color: var(--color-success); }
+.insight-card--info  { background: var(--color-primary-bg); border-color: color-mix(in srgb, var(--color-primary) 20%, transparent);  color: var(--color-primary); }
+.insight-card--warn  { background: var(--color-warning-bg); border-color: color-mix(in srgb, var(--color-warning) 20%, transparent);  color: var(--color-warning); }
 .insight-icon { font-size: 1rem; flex-shrink: 0; margin-top: 2px; }
 .insight-text { flex: 1; }
 .insight-text strong { display: block; font-size: var(--font-size-sm); margin-bottom: 2px; }
@@ -398,7 +398,7 @@
   height: 18px;
   border-radius: 50%;
   flex-shrink: 0;
-  border: 2px solid rgba(255,255,255,0.15);
+  border: 2px solid color-mix(in srgb, var(--color-text) 15%, transparent);
 }
 .cat-manager-name { flex: 1; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--color-text); }
 .cat-manager-actions { display: flex; gap: var(--space-2); }
@@ -412,7 +412,7 @@
   position: fixed;
   inset: 0;
   z-index: var(--z-modal);
-  background: rgba(5, 8, 18, 0.78);
+  background: var(--overlay-backdrop);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;

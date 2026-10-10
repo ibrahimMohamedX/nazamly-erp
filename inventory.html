@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>المخزون — {{CLIENT_BRAND}}</title>
     <link rel="icon" type="image/png" href="nazamly.png" />
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="stylesheet" href="styles/variables.css" />
 <link rel="stylesheet" href="styles/light-theme.css" />
@@ -56,6 +56,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <!-- XLSX for import/export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script defer src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script defer src="core/icon-system.js"></script>
     <script src="core/vision-init.js"></script>
   </head>
   <body>
@@ -249,7 +251,7 @@
 
           <!-- Profit preview -->
           <div id="profitPreview"
-            style="background:var(--color-success-bg);border:1px solid rgba(16,185,129,.25);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);display:flex;justify-content:space-between;align-items:center;font-size:var(--font-size-sm);">
+            style="background:var(--color-success-bg);border:1px solid color-mix(in srgb, var(--color-success) 25%, transparent);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);display:flex;justify-content:space-between;align-items:center;font-size:var(--font-size-sm);">
             <span class="text-muted">الربح لكل وحدة</span>
             <span id="profitPerUnit" class="font-bold text-success">0.00 ج.م</span>
           </div>

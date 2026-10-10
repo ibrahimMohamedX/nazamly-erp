@@ -44,7 +44,7 @@
 }
 .permission-toggle:hover { border-color: var(--color-border); background: var(--color-surface-raised); }
 .permission-toggle:has(input:checked) {
-  border-color: rgba(59,130,246,0.35);
+  border-color: color-mix(in srgb, var(--color-primary) 35%, transparent);
   background: var(--color-primary-bg);
 }
 .permission-toggle input { display: none; }
@@ -99,8 +99,8 @@
    ROLE BADGES
    ────────────────────────────────────── */
 
-.role-admin { background: var(--color-primary-bg); color: var(--color-primary);  border: 1px solid rgba(59,130,246,0.25); }
-.role-user  { background: var(--color-alert-bg);   color: var(--color-alert);    border: 1px solid rgba(139,92,246,0.25); }
+.role-admin { background: var(--color-primary-bg); color: var(--color-primary);  border: 1px solid color-mix(in srgb, var(--color-primary) 25%, transparent); }
+.role-user  { background: var(--color-alert-bg);   color: var(--color-alert);    border: 1px solid color-mix(in srgb, var(--color-alert) 25%, transparent); }
 
 
 /* ──────────────────────────────────────
@@ -204,7 +204,7 @@
   position: fixed;
   inset: 0;
   z-index: var(--z-modal);
-  background: rgba(5, 8, 18, 0.78);
+  background: var(--overlay-backdrop);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;

@@ -54,7 +54,7 @@
   justify-content: center;
   color: #fff;
   font-size: 1.25rem;
-  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35), 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--color-primary) 35%, transparent), 0 1px 3px rgba(0,0,0,0.1);
   flex-shrink: 0;
 }
 .awb-header__title {
@@ -94,7 +94,7 @@
   border-radius: var(--radius-lg, 0.75rem);
   padding: var(--space-3, 0.75rem) var(--space-5, 1.25rem);
   font-weight: 700;
-  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3), 0 1px 2px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--color-primary) 30%, transparent), 0 1px 2px rgba(0,0,0,0.05);
   transition: all 0.2s ease;
   position: relative;
   overflow: hidden;
@@ -108,7 +108,7 @@
 }
 .awb-btn-print:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4), 0 2px 4px rgba(0,0,0,0.08);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--color-primary) 40%, transparent), 0 2px 4px rgba(0,0,0,0.08);
 }
 .awb-btn-print:disabled {
   opacity: 0.5;
@@ -163,10 +163,10 @@
   flex-shrink: 0;
   box-shadow: inset 0 1px 2px rgba(255,255,255,0.3), 0 2px 6px rgba(0,0,0,0.08);
 }
-.awb-kpi-card__icon--warning { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #92400e; }
-.awb-kpi-card__icon--success { background: linear-gradient(135deg, #dcfce7, #bbf7d0); color: #166534; }
-.awb-kpi-card__icon--primary { background: linear-gradient(135deg, #dbeafe, #bfdbfe); color: #1e40af; }
-.awb-kpi-card__icon--info    { background: linear-gradient(135deg, #e0e7ff, #c7d2fe); color: #3730a3; }
+.awb-kpi-card__icon--warning { background: linear-gradient(135deg, color-mix(in srgb, var(--color-warning) 15%, #fff), color-mix(in srgb, var(--color-warning) 30%, #fff)); color: color-mix(in srgb, var(--color-warning) 80%, #000); }
+.awb-kpi-card__icon--success { background: linear-gradient(135deg, color-mix(in srgb, var(--color-success) 15%, #fff), color-mix(in srgb, var(--color-success) 30%, #fff)); color: color-mix(in srgb, var(--color-success) 80%, #000); }
+.awb-kpi-card__icon--primary { background: linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 15%, #fff), color-mix(in srgb, var(--color-primary) 30%, #fff)); color: color-mix(in srgb, var(--color-primary) 80%, #000); }
+.awb-kpi-card__icon--info    { background: linear-gradient(135deg, color-mix(in srgb, var(--color-alert) 15%, #fff), color-mix(in srgb, var(--color-alert) 30%, #fff)); color: color-mix(in srgb, var(--color-alert) 80%, #000); }
 .awb-kpi-card__body { flex: 1; min-width: 0; }
 .awb-kpi-card__value {
   font-size: 1.5rem;
@@ -226,7 +226,7 @@
 .awb-tab.active {
   background: var(--color-primary, #3b82f6);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-primary) 30%, transparent);
 }
 .awb-tab__badge {
   padding: 1px 8px;
@@ -280,7 +280,7 @@
   background: var(--color-primary, #3b82f6);
   border-color: var(--color-primary, #3b82f6);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-primary) 25%, transparent);
 }
 .awb-period__custom {
   display: flex;
@@ -396,7 +396,7 @@
 .awb-checkbox-all input:checked + .awb-checkbox-all__box {
   background: var(--color-primary, #3b82f6);
   border-color: var(--color-primary, #3b82f6);
-  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--color-primary) 30%, transparent);
 }
 .awb-checkbox-all input:checked + .awb-checkbox-all__box::after {
   opacity: 1;
@@ -552,13 +552,13 @@
   white-space: nowrap;
 }
 .printed-yes {
-  background: linear-gradient(135deg, #dcfce7, #bbf7d0);
-  color: #166534;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-success) 15%, #fff), color-mix(in srgb, var(--color-success) 30%, #fff));
+  color: color-mix(in srgb, var(--color-success) 80%, #000);
   box-shadow: inset 0 1px 1px rgba(255,255,255,0.4);
 }
 .printed-no {
-  background: linear-gradient(135deg, #fef3c7, #fde68a);
-  color: #92400e;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-warning) 15%, #fff), color-mix(in srgb, var(--color-warning) 30%, #fff));
+  color: color-mix(in srgb, var(--color-warning) 80%, #000);
   box-shadow: inset 0 1px 1px rgba(255,255,255,0.4);
 }
 
@@ -597,8 +597,8 @@
   color: var(--color-text-muted, #94a3b8);
 }
 .awb-error__icon {
-  background: linear-gradient(135deg, #fef2f2, #fecaca);
-  color: #dc2626;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-error) 15%, #fff), color-mix(in srgb, var(--color-error) 30%, #fff));
+  color: color-mix(in srgb, var(--color-error) 80%, #000);
 }
 .awb-empty__title, .awb-error__title {
   font-size: 1.125rem;
@@ -648,12 +648,12 @@
   color: var(--color-text-muted, #64748b);
 }
 .awb-warning {
-  background: linear-gradient(135deg, #fef3c7, #fde68a);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-warning) 15%, #fff), color-mix(in srgb, var(--color-warning) 30%, #fff));
+  border: 1px solid color-mix(in srgb, var(--color-warning) 30%, transparent);
   border-radius: var(--radius-lg, 0.75rem);
   padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
   font-size: 0.8rem;
-  color: #92400e;
+  color: color-mix(in srgb, var(--color-warning) 80%, #000);
   font-weight: 600;
   margin-bottom: var(--space-4, 1rem);
   display: flex;
@@ -695,12 +695,12 @@
 .awb-size-card:hover {
   border-color: var(--color-primary, #3b82f6);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.12);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-primary) 12%, transparent);
 }
 .awb-size-card.active {
   border-color: var(--color-primary, #3b82f6);
   background: var(--color-primary-bg, #eff6ff);
-  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.15), inset 0 0 0 1px rgba(59, 130, 246, 0.1);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--color-primary) 15%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 10%, transparent);
 }
 .awb-size-card__preview {
   width: 100%;

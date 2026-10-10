@@ -65,7 +65,7 @@
   font-size: 1.1rem;
   margin-left: var(--space-3);
   box-shadow:
-    0 2px 8px rgba(59, 130, 246, 0.3),
+    0 2px 8px color-mix(in srgb, var(--color-primary) 30%, transparent),
     inset 0 1px 0 rgba(255, 255, 255, 0.15);
   flex-shrink: 0;
 }
@@ -133,25 +133,25 @@
   pointer-events: none;
 }
 .settings-section-icon-wrap--primary {
-  background: linear-gradient(135deg, var(--color-primary), #6d9bf7);
+  background: linear-gradient(135deg, var(--color-primary), color-mix(in srgb, var(--color-primary) 50%, var(--color-alert)));
   color: #fff;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.2),
-    0 3px 10px rgba(59, 130, 246, 0.25);
+    0 3px 10px color-mix(in srgb, var(--color-primary) 25%, transparent);
 }
 .settings-section-icon-wrap--alert {
-  background: linear-gradient(135deg, var(--color-alert), #fbbf24);
+  background: linear-gradient(135deg, var(--color-warning), color-mix(in srgb, var(--color-warning) 55%, #fff));
   color: #fff;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.2),
-    0 3px 10px rgba(245, 158, 11, 0.25);
+    0 3px 10px color-mix(in srgb, var(--color-warning) 25%, transparent);
 }
 .settings-section-icon-wrap--update {
-  background: linear-gradient(135deg, var(--color-update, #3b82f6), #60a5fa);
+  background: linear-gradient(135deg, var(--color-update), color-mix(in srgb, var(--color-update) 55%, #fff));
   color: #fff;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.2),
-    0 3px 10px rgba(59, 130, 246, 0.25);
+    0 3px 10px color-mix(in srgb, var(--color-primary) 25%, transparent);
 }
 
 .settings-section-title {
@@ -246,11 +246,7 @@
   left: 0;
   right: 0;
   height: 50%;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.35) 0%,
-    transparent 100%
-  );
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-text) 4%, transparent) 0%, transparent 100%);
   pointer-events: none;
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
 }
@@ -268,10 +264,10 @@
   opacity: 0.75;
 }
 .company-card--default {
-  border-color: rgba(59, 130, 246, 0.35);
+  border-color: color-mix(in srgb, var(--color-primary) 35%, transparent);
   box-shadow:
-    0 1px 2px rgba(59, 130, 246, 0.06),
-    0 4px 12px rgba(59, 130, 246, 0.08);
+    0 1px 2px color-mix(in srgb, var(--color-primary) 6%, transparent),
+    0 4px 12px color-mix(in srgb, var(--color-primary) 8%, transparent);
 }
 
 /* Colored accent strip */
@@ -284,10 +280,10 @@
   background: linear-gradient(
     180deg,
     var(--color-primary),
-    rgba(59, 130, 246, 0.4)
+    color-mix(in srgb, var(--color-primary) 40%, transparent)
   );
   border-radius: 0 4px 4px 0;
-  box-shadow: 2px 0 8px rgba(59, 130, 246, 0.15);
+  box-shadow: 2px 0 8px color-mix(in srgb, var(--color-primary) 15%, transparent);
 }
 .company-card-header {
   display: flex;
@@ -305,7 +301,7 @@
   background: linear-gradient(
     135deg,
     var(--color-primary-bg),
-    rgba(59, 130, 246, 0.12)
+    color-mix(in srgb, var(--color-primary) 12%, transparent)
   );
   color: var(--color-primary);
   display: flex;
@@ -315,7 +311,7 @@
   flex-shrink: 0;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.5),
-    0 2px 6px rgba(59, 130, 246, 0.1);
+    0 2px 6px color-mix(in srgb, var(--color-primary) 10%, transparent);
   position: relative;
 }
 .company-card-icon::after {
@@ -382,13 +378,13 @@
   font-weight: var(--font-weight-black);
   background: linear-gradient(
     135deg,
-    rgba(59, 130, 246, 0.12),
-    rgba(59, 130, 246, 0.06)
+    color-mix(in srgb, var(--color-primary) 12%, transparent),
+    color-mix(in srgb, var(--color-primary) 6%, transparent)
   );
   color: var(--color-primary);
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 20%, transparent);
   backdrop-filter: blur(4px);
-  box-shadow: 0 1px 3px rgba(59, 130, 246, 0.08);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--color-primary) 8%, transparent);
 }
 
 /* ──────────────────────────────────────
@@ -427,7 +423,7 @@
   text-align: center;
   padding: var(--space-8) var(--space-6);
   background: var(--color-error-bg, rgba(239, 68, 68, 0.05));
-  border: 1px solid rgba(239, 68, 68, 0.15);
+  border: 1px solid color-mix(in srgb, var(--color-error) 15%, transparent);
   border-radius: var(--radius-lg);
 }
 .shipping-error-state__icon {
@@ -519,22 +515,22 @@
   backdrop-filter: blur(4px);
 }
 .type-delivered {
-  background: rgba(16, 185, 129, 0.12);
+  background: color-mix(in srgb, var(--color-success) 12%, transparent);
   color: var(--color-success);
-  border: 1px solid rgba(16, 185, 129, 0.2);
-  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.08);
+  border: 1px solid color-mix(in srgb, var(--color-success) 20%, transparent);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--color-success) 8%, transparent);
 }
 .type-cancelled {
-  background: rgba(239, 68, 68, 0.1);
+  background: color-mix(in srgb, var(--color-error) 10%, transparent);
   color: var(--color-error);
-  border: 1px solid rgba(239, 68, 68, 0.18);
-  box-shadow: 0 1px 3px rgba(239, 68, 68, 0.06);
+  border: 1px solid color-mix(in srgb, var(--color-error) 18%, transparent);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--color-error) 6%, transparent);
 }
 .type-active {
-  background: rgba(245, 158, 11, 0.12);
+  background: color-mix(in srgb, var(--color-warning) 12%, transparent);
   color: var(--color-warning);
-  border: 1px solid rgba(245, 158, 11, 0.2);
-  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.08);
+  border: 1px solid color-mix(in srgb, var(--color-warning) 20%, transparent);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--color-warning) 8%, transparent);
 }
 .status-actions {
   display: flex;
@@ -677,7 +673,7 @@
   position: fixed;
   inset: 0;
   z-index: 9000;
-  background: rgba(15, 23, 42, 0.45);
+  background: var(--color-scrim);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   display: flex;
@@ -695,7 +691,7 @@
 
 .shipping-modal {
   padding: 20px;
-  background-color: #111c2b;
+  background-color: var(--color-surface);
   max-width: 700px;
   width: 100%;
   max-height: 90vh;
@@ -733,12 +729,12 @@
   width: 36px;
   height: 36px;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--color-primary), #6d9bf7);
+  background: linear-gradient(135deg, var(--color-primary), color-mix(in srgb, var(--color-primary) 50%, var(--color-alert)));
   color: #fff;
   font-size: 0.95rem;
   margin-left: var(--space-2);
   box-shadow:
-    0 2px 6px rgba(59, 130, 246, 0.25),
+    0 2px 6px color-mix(in srgb, var(--color-primary) 25%, transparent),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
   flex-shrink: 0;
 }
@@ -784,10 +780,10 @@
 }
 .company-modal-tab.active {
   color: #fff;
-  background: linear-gradient(135deg, var(--color-primary), #6d9bf7);
+  background: linear-gradient(135deg, var(--color-primary), color-mix(in srgb, var(--color-primary) 50%, var(--color-alert)));
   border-color: transparent;
   box-shadow:
-    0 2px 8px rgba(59, 130, 246, 0.25),
+    0 2px 8px color-mix(in srgb, var(--color-primary) 25%, transparent),
     inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 .company-tab-panel {
@@ -852,7 +848,7 @@
 .pricing-input:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 10%, transparent);
 }
 .pricing-input::placeholder {
   color: var(--color-text-muted);
@@ -866,16 +862,16 @@
 .cod-preview-box {
   background: linear-gradient(
     135deg,
-    rgba(16, 185, 129, 0.04) 0%,
-    rgba(16, 185, 129, 0.08) 100%
+    color-mix(in srgb, var(--color-success) 4%, transparent) 0%,
+    color-mix(in srgb, var(--color-success) 8%, transparent) 100%
   );
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  border: 1px solid color-mix(in srgb, var(--color-success) 20%, transparent);
   border-radius: var(--radius-lg);
   padding: 0;
   margin-top: var(--space-5);
   font-variant-numeric: tabular-nums;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.06);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-success) 6%, transparent);
 }
 .cod-preview-box__header {
   display: flex;
@@ -884,10 +880,10 @@
   padding: var(--space-3) var(--space-4);
   background: linear-gradient(
     135deg,
-    rgba(16, 185, 129, 0.12),
-    rgba(16, 185, 129, 0.06)
+    color-mix(in srgb, var(--color-success) 12%, transparent),
+    color-mix(in srgb, var(--color-success) 6%, transparent)
   );
-  border-bottom: 1px solid rgba(16, 185, 129, 0.15);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-success) 15%, transparent);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
   color: var(--color-success);
@@ -896,7 +892,7 @@
   margin-right: auto;
   padding: 1px var(--space-2);
   border-radius: var(--radius-full);
-  background: rgba(16, 185, 129, 0.15);
+  background: color-mix(in srgb, var(--color-success) 15%, transparent);
   font-size: 0.55rem;
   font-weight: var(--font-weight-bold);
 }
@@ -937,11 +933,11 @@
   margin: 0 var(--space-3) var(--space-3);
   background: linear-gradient(
     135deg,
-    rgba(16, 185, 129, 0.15),
-    rgba(16, 185, 129, 0.08)
+    color-mix(in srgb, var(--color-success) 15%, transparent),
+    color-mix(in srgb, var(--color-success) 8%, transparent)
   );
   border-radius: var(--radius-md);
-  border: 1px solid rgba(16, 185, 129, 0.12);
+  border: 1px solid color-mix(in srgb, var(--color-success) 12%, transparent);
 }
 .cod-preview-total__label {
   font-size: var(--font-size-sm);
@@ -952,7 +948,7 @@
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-black);
   color: var(--color-success);
-  text-shadow: 0 1px 2px rgba(16, 185, 129, 0.1);
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--color-success) 10%, transparent);
 }
 
 /* ──────────────────────────────────────
@@ -1049,7 +1045,7 @@
   border-color: var(--color-primary);
   box-shadow:
     inset 0 1px 2px rgba(0, 0, 0, 0.1),
-    0 0 8px rgba(59, 130, 246, 0.2);
+    0 0 8px color-mix(in srgb, var(--color-primary) 20%, transparent);
 }
 .toggle-row:has(input:checked) .toggle-pill-thumb {
   background: #fff;

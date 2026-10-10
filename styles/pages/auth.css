@@ -27,12 +27,12 @@
 .auth-glow--primary {
   top: -10%;
   right: -5%;
-  background: rgba(59, 130, 246, 0.12);
+  background: var(--color-primary-bg);
 }
 .auth-glow--secondary {
   bottom: -10%;
   left: -5%;
-  background: rgba(139, 92, 246, 0.08);
+  background: color-mix(in srgb, var(--color-alert) 8%, transparent);
 }
 
 /* ── Container ── */
@@ -73,7 +73,7 @@
   border-radius: var(--radius-xl);
   object-fit: contain;
   /* Subtle glow on the logo */
-  filter: drop-shadow(0 0 18px rgba(59, 130, 246, 0.30));
+  filter: drop-shadow(0 0 18px color-mix(in srgb, var(--color-primary) 30%, transparent));
 }
 .auth-brand {
   font-size: var(--font-size-2xl);
@@ -94,14 +94,14 @@
 .auth-form .form-input {
   padding: var(--space-4) var(--space-4);
   font-size: var(--font-size-base);
-  background: rgba(15, 23, 42, 0.8);
+  background: var(--color-surface-glass);
   border-color: var(--color-border);
 }
 .auth-form .form-input-wrapper .form-input {
   padding-right: calc(var(--space-4) + 20px + var(--space-4));
 }
 .auth-form .form-input:focus {
-  background: rgba(15, 23, 42, 1);
+  background: var(--color-surface);
 }
 
 /* Auth submit button — extra height */
@@ -120,7 +120,7 @@
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
   background: var(--color-error-bg);
-  border: 1px solid rgba(239, 68, 68, 0.25);
+  border: 1px solid color-mix(in srgb, var(--color-error) 25%, transparent);
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
   color: var(--color-error);

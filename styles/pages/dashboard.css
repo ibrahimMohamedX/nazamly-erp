@@ -324,9 +324,9 @@
   font-weight: var(--font-weight-black);
   flex-shrink: 0;
 }
-.lb-rank--1 { background: rgba(245, 158, 11, 0.20); color: var(--color-warning); }
-.lb-rank--2 { background: rgba(148, 163, 184, 0.20); color: var(--color-text-secondary); }
-.lb-rank--3 { background: rgba(249, 115, 22, 0.20); color: rgb(249, 115, 22); }
+.lb-rank--1 { background: color-mix(in srgb, var(--color-warning) 20%, transparent); color: var(--color-warning); }
+.lb-rank--2 { background: color-mix(in srgb, var(--color-text-secondary) 20%, transparent); color: var(--color-text-secondary); }
+.lb-rank--3 { background: color-mix(in srgb, color-mix(in srgb, var(--color-error) 45%, var(--color-warning) 55%) 20%, transparent); color: color-mix(in srgb, var(--color-error) 45%, var(--color-warning) 55%); }
 .lb-rank--n { background: var(--color-surface-high); color: var(--color-text-muted); }
 
 .lb-avatar {
@@ -398,8 +398,8 @@
 
 /* Hero welcome card */
 .hero-card {
-  background: linear-gradient(130deg, #1a3a6b 0%, #0f2444 50%, #0b1a35 100%);
-  border: 1px solid rgba(59, 130, 246, 0.25);
+  background: var(--gradient-primary);
+  border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: var(--radius-2xl);
   padding: var(--space-6) var(--space-8);
   color: #fff;
@@ -415,7 +415,7 @@
   left: -40px;
   width: 200px;
   height: 200px;
-  background: radial-gradient(circle, rgba(59,130,246,0.2) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.16) 0%, transparent 70%);
   pointer-events: none;
 }
 .hero-card-inner {
@@ -467,9 +467,9 @@
 }
 .hero-btn--white {
   background: #fff;
-  color: #1a3a6b;
+  color: var(--color-primary-dark);
 }
-.hero-btn--white:hover { background: #f0f7ff; }
+.hero-btn--white:hover { background: rgba(255, 255, 255, 0.88); }
 .hero-btn--ghost {
   background: rgba(255,255,255,0.15);
   color: #fff;
@@ -561,15 +561,15 @@
 }
 .sub-status-days--active {
   background: var(--color-success-bg);
-  border-color: rgba(16, 185, 129, 0.20);
+  border-color: color-mix(in srgb, var(--color-success) 20%, transparent);
 }
 .sub-status-days--expiring {
   background: var(--color-warning-bg);
-  border-color: rgba(245, 158, 11, 0.25);
+  border-color: color-mix(in srgb, var(--color-warning) 25%, transparent);
 }
 .sub-status-days--expired {
   background: var(--color-error-bg);
-  border-color: rgba(239, 68, 68, 0.25);
+  border-color: color-mix(in srgb, var(--color-error) 25%, transparent);
 }
 .sub-status-days-num {
   font-size: var(--font-size-2xl);
@@ -600,10 +600,10 @@
   transition: width 0.6s ease;
 }
 .sub-status-bar-fill--active {
-  background: linear-gradient(90deg, var(--color-success), #34d399);
+  background: linear-gradient(90deg, var(--color-success), color-mix(in srgb, var(--color-success) 55%, #fff));
 }
 .sub-status-bar-fill--expiring {
-  background: linear-gradient(90deg, var(--color-warning), #fbbf24);
+  background: linear-gradient(90deg, var(--color-warning), color-mix(in srgb, var(--color-warning) 55%, #fff));
 }
 .sub-status-bar-fill--expired {
   background: var(--color-error);
@@ -785,13 +785,13 @@
   height: 8px;
   border-radius: 50%;
   background: var(--color-success);
-  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-success) 60%, transparent);
   animation: live-pulse 2s infinite;
 }
 @keyframes live-pulse {
-  0%   { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
-  70%  { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-success) 60%, transparent); }
+  70%  { box-shadow: 0 0 0 8px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
 }
 
 /* ──────────────────────────────────────
@@ -816,8 +816,8 @@
   box-shadow: var(--shadow-md);
 }
 .admin-panel-card--gold {
-  border-color: rgba(245, 158, 11, 0.30);
-  box-shadow: 0 4px 24px rgba(245, 158, 11, 0.08);
+  border-color: color-mix(in srgb, var(--color-warning) 30%, transparent);
+  box-shadow: 0 4px 24px color-mix(in srgb, var(--color-warning) 8%, transparent);
 }
 
 /* Header */
@@ -845,7 +845,7 @@
   font-size: 1.1rem;
 }
 .admin-panel-card--gold .admin-panel-title i {
-  color: rgba(245, 158, 11, 0.85);
+  color: var(--color-warning);
 }
 .admin-panel-subtitle {
   font-size: var(--font-size-xs);
@@ -894,19 +894,19 @@
   width: fit-content;
 }
 .sub-status-badge--active {
-  background: rgba(16, 185, 129, 0.12);
+  background: var(--color-success-bg);
   color: var(--color-success);
-  border: 1px solid rgba(16, 185, 129, 0.25);
+  border: 1px solid color-mix(in srgb, var(--color-success) 25%, transparent);
 }
 .sub-status-badge--paused {
-  background: rgba(245, 158, 11, 0.12);
+  background: var(--color-warning-bg);
   color: var(--color-warning);
-  border: 1px solid rgba(245, 158, 11, 0.25);
+  border: 1px solid color-mix(in srgb, var(--color-warning) 25%, transparent);
 }
 .sub-status-badge--expired {
-  background: rgba(239, 68, 68, 0.12);
+  background: var(--color-error-bg);
   color: var(--color-error);
-  border: 1px solid rgba(239, 68, 68, 0.25);
+  border: 1px solid color-mix(in srgb, var(--color-error) 25%, transparent);
 }
 
 /* Countdown */
@@ -928,7 +928,7 @@
   font-family: var(--font-family);
 }
 .sub-countdown--warning .sub-countdown-value { color: var(--color-warning); }
-.sub-countdown--critical .sub-countdown-value { color: #F97316; }
+.sub-countdown--critical .sub-countdown-value { color: color-mix(in srgb, var(--color-error) 45%, var(--color-warning) 55%); }
 .sub-countdown--expired .sub-countdown-value { color: var(--color-error); }
 
 /* Date display */
@@ -1015,19 +1015,19 @@
   font-size: var(--font-size-3xs);
   font-weight: var(--font-weight-bold);
   white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35);
+  box-shadow: 0 2px 8px var(--color-primary-glow);
 }
 
 /* Recommended renewal button */
 .renewal-btn--recommended {
   border-color: var(--color-primary);
-  background: rgba(59, 130, 246, 0.06);
+  background: color-mix(in srgb, var(--color-primary) 6%, transparent);
   order: -1;  /* Show first in grid */
 }
 .renewal-btn--recommended:hover {
   border-color: var(--color-primary);
-  background: rgba(59, 130, 246, 0.12);
-  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.20);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--color-primary) 20%, transparent);
 }
 
 /* ── Custom date renewal ── */
@@ -1143,19 +1143,19 @@
 
 .danger-zone-card {
   background: var(--color-surface);
-  border: 1px solid rgba(239, 68, 68, 0.30);
+  border: 1px solid color-mix(in srgb, var(--color-error) 30%, transparent);
   border-radius: var(--radius-xl);
   overflow: hidden;
   transition: var(--transition-base);
 }
 .danger-zone-card:hover {
-  border-color: rgba(239, 68, 68, 0.50);
+  border-color: color-mix(in srgb, var(--color-error) 50%, transparent);
 }
 
 .danger-zone-header {
   padding: var(--space-5) var(--space-6);
-  border-bottom: 1px solid rgba(239, 68, 68, 0.15);
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.06), rgba(239, 68, 68, 0.02));
+  border-bottom: 1px solid color-mix(in srgb, var(--color-error) 15%, transparent);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-error) 6%, transparent), color-mix(in srgb, var(--color-error) 2%, transparent));
 }
 
 .danger-zone-title {
@@ -1203,9 +1203,9 @@
 
 /* Special danger button with extra visual weight for critical actions */
 .btn-danger-dangerzone {
-  background: rgba(239, 68, 68, 0.12);
+  background: var(--color-error-bg);
   color: var(--color-error);
-  border: 1px solid rgba(239, 68, 68, 0.30);
+  border: 1px solid color-mix(in srgb, var(--color-error) 30%, transparent);
   padding: var(--space-3) var(--space-6);
   font-weight: var(--font-weight-bold);
 }
@@ -1213,7 +1213,7 @@
   background: var(--color-error);
   color: #fff;
   border-color: var(--color-error);
-  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.18);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-error) 18%, transparent);
   transform: translateY(-1px);
 }
 

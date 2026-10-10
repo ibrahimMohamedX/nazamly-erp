@@ -8,10 +8,10 @@
    PURCHASE STATUS BADGES
    ────────────────────────────────────── */
 
-.status-pending  { background: rgba(245,158,11,0.12); color: var(--color-warning); border: 1px solid rgba(245,158,11,0.3); }
-.status-sent     { background: rgba(59,130,246,0.12);  color: var(--color-primary); border: 1px solid rgba(59,130,246,0.3); }
-.status-received { background: rgba(16,185,129,0.12);  color: var(--color-success); border: 1px solid rgba(16,185,129,0.3); }
-.status-cancelled{ background: rgba(100,116,139,0.12); color: var(--color-text-muted); border: 1px solid rgba(100,116,139,0.3); }
+.status-pending  { background: var(--color-warning-bg); color: var(--color-warning); border: 1px solid color-mix(in srgb, var(--color-warning) 30%, transparent); }
+.status-sent     { background: var(--color-primary-bg); color: var(--color-primary); border: 1px solid color-mix(in srgb, var(--color-primary) 30%, transparent); }
+.status-received { background: var(--color-success-bg); color: var(--color-success); border: 1px solid color-mix(in srgb, var(--color-success) 30%, transparent); }
+.status-cancelled{ background: color-mix(in srgb, var(--color-text-muted) 12%, transparent); color: var(--color-text-muted); border: 1px solid color-mix(in srgb, var(--color-text-muted) 30%, transparent); }
 
 
 /* ──────────────────────────────────────
@@ -82,7 +82,7 @@
   position: fixed;
   inset: 0;
   z-index: var(--z-modal);
-  background: rgba(5, 8, 18, 0.78);
+  background: var(--overlay-backdrop);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: flex-start;
@@ -130,8 +130,8 @@
 
 /* Purchase total display */
 .pur-total-display {
-  background: linear-gradient(135deg, rgba(245,158,11,0.10), rgba(245,158,11,0.04));
-  border: 1px solid rgba(245,158,11,0.25);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-warning) 10%, transparent), color-mix(in srgb, var(--color-warning) 4%, transparent));
+  border: 1px solid color-mix(in srgb, var(--color-warning) 25%, transparent);
   border-radius: var(--radius-lg);
   padding: var(--space-4) var(--space-5);
   display: flex;

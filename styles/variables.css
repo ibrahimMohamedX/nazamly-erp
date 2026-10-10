@@ -1,51 +1,84 @@
 /* ============================================================
-   VARIABLES.CSS — Nazamly ERP Design Tokens
+   VARIABLES.CSS — Nazamly ERP Design Tokens v2 ("Aurora")
    Single source of truth. All values derive from here.
+
+   v2 changes:
+   - Deeper, richer dark palette with blue undertones
+   - Electric blue→violet brand gradient system
+   - Refined radii (softer, more premium)
+   - Ambient-tinted elevation layers
+   - Full motion system (easing curves + durations)
+   - Fixes previously-undefined tokens:
+     --space-7, --font-mono, --font-size-2xs, --font-size-3xs,
+     --color-border-dark, --color-primary-light
    ============================================================ */
 
 :root {
   /* ── Background Scale ── */
-  --color-bg:              #0B1120;
-  --color-surface:         #111827;
-  --color-surface-raised:  #1E293B;
-  --color-surface-high:    #253347;
-  --color-surface-glass:   rgba(17, 24, 39, 0.80);
+  --color-bg:              #05080F;
+  --color-surface:         #0B1220;
+  --color-surface-raised:  #101A2E;
+  --color-surface-high:    #16233C;
+  --color-surface-glass:   rgba(11, 18, 32, 0.78);
 
   /* ── Border ── */
-  --color-border:          #334155;
-  --color-border-light:    #1E293B;
-  --color-border-focus:    rgba(59, 130, 246, 0.45);
+  --color-border:          rgba(148, 163, 184, 0.14);
+  --color-border-light:    rgba(148, 163, 184, 0.09);
+  --color-border-dark:     rgba(2, 6, 12, 0.35);
+  --color-border-focus:    rgba(88, 124, 255, 0.50);
 
   /* ── Brand / Primary ── */
-  --color-primary:         #3B82F6;
-  --color-primary-hover:   #2563EB;
-  --color-primary-active:  #1D4ED8;
-  --color-primary-dark:    #1E40AF;
-  --color-primary-bg:      rgba(59, 130, 246, 0.10);
-  --color-primary-glow:    rgba(59, 130, 246, 0.28);
+  --color-primary:         #4F80FF;
+  --color-primary-hover:   #6A98FF;
+  --color-primary-active:  #3B6BF2;
+  --color-primary-dark:    #2C4FBB;
+  --color-primary-light:   #A7C4FF;
+  --color-primary-bg:      rgba(79, 128, 255, 0.13);
+  --color-primary-glow:    rgba(79, 128, 255, 0.30);
+
+  /* ── Brand Gradients ── */
+  --gradient-primary:      linear-gradient(135deg, #4F80FF 0%, #7C6CFF 100%);
+  --gradient-primary-hover: linear-gradient(135deg, #6A98FF 0%, #8D7DFF 100%);
+  --gradient-surface:      linear-gradient(180deg, rgba(148, 163, 184, 0.04), rgba(148, 163, 184, 0));
+  --gradient-sheen:        linear-gradient(120deg, rgba(255,255,255,0.09), rgba(255,255,255,0) 38%);
 
   /* ── Semantic Colors ── */
-  --color-success:         #10B981;
-  --color-success-bg:      rgba(16, 185, 129, 0.10);
-  --color-warning:         #F59E0B;
-  --color-warning-bg:      rgba(245, 158, 11, 0.10);
-  --color-error:           #EF4444;
-  --color-error-bg:        rgba(239, 68, 68, 0.10);
-  --color-alert:           #8B5CF6;
-  --color-alert-bg:        rgba(139, 92, 246, 0.10);
-  --color-update:          #06B6D4;
-  --color-update-bg:       rgba(6, 182, 212, 0.10);
+  --color-success:         #2BD99F;
+  --color-success-bg:      rgba(43, 217, 159, 0.12);
+  --color-success-hover:   #43E7B0;
+  --color-warning:         #FFB224;
+  --color-warning-bg:      rgba(255, 178, 36, 0.12);
+  --color-warning-hover:   #FFC24D;
+  --color-error:           #FF5C6C;
+  --color-error-bg:        rgba(255, 92, 108, 0.12);
+  --color-error-hover:     #FF7785;
+  --color-alert:           #A78BFA;
+  --color-alert-bg:        rgba(167, 139, 250, 0.12);
+  --color-update:          #22CDEA;
+  --color-update-bg:       rgba(34, 205, 234, 0.12);
 
   /* ── Text ── */
-  --color-text:            #F8FAFC;
-  --color-text-secondary:  #94A3B8;
-  --color-text-muted:      #64748B;
-  --color-text-placeholder:#475569;
-  --color-selection-bg:    rgba(59, 130, 246, 0.28);
-  --color-selection-text:  #F8FAFC;
+  --color-text:            #F4F7FF;
+  --color-text-secondary:  #9AA7BD;
+  --color-text-muted:      #5D6B84;
+  --color-text-placeholder:#47536B;
+  --color-selection-bg:    rgba(79, 128, 255, 0.30);
+  --color-selection-text:  #F4F7FF;
+
+  /* ── Scrim (modal/mobile overlays) ── */
+  --color-scrim:           rgba(2, 6, 12, 0.60);
+
+  /* ── Overlay backdrops (modals, toasts, spinners) ── */
+  --overlay-backdrop:         rgba(5, 8, 18, 0.78);
+  --overlay-backdrop-solid:   rgba(5, 8, 18, 0.97);
+  --overlay-backdrop-spinner: rgba(11, 17, 32, 0.88);
+  --toast-bg:                 rgba(13, 20, 35, 0.97);
 
   /* ── Typography ── */
-  --font-family:           'Cairo', 'Segoe UI', sans-serif;
+  --font-family:           'Alexandria', 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+  --font-mono:             ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, monospace;
+  --font-size-3xs:         0.5625rem;
+  --font-size-2xs:         0.625rem;
   --font-size-xs:          0.6875rem;
   --font-size-sm:          0.8125rem;
   --font-size-base:        0.9375rem;
@@ -63,9 +96,9 @@
   --font-weight-extrabold: 800;
   --font-weight-black:     900;
 
-  --line-height-tight:     1.3;
-  --line-height-base:      1.6;
-  --line-height-relaxed:   1.8;
+  --line-height-tight:     1.35;
+  --line-height-base:      1.65;
+  --line-height-relaxed:   1.85;
 
   /* ── Spacing (8-point grid) ── */
   --space-1:  0.25rem;
@@ -74,56 +107,76 @@
   --space-4:  1rem;
   --space-5:  1.25rem;
   --space-6:  1.5rem;
+  --space-7:  1.75rem;
   --space-8:  2rem;
   --space-10: 2.5rem;
   --space-12: 3rem;
   --space-16: 4rem;
 
   /* ── Border Radius ── */
-  --radius-xs:   0.25rem;
-  --radius-sm:   0.375rem;
-  --radius-md:   0.625rem;
-  --radius-lg:   0.875rem;
+  --radius-xs:   0.375rem;
+  --radius-sm:   0.5rem;
+  --radius-md:   0.75rem;
+  --radius-lg:   1rem;
   --radius-xl:   1.25rem;
   --radius-2xl:  1.5rem;
   --radius-3xl:  1.75rem;
   --radius-full: 9999px;
 
-  /* ── Shadows (flat) ── */
-  --shadow-xs:      0 1px 2px rgba(0, 0, 0, 0.30);
-  --shadow-sm:      0 2px 6px rgba(0, 0, 0, 0.35);
-  --shadow-md:      0 4px 16px rgba(0, 0, 0, 0.40);
-  --shadow-lg:      0 10px 32px rgba(0, 0, 0, 0.50);
-  --shadow-primary: 0 4px 16px var(--color-primary-glow);
-  --shadow-inset:   inset 0 1px 3px rgba(0, 0, 0, 0.25);
+  /* ── Motion: Easing Curves ── */
+  --ease-out:    cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in:     cubic-bezier(0.64, 0, 0.78, 0);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* ── Shadows (3D depth layers) ── */
+  /* ── Motion: Durations ── */
+  --duration-fast:  0.15s;
+  --duration-base:  0.24s;
+  --duration-slow:  0.4s;
+
+  /* ── Shadows (flat) ── */
+  --shadow-xs:      0 1px 2px rgba(3, 7, 18, 0.45);
+  --shadow-sm:      0 2px 8px rgba(3, 7, 18, 0.45);
+  --shadow-md:      0 4px 18px rgba(3, 7, 18, 0.50);
+  --shadow-lg:      0 12px 36px rgba(3, 7, 18, 0.55);
+  --shadow-primary: 0 4px 20px var(--color-primary-glow);
+  --shadow-inset:   inset 0 1px 3px rgba(3, 7, 18, 0.30);
+
+  /* ── Shadows (3D depth layers, ambient blue tint) ── */
   --shadow-3d-xs:
-    0 1px 2px rgba(0, 0, 0, 0.15),
-    0 2px 6px rgba(0, 0, 0, 0.10);
+    0 1px 2px rgba(3, 7, 18, 0.20),
+    0 2px 6px rgba(3, 7, 18, 0.14);
   --shadow-3d-sm:
-    0 1px 2px rgba(0, 0, 0, 0.12),
-    0 4px 12px rgba(0, 0, 0, 0.14);
+    0 1px 2px rgba(3, 7, 18, 0.16),
+    0 4px 12px rgba(3, 7, 18, 0.16),
+    0 1px 1px rgba(79, 128, 255, 0.04);
   --shadow-3d-md:
-    0 1px 3px rgba(0, 0, 0, 0.10),
-    0 4px 16px rgba(0, 0, 0, 0.15),
-    0 8px 28px rgba(0, 0, 0, 0.08);
+    0 1px 3px rgba(3, 7, 18, 0.14),
+    0 4px 16px rgba(3, 7, 18, 0.18),
+    0 12px 32px rgba(3, 7, 18, 0.12),
+    0 1px 1px rgba(79, 128, 255, 0.05);
   --shadow-3d-lg:
-    0 2px 4px rgba(0, 0, 0, 0.08),
-    0 8px 24px rgba(0, 0, 0, 0.16),
-    0 16px 48px rgba(0, 0, 0, 0.10);
+    0 2px 4px rgba(3, 7, 18, 0.12),
+    0 8px 24px rgba(3, 7, 18, 0.20),
+    0 20px 52px rgba(3, 7, 18, 0.14),
+    0 1px 1px rgba(79, 128, 255, 0.06);
   --shadow-3d-modal:
-    0 4px 6px rgba(0, 0, 0, 0.06),
-    0 12px 40px rgba(0, 0, 0, 0.22),
-    0 24px 64px rgba(0, 0, 0, 0.10);
+    0 4px 8px rgba(3, 7, 18, 0.10),
+    0 16px 48px rgba(3, 7, 18, 0.30),
+    0 32px 72px rgba(3, 7, 18, 0.16),
+    0 1px 1px rgba(79, 128, 255, 0.06);
   --shadow-inset-top: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  --shadow-inset-sm:  inset 0 1px 3px rgba(0, 0, 0, 0.18);
+  --shadow-inset-sm:  inset 0 1px 3px rgba(3, 7, 18, 0.22);
   --shadow-button-up:
-    0 1px 2px rgba(0, 0, 0, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    0 1px 2px rgba(3, 7, 18, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10);
   --shadow-button-down:
-    inset 0 2px 4px rgba(0, 0, 0, 0.20),
+    inset 0 2px 4px rgba(3, 7, 18, 0.24),
     inset 0 1px 0 rgba(255, 255, 255, 0.02);
+
+  /* ── Focus Ring ── */
+  --focus-ring:      0 0 0 3px var(--color-primary-bg);
+  --focus-ring-error: 0 0 0 3px var(--color-error-bg);
 
   /* ── Layout ── */
   --sidebar-width:           16rem;
@@ -132,17 +185,17 @@
   --content-padding:         var(--space-6);
 
   /* ── Transitions (specific-property) ── */
-  --transition-fast:        all 0.15s ease;
-  --transition-base:        all 0.25s ease;
-  --transition-slow:        all 0.4s ease;
-  --transition-spring:      all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  --transition-colors:      color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, fill 0.15s ease, stroke 0.15s ease;
-  --transition-shadow:      box-shadow 0.22s ease;
-  --transition-transform:   transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
-  --transition-opacity:     opacity 0.25s ease;
+  --transition-fast:        all var(--duration-fast) var(--ease-out);
+  --transition-base:        all var(--duration-base) var(--ease-out);
+  --transition-slow:        all var(--duration-slow) var(--ease-smooth);
+  --transition-spring:      all 0.35s var(--ease-spring);
+  --transition-colors:      color var(--duration-fast) var(--ease-smooth), background-color var(--duration-fast) var(--ease-smooth), border-color var(--duration-fast) var(--ease-smooth), fill var(--duration-fast) var(--ease-smooth), stroke var(--duration-fast) var(--ease-smooth);
+  --transition-shadow:      box-shadow 0.22s var(--ease-out);
+  --transition-transform:   transform 0.24s var(--ease-out);
+  --transition-opacity:     opacity 0.25s var(--ease-smooth);
   --sidebar-transition:
-    width 0.3s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    width 0.3s var(--ease-out),
+    transform 0.3s var(--ease-out);
 
   /* ── Z-Index Scale ── */
   --z-base:        0;
@@ -156,6 +209,9 @@
   --z-modal:       1000;
   --z-spinner:     1100;
   --z-maintenance: 1000000;
+
+  /* ── Native UI color scheme ── */
+  color-scheme: dark;
 }
 
 /* ============================================================
@@ -165,73 +221,103 @@
    The :root block above is the dark default and remains untouched.
    ============================================================ */
 
-/* :root[data-theme="light"] = specificity 0,2,0 vs :root 0,1,0
-   This guarantees light tokens ALWAYS override dark defaults
-   regardless of source order or any edge-case cascade behavior. */
 :root[data-theme="light"] {
   /* ── Background Scale ── */
-  --color-bg:              #F8FAFC;
+  --color-bg:              #F6F8FC;
   --color-surface:         #FFFFFF;
-  --color-surface-raised:  #F1F5F9;
-  --color-surface-high:    #E2E8F0;
+  --color-surface-raised:  #F1F5FB;
+  --color-surface-high:    #E6ECF6;
   --color-surface-glass:   rgba(255, 255, 255, 0.85);
 
   /* ── Border ── */
-  --color-border:          #CBD5E1;
-  --color-border-light:    #E2E8F0;
-  --color-border-focus:    rgba(59, 130, 246, 0.35);
+  --color-border:          rgba(15, 23, 42, 0.11);
+  --color-border-light:    rgba(15, 23, 42, 0.06);
+  --color-border-dark:     rgba(15, 23, 42, 0.16);
+  --color-border-focus:    rgba(62, 110, 240, 0.40);
 
-  /* ── Brand / Primary (unchanged — identical to dark) ── */
-  /* --color-primary, --color-primary-hover, --color-primary-active,
-     --color-primary-dark, --color-primary-bg, --color-primary-glow
-     all stay the same — brand blue pops beautifully on light surfaces */
+  /* ── Brand / Primary — slightly deeper for contrast on white ── */
+  --color-primary:         #3E6EF0;
+  --color-primary-hover:   #5280FF;
+  --color-primary-active:  #2F5ED1;
+  --color-primary-dark:    #2449A8;
+  --color-primary-light:   #B9CFFF;
+  --color-primary-bg:      rgba(62, 110, 240, 0.10);
+  --color-primary-glow:    rgba(62, 110, 240, 0.22);
 
-  /* ── Semantic Colors (unchanged — identical to dark) ── */
-  /* --color-success, --color-success-bg, --color-warning, --color-warning-bg,
-     --color-error, --color-error-bg, --color-alert, --color-alert-bg,
-     --color-update, --color-update-bg — all semantic colors stay the same */
+  /* ── Brand Gradients ── */
+  --gradient-primary:      linear-gradient(135deg, #3E6EF0 0%, #6C5CFF 100%);
+  --gradient-primary-hover: linear-gradient(135deg, #5280FF 0%, #7D6FFF 100%);
+  --gradient-surface:      linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0));
+  --gradient-sheen:        linear-gradient(120deg, rgba(255,255,255,0.5), rgba(255,255,255,0) 38%);
+
+  /* ── Semantic Colors — deeper for contrast on light surfaces ── */
+  --color-success:         #0C9D6C;
+  --color-success-bg:      rgba(12, 157, 108, 0.10);
+  --color-success-hover:   #0B8A5F;
+  --color-warning:         #B8690E;
+  --color-warning-bg:      rgba(184, 105, 14, 0.10);
+  --color-warning-hover:   #A35A0B;
+  --color-error:           #DC3D4C;
+  --color-error-bg:        rgba(220, 61, 76, 0.10);
+  --color-error-hover:     #C72F3E;
+  --color-alert:           #7C5CE0;
+  --color-alert-bg:        rgba(124, 92, 224, 0.10);
+  --color-update:          #0891B2;
+  --color-update-bg:       rgba(8, 145, 178, 0.10);
 
   /* ── Text — flipped for light backgrounds ── */
   --color-text:            #0F172A;
   --color-text-secondary:  #475569;
   --color-text-muted:      #64748B;
   --color-text-placeholder:#94A3B8;
-  --color-selection-bg:    rgba(59, 130, 246, 0.18);
+  --color-selection-bg:    rgba(62, 110, 240, 0.18);
   --color-selection-text:  #0F172A;
 
+  /* ── Scrim (modal/mobile overlays) ── */
+  --color-scrim:           rgba(15, 23, 42, 0.45);
+
+  /* ── Overlay backdrops (modals, toasts, spinners) ── */
+  --overlay-backdrop:         rgba(15, 23, 42, 0.55);
+  --overlay-backdrop-solid:   rgba(248, 250, 252, 0.96);
+  --overlay-backdrop-spinner: rgba(248, 250, 252, 0.88);
+  --toast-bg:                 rgba(255, 255, 255, 0.95);
+
   /* ── Shadows — lighter, more refined for light surfaces ── */
-  --shadow-xs:      0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-sm:      0 2px 6px rgba(0, 0, 0, 0.06);
-  --shadow-md:      0 4px 16px rgba(0, 0, 0, 0.08);
-  --shadow-lg:      0 10px 32px rgba(0, 0, 0, 0.12);
-  --shadow-primary: 0 4px 20px rgba(59, 130, 246, 0.22);
-  --shadow-inset:   inset 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-xs:      0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-sm:      0 2px 8px rgba(15, 23, 42, 0.06);
+  --shadow-md:      0 4px 18px rgba(15, 23, 42, 0.08);
+  --shadow-lg:      0 12px 36px rgba(15, 23, 42, 0.12);
+  --shadow-primary: 0 4px 20px rgba(62, 110, 240, 0.20);
+  --shadow-inset:   inset 0 1px 3px rgba(15, 23, 42, 0.06);
 
   /* ── Shadows (3D depth layers) — lifted, airy feel ── */
   --shadow-3d-xs:
-    0 1px 2px rgba(0, 0, 0, 0.04),
-    0 2px 6px rgba(0, 0, 0, 0.03);
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 2px 6px rgba(15, 23, 42, 0.03);
   --shadow-3d-sm:
-    0 1px 2px rgba(0, 0, 0, 0.04),
-    0 4px 12px rgba(0, 0, 0, 0.05);
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 4px 12px rgba(15, 23, 42, 0.05);
   --shadow-3d-md:
-    0 1px 3px rgba(0, 0, 0, 0.04),
-    0 4px 16px rgba(0, 0, 0, 0.06),
-    0 8px 28px rgba(0, 0, 0, 0.05);
+    0 1px 3px rgba(15, 23, 42, 0.04),
+    0 4px 16px rgba(15, 23, 42, 0.06),
+    0 8px 28px rgba(15, 23, 42, 0.05);
   --shadow-3d-lg:
-    0 2px 4px rgba(0, 0, 0, 0.03),
-    0 8px 24px rgba(0, 0, 0, 0.06),
-    0 16px 48px rgba(0, 0, 0, 0.06);
+    0 2px 4px rgba(15, 23, 42, 0.03),
+    0 8px 24px rgba(15, 23, 42, 0.06),
+    0 16px 48px rgba(15, 23, 42, 0.06);
   --shadow-3d-modal:
-    0 4px 6px rgba(0, 0, 0, 0.03),
-    0 12px 40px rgba(0, 0, 0, 0.10),
-    0 24px 64px rgba(0, 0, 0, 0.08);
-  --shadow-inset-top: inset 0 1px 0 rgba(0, 0, 0, 0.04);
-  --shadow-inset-sm:  inset 0 1px 3px rgba(0, 0, 0, 0.06);
+    0 4px 8px rgba(15, 23, 42, 0.03),
+    0 12px 40px rgba(15, 23, 42, 0.10),
+    0 24px 64px rgba(15, 23, 42, 0.08);
+  --shadow-inset-top: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --shadow-inset-sm:  inset 0 1px 3px rgba(15, 23, 42, 0.06);
   --shadow-button-up:
-    0 1px 2px rgba(0, 0, 0, 0.06),
+    0 1px 2px rgba(15, 23, 42, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.70);
   --shadow-button-down:
-    inset 0 2px 4px rgba(0, 0, 0, 0.08),
+    inset 0 2px 4px rgba(15, 23, 42, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.10);
+
+  /* ── Native UI color scheme ── */
+  color-scheme: light;
 }
