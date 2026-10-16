@@ -120,6 +120,30 @@
           if (actionsEl) actionsEl.style.display = 'none';
         }
 
+        /*
+         * FIX (audit core #17 — privilege escalation):
+         * The recovery button is now offered ONLY to:
+         *   (a) a user whose employees doc already has role 'super_admin', or
+         *   (b) a system that has NO super_admin at all (the genuine
+         *       broken-state recovery this page exists for).
+         * Any regular employee in a healthy system is denied.
+         */
+        function checkEligibility(fbUser, onAllowed, onDenied) {
+          var db = firebase.firestore();
+          Promise.all([
+            db.collection('employees').doc(fbUser.uid).get(),
+            db.collection('employees').where('role', '==', 'super_admin').limit(1).get()
+          ]).then(function (res) {
+            var myDoc  = res[0];
+            var myRole = myDoc.exists ? (myDoc.data().role || '') : '';
+            var hasAnySuperAdmin = res[1].size > 0;
+            if (myRole === 'super_admin' || !hasAnySuperAdmin) onAllowed();
+            else onDenied();
+          }).catch(function () {
+            onDenied('تعذر التحقق من الصلاحيات. تأكد من اتصالك بالإنترنت ثم أعد تحميل الصفحة.');
+          });
+        }
+
         function init() {
           /* Wait for vision-ready so Firebase is initialized */
           function onReady() {
@@ -146,12 +170,22 @@
                 return;
               }
 
-              setStatus('تم العثور على حساب: ' + (fbUser.email || fbUser.uid) +
-                '. اضغط على الزر أدناه لاستعادة صلاحيات المالك.');
+              setStatus('جارٍ التحقق من الصلاحيات...');
 
-              if (actionsEl) actionsEl.style.display = '';
+              /* FIX (audit core #17): eligibility gate — see checkEligibility. */
+              checkEligibility(fbUser, function () {
+                setStatus('تم العثور على حساب: ' + (fbUser.email || fbUser.uid) +
+                  '. اضغط على الزر أدناه لاستعادة صلاحيات المالك.');
+                if (actionsEl) actionsEl.style.display = '';
+              }, function (customMsg) {
+                setStatus(customMsg ||
+                  'هذه الصفحة مخصصة لاستعادة حساب المالك فقط. يوجد مالك مُسجَّل بالفعل في النظام، ولا يمكن استخدام الاستعادة من حساب آخر.',
+                  true);
+                if (actionsEl) actionsEl.style.display = 'none';
+              });
 
-              /* Bind recover button */
+              /* Bind recover button (harmless if never revealed — a hidden
+                 button cannot be clicked) */
               if (recoverBtn) {
                 recoverBtn.addEventListener('click', function () {
                   recoverBtn.disabled = true;
@@ -193,8 +227,10 @@
                     .then(function () {
                       showResult('تمت استعادة حساب المالك بنجاح! يمكنك الآن العودة لتسجيل الدخول.', true);
 
-                      /* Also update localStorage so the session picks it up */
-                      localStorage.setItem('userRole', 'super_admin');
+                      /* FIX (audit core #18): localStorage 'userRole' write
+                         removed — vision-auth no longer reads it (stale
+                         values could grant admin), and the role now comes
+                         from the Firestore employees doc written above. */
 
                       /* Auto-redirect to login after 3 seconds */
                       setTimeout(function () {
@@ -234,10 +270,18 @@
                 setStatus('لم يتم العثور على جلسة نشطة. يرجى تسجيل الدخول أولاً.', true);
                 return;
               }
-              /* Same as above — rare codepath */
-              setStatus('تم العثور على حساب: ' + (currentUser.email || currentUser.uid) +
-                '. اضغط على الزر أدناه لاستعادة صلاحيات المالك.');
-              if (actionsEl) actionsEl.style.display = '';
+              /* Same eligibility gate as above — rare codepath */
+              setStatus('جارٍ التحقق من الصلاحيات...');
+              checkEligibility(currentUser, function () {
+                setStatus('تم العثور على حساب: ' + (currentUser.email || currentUser.uid) +
+                  '. اضغط على الزر أدناه لاستعادة صلاحيات المالك.');
+                if (actionsEl) actionsEl.style.display = '';
+              }, function (customMsg) {
+                setStatus(customMsg ||
+                  'هذه الصفحة مخصصة لاستعادة حساب المالك فقط. يوجد مالك مُسجَّل بالفعل في النظام، ولا يمكن استخدام الاستعادة من حساب آخر.',
+                  true);
+                if (actionsEl) actionsEl.style.display = 'none';
+              });
             }, 4000);
           }
 

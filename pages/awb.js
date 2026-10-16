@@ -43,6 +43,16 @@
     return d.toLocaleDateString('ar-EG', { day: '2-digit', month: 'short' });
   }
 
+  /* FIX (audit #33): HTML-escape user-typed values before innerHTML
+     interpolation (customer name/address/notes/items are all typed by
+     employees and were injected raw — stored XSS). */
+  const _esc = v => String(v ?? '')
+    .replace(/&/g, '&#38;')
+    .replace(/</g, '&#60;')
+    .replace(/>/g, '&#62;')
+    .replace(/"/g, '&#34;')
+    .replace(/'/g, '&#39;');
+
   function _fmtCurrency(n) {
     return (Number(n) || 0).toLocaleString('ar-EG', { minimumFractionDigits: 0 }) + ' ج.م';
   }
@@ -58,24 +68,29 @@
   function _buildPeriod(key, from, to) {
     const now   = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    /* FIX (audit #29): "now"-ending periods are OPEN-ENDED — a print station
+       kept open all day must see orders created after page load. */
     switch (key) {
-      case 'today':     return { from: today, to: now };
+      case 'today':     return { from: today, to: now, openEnded: true };
       case 'yesterday': {
         const y  = new Date(today); y.setDate(y.getDate() - 1);
         const ye = new Date(y);     ye.setHours(23, 59, 59, 999);
         return { from: y, to: ye };
       }
-      case '7d':  return { from: new Date(today.getTime() - 6  * 86400000), to: now };
-      case '30d': return { from: new Date(today.getTime() - 29 * 86400000), to: now };
+      case '7d':  return { from: new Date(today.getTime() - 6  * 86400000), to: now, openEnded: true };
+      case '30d': return { from: new Date(today.getTime() - 29 * 86400000), to: now, openEnded: true };
       case 'custom': return { from: from || today, to: to || now };
-      default:    return { from: today, to: now };
+      default:    return { from: today, to: now, openEnded: true };
     }
   }
 
   function _inPeriod(order) {
     const d = order.createdAt?.toDate ? order.createdAt.toDate()
       : (order.createdAt ? new Date(order.createdAt) : null);
-    return d && d >= _period.from && d <= _period.to;
+    if (!d) return false;
+    /* FIX (audit #29): live clock for open-ended periods. */
+    const end = _period.openEnded ? new Date() : _period.to;
+    return d >= _period.from && d <= end;
   }
 
   /* ── FILTERING ── */
@@ -116,7 +131,7 @@
     _setText('kpiUnprinted', _fmtCompact(unprinted.length));
     _setText('kpiPrinted',   _fmtCompact(printed.length));
     _setText('kpiTotal',     _fmtCompact(all.length));
-    const totalRevenue = all.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    const totalRevenue = all.reduce((sum, o) => sum + (o.totalCents || 0), 0) / 100;
     _setText('kpiRevenue',   _fmtCompact(totalRevenue));
 
     /* Tab counts */
@@ -224,23 +239,23 @@
 
     tbody.innerHTML = rows.map((o, i) => {
       const sel   = _selected.has(o.id);
-      const items = (o.items || []).slice(0, 2).map(it => it.name).join('، ');
+      const items = (o.items || []).slice(0, 2).map(it => _esc(it.name)).join('، ');
       const more  = (o.items || []).length > 2 ? ` (+${o.items.length - 2})` : '';
       return `<tr class="${sel ? 'selected' : ''}" data-id="${o.id}">
         <td style="text-align:center;">
-          <input type="checkbox" class="awb-row-chk" data-id="${o.id}" ${sel ? 'checked' : ''} aria-label="تحديد الطلب ${o.customerName || ''}" />
+          <input type="checkbox" class="awb-row-chk" data-id="${o.id}" ${sel ? 'checked' : ''} aria-label="تحديد الطلب ${_esc(o.customerName || '')}" />
         </td>
         <td class="text-muted" style="text-align:center;">${start + i + 1}</td>
         <td class="text-sm text-muted" style="text-align:center;">${_fmtDate(o.createdAt)}</td>
         <td>
-          <div class="td-primary">${o.customerName || '—'}</div>
-          <div class="text-xs text-muted" dir="ltr">${o.customerPhone || ''}</div>
+          <div class="td-primary">${_esc(o.customerName) || '—'}</div>
+          <div class="text-xs text-muted" dir="ltr">${_esc(o.customerPhone) || ''}</div>
         </td>
-        <td class="text-sm text-muted" style="text-align:center;">${o.governorate || '—'}</td>
+        <td class="text-sm text-muted" style="text-align:center;">${_esc(o.governorate) || '—'}</td>
         <td class="text-xs text-muted truncate" style="max-width:180px;" title="${items}${more}">${items}${more || '—'}</td>
-        <td class="font-bold text-warning" style="text-align:center;">${_fmtCurrency(o.total)}</td>
+        <td class="font-bold text-warning" style="text-align:center;">${_fmtCurrency((o.totalCents || 0) / 100)}</td>
         <td style="text-align:center;">
-          <span class="tracking-num">${o.trackingNumber || '—'}</span>
+          <span class="tracking-num">${_esc(o.trackingNumber) || '—'}</span>
         </td>
         <td style="text-align:center;">
           <span class="printed-badge ${o.printed ? 'printed-yes' : 'printed-no'}">
@@ -320,12 +335,18 @@
   async function _markPrinted(printed) {
     const ids = [..._selected]; if (!ids.length) return;
     try {
-      const batch = firebase.firestore().batch();
-      ids.forEach(id => batch.update(firebase.firestore().collection('orders').doc(id), {
-        printed,
-        printedAt: printed ? firebase.firestore.FieldValue.serverTimestamp() : null,
-      }));
-      await batch.commit();
+      /* FIX (audit #34): _selected survives page navigation — large
+         selections exceeded Firestore's 500-op batch limit and the whole
+         commit failed. Commit in chunks of 400. */
+      const CHUNK = 400;
+      for (let i = 0; i < ids.length; i += CHUNK) {
+        const batch = firebase.firestore().batch();
+        ids.slice(i, i + CHUNK).forEach(id => batch.update(firebase.firestore().collection('orders').doc(id), {
+          printed,
+          printedAt: printed ? firebase.firestore.FieldValue.serverTimestamp() : null,
+        }));
+        await batch.commit();
+      }
       _selected.clear();
       window.VisionOverlays?.toast({
         type: 'success',
@@ -339,14 +360,14 @@
 
   /* ── LABEL HTML BUILDER ── */
   function _buildLabelHtml(order, settings, size) {
-    const items    = (order.items || []).map(i => `${i.name} (${i.qty || 1})`).join('، ');
-    const cod      = _fmtCurrency(order.total);
-    const tracking = order.trackingNumber || '—';
+    const items    = (order.items || []).map(i => `${_esc(i.name)} (${i.qty || 1})`).join('، ');
+    const cod      = _fmtCurrency((order.totalCents || 0) / 100);
+    const tracking = _esc(order.trackingNumber) || '—';
     const sizeClass = `awb-${size}`;
     const logoHtml = settings.logoUrl
       ? `<img src="${settings.logoUrl}" alt="logo" style="height:20px;max-width:60px;object-fit:contain;" />`
       : '';
-    const note = [order.notes, settings.defaultNote].filter(Boolean).join(' · ');
+    const note = [order.notes, settings.defaultNote].filter(Boolean).map(_esc).join(' · ');
 
     return `
       <div class="awb-label ${sizeClass}">
@@ -355,9 +376,9 @@
             <div>
               <div class="box-header">من / FROM</div>
               <div class="box-content">
-                <strong>${settings.companyName || 'Nazamly'}</strong><br/>
-                ${settings.companyPhone ? `📞 ${settings.companyPhone}<br/>` : ''}
-                ${settings.companyAddress || ''}
+                <strong>${_esc(settings.companyName) || 'Nazamly'}</strong><br/>
+                ${settings.companyPhone ? `📞 ${_esc(settings.companyPhone)}<br/>` : ''}
+                ${_esc(settings.companyAddress) || ''}
               </div>
             </div>
             ${logoHtml}
@@ -366,10 +387,10 @@
         <div class="box-section">
           <div class="box-header">إلى / TO</div>
           <div class="box-content">
-            <strong style="font-size:1.1em;">${order.customerName || '—'}</strong><br/>
-            📞 ${order.customerPhone || '—'}
-            ${order.customerPhone2 ? ` / ${order.customerPhone2}` : ''}<br/>
-            📍 ${order.governorate || ''} — ${order.address || ''}
+            <strong style="font-size:1.1em;">${_esc(order.customerName) || '—'}</strong><br/>
+            📞 ${_esc(order.customerPhone) || '—'}
+            ${order.customerPhone2 ? ` / ${_esc(order.customerPhone2)}` : ''}<br/>
+            📍 ${_esc(order.governorate) || ''} — ${_esc(order.address) || ''}
           </div>
         </div>
         <div class="box-section">
@@ -551,10 +572,15 @@
   function _handleKeydown(e) {
     /* Ctrl/Cmd + P → open print modal if selection exists */
     if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+      /* FIX (audit #35): ALWAYS intercept — with no selection the native
+         print dialog printed a blank page (all UI is print-hidden). Give
+         feedback instead. */
+      e.preventDefault();
       const overlay = _el('printModalOverlay');
       if (overlay && !overlay.classList.contains('active') && _selected.size > 0) {
-        e.preventDefault();
         _openPrintModal();
+      } else {
+        window.VisionOverlays?.toast({ type: 'info', message: 'اختر طلباً واحداً على الأقل للطباعة' });
       }
     }
     /* Escape → close any open modal */
@@ -618,7 +644,8 @@
         window.VisionOverlays?.toast({ type: 'warning', message: 'يرجى اختيار التواريخ' });
         return;
       }
-      _period = _buildPeriod('custom', new Date(from), new Date(to + 'T23:59:59'));
+      /* FIX (audit #8): anchor to LOCAL midnight (date-only = UTC otherwise). */
+      _period = _buildPeriod('custom', new Date(from + 'T00:00:00'), new Date(to + 'T23:59:59'));
       _attachOrdersListener();
     });
 

@@ -136,7 +136,8 @@
           ${c.phone ? `<div class="company-phone" dir="ltr">${c.phone}</div>` : ''}
           <div class="company-tags">
             ${c.freeShipping ? '<span class="badge badge-success" style="font-size:0.6rem;">شحن مجاني</span>' : ''}
-            ${c.courierFee   ? `<span class="badge badge-alert"   style="font-size:0.6rem;">عمولة: ${_fmtCents(c.courierFeeCents||0)}</span>` : ''}
+            ${/* FIX (audit #26): test the field being displayed — legacy docs having only courierFeeCents used to hide the badge */ ''}
+            ${(c.courierFeeCents || c.courierFee) ? `<span class="badge badge-alert"   style="font-size:0.6rem;">عمولة: ${_fmtCents(c.courierFeeCents||0)}</span>` : ''}
           </div>
           <div class="company-actions">
             <button class="btn btn-secondary btn-icon btn-sm" data-action="edit"   data-id="${c.id}" title="تعديل"><i class="fas fa-pen" aria-hidden="true"></i></button>
@@ -380,7 +381,17 @@
 
     try {
       const db = firebase.firestore();
-      /* Unset other defaults if needed */
+
+      /* FIX (audit #27): save the company FIRST, then unset other defaults —
+         the old order cleared the flag from everyone and THEN saved, so a
+         failed save left the system with NO default company at all. */
+      if (editId) {
+        await db.collection('shippingCompanies').doc(editId).update({ ...payload, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+      } else {
+        payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        await db.collection('shippingCompanies').add(payload);
+      }
+
       if (isDefault) {
         const batch = db.batch();
         Store.companies.forEach(c => {
@@ -389,13 +400,6 @@
           }
         });
         await batch.commit();
-      }
-
-      if (editId) {
-        await db.collection('shippingCompanies').doc(editId).update({ ...payload, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-      } else {
-        payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-        await db.collection('shippingCompanies').add(payload);
       }
 
       window.VisionOverlays?.toast({ type: 'success', message: `تم حفظ "${name}"` });

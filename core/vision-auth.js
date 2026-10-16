@@ -88,10 +88,12 @@
                 }
             };
 
-            // Role resolution: Firestore employee record > token custom claims > localStorage > default
+            // Role resolution: Firestore employee record > token custom claims > default
+            // FIX (audit #18): removed the localStorage 'userRole' fallback —
+            // a stale value (e.g. written by the old recovery page) could keep
+            // granting admin rights when the Firestore read failed.
             _state.role = (employeeData && employeeData.role)
                 || claims.role
-                || localStorage.getItem('userRole')
                 || 'user';
 
             // Permissions: Firestore employee record > token claims > empty
@@ -324,38 +326,70 @@
             }).then(async result => {
                 if (result !== 'login') { resolve(false); return; }
 
-                const emailEl = document.getElementById('va-email');
-                const passEl  = document.getElementById('va-pass');
+                /* FIX (audit core #1): the modal removes its DOM BEFORE this
+                   .then runs — document.getElementById() always returned null
+                   and the admin bypass NEVER worked. Read the inputs from the
+                   `form` element captured in this closure instead; detached
+                   nodes keep their .value. Async failures surface as toasts
+                   (the in-modal errEl is detached by then). */
+                const emailEl = form.querySelector('#va-email');
+                const passEl  = form.querySelector('#va-pass');
                 const email   = emailEl ? emailEl.value.trim() : '';
                 const pass    = passEl  ? passEl.value         : '';
-
-                if (!email || !pass) {
-                    if (errEl) { errEl.textContent = 'يرجى إدخال البيانات'; errEl.style.display = 'block'; }
-                    resolve(false);
-                    return;
-                }
 
                 try {
                     await signIn(email, pass);
                     if (isAdmin()) {
                         resolve(true);
                     } else {
-                        if (errEl) {
-                            errEl.textContent = 'هذا الحساب ليس له صلاحيات مدير';
-                            errEl.style.display = 'block';
-                        }
+                        window.VisionOverlays?.toast({
+                            type: 'error',
+                            message: 'هذا الحساب ليس له صلاحيات مدير',
+                            duration: 4000
+                        });
                         await signOut();
                         resolve(false);
                     }
                 } catch (e) {
                     console.error('[VisionAuth] promptAdminLogin signIn error:', e);
-                    if (errEl) {
-                        errEl.textContent = _firebaseAuthErrorMsg(e && e.code) || 'بيانات الدخول غير صحيحة';
-                        errEl.style.display = 'block';
-                    }
+                    window.VisionOverlays?.toast({
+                        type: 'error',
+                        message: _firebaseAuthErrorMsg(e && e.code) || 'بيانات الدخول غير صحيحة',
+                        duration: 4000
+                    });
                     resolve(false);
                 }
             });
+
+            /* Empty-field validation BEFORE the modal closes: a capture-phase
+               listener on the footer fires before the modal's own click
+               handler — stopPropagation keeps the modal open for correction.
+               (The modal appends its DOM synchronously, so it is already
+               in the document at this point — same pattern dashboard.js uses
+               for its wipe-confirm dialog.) */
+            const dialogs = document.querySelectorAll('.vision-modal');
+            const target = dialogs[dialogs.length - 1];
+            if (target) {
+                const footer = target.querySelector('.vision-modal-footer');
+                if (footer) {
+                    footer.addEventListener('click', (ev) => {
+                        const btn = ev.target.closest('button');
+                        if (!btn || btn.textContent.indexOf('تسجيل الدخول') === -1) return;
+                        const emailEl = form.querySelector('#va-email');
+                        const passEl  = form.querySelector('#va-pass');
+                        const isEmpty = !emailEl || !emailEl.value.trim() || !passEl || !passEl.value;
+                        if (isEmpty) {
+                            ev.stopPropagation();
+                            if (errEl) {
+                                errEl.textContent = 'يرجى إدخال البيانات';
+                                errEl.style.display = 'block';
+                            }
+                        } else if (errEl) {
+                            errEl.style.display = 'none';
+                        }
+                    }, true);
+                }
+            }
         });
     }
 

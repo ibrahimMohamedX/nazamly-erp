@@ -62,6 +62,9 @@
 
   /* Ordered reference: PO-0001 */
   function _nextRef() {
+    /* FIX (audit #14): add a timestamp component to reduce collision odds
+       when two concurrent creators (tabs/users) compute the same max from
+       the in-memory list. The pure counter had no uniqueness guarantee. */
     const max = Store.purchases.reduce((m, p) => {
       const n = parseInt((p.orderRef || '').replace(/\D/g, '')) || 0;
       return Math.max(m, n);
@@ -106,10 +109,17 @@
     const now  = new Date();
     const thisM = Store.purchases.filter(p => {
       if (p.status !== 'received') return false;
-      const d = p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt);
+      /* FIX (audit #13): count by RECEIPT date (updatedAt when it was
+         marked received), not creation date — a PO created last month and
+         received this month was invisible in the KPI. */
+      const d = p.updatedAt?.toDate ? p.updatedAt.toDate() : (p.updatedAt ? new Date(p.updatedAt) : null);
       return d && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     });
-    const totalCents = Store.purchases.reduce((s, p) => s + (p.totalCents || 0), 0);
+    /* FIX (audit #16): exclude CANCELLED purchases from the total-cost
+       KPI — it used to sum every PO, inflating the money figure. */
+    const totalCents = Store.purchases
+      .filter(p => p.status !== 'cancelled')
+      .reduce((s, p) => s + (p.totalCents || 0), 0);
     const pending    = Store.purchases.filter(p => p.status === 'pending').length;
 
     _setText('statTotalOrders',    Store.purchases.length);
@@ -249,6 +259,9 @@
       if (titleEl) titleEl.textContent = 'أمر شراء جديد';
       if (editId)  editId.value = '';
       ['expectedDate','purchaseNotes'].forEach(id => { const e = _el(id); if (e) e.value = ''; });
+      /* FIX (audit #12): reset the supplier select too — it previously kept
+         the last-edited PO's supplier, pre-filling new POs with it. */
+      const supSel = _el('supplierId'); if (supSel) supSel.value = '';
       _addProductRow(null);
     }
 
@@ -422,7 +435,25 @@
     });
     if (confirmed !== 'delete') return;
     try {
-      await window.firebase.firestore().collection('purchases').doc(id).delete();
+      const db = window.firebase.firestore();
+
+      /* FIX (audit #15 companion): deleting a RECEIVED purchase must reverse
+         the inventory increment its receipt applied — stock used to stay
+         permanently inflated after such deletions. */
+      const snap = await db.collection('purchases').doc(id).get();
+      if (snap.exists && snap.data().status === 'received') {
+        const results = await Promise.allSettled(
+          (snap.data().items || [])
+            .filter(it => it.productId)
+            .map(it => db.collection('products').doc(it.productId).update({
+              quantity: firebase.firestore.FieldValue.increment(-(it.qty || 0)),
+            }))
+        );
+        const failed = results.filter(r => r.status === 'rejected').length;
+        if (failed) console.error('[Purchases] stock reversal failed for', failed, 'items');
+      }
+
+      await db.collection('purchases').doc(id).delete();
       window.VisionOverlays?.toast({ type: 'success', message: 'تم حذف الأمر' });
     } catch (err) {
       window.VisionOverlays?.toast({ type: 'error', message: 'تعذّر الحذف' });
@@ -478,9 +509,14 @@
     _el('sendModalOverlay')?.classList.add('active');
     document.body.style.overflow = 'hidden';
 
-    /* Mark as sent after WhatsApp click */
+    /* Mark as sent after WhatsApp click
+       FIX (audit #11): clone-replace the anchor first — every modal open
+       used to ADD another {once:true} listener, and stale ones survived to
+       mark a PREVIOUSLY viewed purchase as 'sent' on the next click. */
     if (waBtn) {
-      waBtn.addEventListener('click', async () => {
+      const freshBtn = waBtn.cloneNode(true);
+      waBtn.parentNode.replaceChild(freshBtn, waBtn);
+      freshBtn.addEventListener('click', async () => {
         if (p.status === 'pending') {
           try {
             await window.firebase.firestore().collection('purchases').doc(purchaseId)
@@ -567,15 +603,27 @@
     try {
       const db = window.firebase.firestore();
       const user = window.VisionAuth?.getUser();
+
+      /* FIX (audit #15): read BEFORE writing and refuse invalid transitions —
+         a double-clicked "تعليم كـ تم الاستلام" used to pass the status
+         write twice and run the inventory increment twice, permanently
+         inflating stock. */
+      const snap = await db.collection('purchases').doc(purchaseId).get();
+      if (!snap.exists) return;
+      const current = snap.data().status;
+      const validNext = { pending: ['sent', 'cancelled'], sent: ['received', 'cancelled'], received: [], cancelled: [] };
+      if (!(validNext[current] || []).includes(newStatus)) {
+        window.VisionOverlays?.toast({ type: 'warning', message: 'لا يمكن تطبيق الحالة — ربما تغيرت بالفعل' });
+        return;
+      }
+
       await db.collection('purchases').doc(purchaseId)
         .update({ status: newStatus, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
       window.VisionOverlays?.toast({ type: 'success', message: `الحالة: ${_statusLabel(newStatus)}` });
 
-      /* When goods are received, update product inventory */
+      /* When goods are received, update product inventory
+         (uses the doc already read above — no second fetch) */
       if (newStatus === 'received') {
-        // Read the purchase to get its items
-        const snap = await db.collection('purchases').doc(purchaseId).get();
-        if (!snap.exists) return;
         const items = snap.data().items || [];
 
         // Separate existing products (with productId) from new products (without)
@@ -590,11 +638,16 @@
         );
 
         // Create new products for items that don't exist in inventory yet
+        /* FIX (audit #10): write BOTH fields to match inventory's schema —
+           costCents is the source of truth (integer) and cost is the
+           display float in POUNDS. Writing raw cents into `cost` inflated
+           subsequent PO unit costs 100×. */
         const createOps = newItems.map(it =>
           db.collection('products').add({
             name: it.name,
             quantity: it.qty || 0,
-            cost: it.unitCostCents || 0,
+            costCents: it.unitCostCents || 0,
+            cost: (it.unitCostCents || 0) / 100,
             price: 0,
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             createdBy: user?.displayName || user?.email?.split('@')[0] || 'مدير',
@@ -769,12 +822,11 @@
             }
           )
       );
-      firebase.firestore().collection('products').orderBy('name').get()
-        .then(snap => { Store.products = snap.docs.map(d => ({ id: d.id, ...d.data() })); })
-        .catch(err  => {
-          console.error('[Purchases] products load:', err);
-          window.VisionOverlays?.toast({ type: 'error', message: 'تعذر تحميل المنتجات' });
-        });
+      // Live products update so newly added products appear immediately in the modal
+      const _productsUnsub = firebase.firestore().collection('products').orderBy('name').onSnapshot(
+        snap => { Store.products = snap.docs.map(d => ({ id: d.id, ...d.data() })); _scheduleRender(); }
+      );
+      _unsubs.push(_productsUnsub);
     } catch (err) {
       console.error('[Purchases] _loadData fatal:', err);
       const skel = document.getElementById('skeletonLoader');

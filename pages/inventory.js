@@ -486,13 +486,21 @@
         window.VisionOverlays?.toast({ type: 'warning', message: 'الملف فارغ' }); return;
       }
 
-      const db    = firebase.firestore();
-      const batch = db.batch();
-      let   count = 0;
+      const db = firebase.firestore();
+      let count = 0;
 
-      rows.forEach(row => {
+      /* FIX (audit #17): a committed WriteBatch cannot be reused — the old
+         code kept calling batch.set() on the SAME batch after committing
+         it at row 490, so row 491 threw "Cannot modify a committed
+         WriteBatch" and imports silently truncated. Build a FRESH batch
+         per chunk and await every commit. */
+      const CHUNK = 490;
+      for (let i = 0; i < rows.length; i += CHUNK) {
+        const batch = db.batch();
+        let chunkCount = 0;
+        for (const row of rows.slice(i, i + CHUNK)) {
         const name = String(row['الاسم'] || row['name'] || '').trim();
-        if (!name) return;
+        if (!name) continue;
         const priceCents = _toCents(row['السعر']  || row['price'] || 0);
         const costCents  = _toCents(row['التكلفة'] || row['cost']  || 0);
         const ref = firebase.firestore().collection('products').doc();
@@ -509,13 +517,14 @@
           sold: 0,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         });
-        count++;
-        /* Batch limit = 500 writes */
-        if (count % 490 === 0) batch.commit();
-      });
-
-      if (progressEl) progressEl.textContent = `جاري استيراد ${count} منتج...`;
-      await batch.commit();
+        chunkCount++;
+        }
+        if (chunkCount) {
+          await batch.commit();
+          count += chunkCount;
+          if (progressEl) progressEl.textContent = `جاري استيراد ${count} منتج...`;
+        }
+      }
 
       window.VisionOverlays?.toast({ type: 'success', message: `تم استيراد ${count} منتج بنجاح` });
       _el('importModalOverlay')?.classList.remove('active');

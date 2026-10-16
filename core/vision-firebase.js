@@ -151,7 +151,15 @@
       const ref = _ctx.db.collection("system").doc("status");
       const unsub = ref.onSnapshot(
         (doc) => {
-          if (!doc.exists) return;
+          /* FIX (audit core #7): a deleted doc is equivalent to maintenance
+             being OFF — the old `if (!doc.exists) return;` never cleared an
+             already-shown overlay nor cleared the config flag. */
+          if (!doc.exists) {
+            if (window.VisionConfig)
+              window.VisionConfig.set("maintenance.enabled", false);
+            if (window.VisionOverlays) window.VisionOverlays.hideMaintenance();
+            return;
+          }
           const data = doc.data();
 
           // Update system status in config
@@ -232,6 +240,12 @@
       options.showToast !== undefined ? options.showToast : true;
 
     const seenIds = new Set();
+    /* FIX (audit core #13): Firestore replays the WHOLE query result as
+       'added' changes on the first snapshot — with seenIds starting empty,
+       every page load burst up to `limit` toasts at once (persistent ones
+       never auto-dismissing). The first batch is registered silently; only
+       notifications arriving AFTER page load get a toast. */
+    let firstSnapshot = true;
 
     try {
       const query = _ctx.db
@@ -242,6 +256,7 @@
 
       const unsub = query.onSnapshot(
         (snapshot) => {
+          const isInitialBatch = firstSnapshot;
           snapshot.docChanges().forEach((change) => {
             const docId = change.doc.id;
 
@@ -273,7 +288,8 @@
               if (window.VisionConfig)
                 window.VisionConfig.addNotification(notif);
 
-              if (showToast && window.VisionOverlays) {
+              /* FIX (audit core #13): no toast for the initial replay batch. */
+              if (showToast && !isInitialBatch && window.VisionOverlays) {
                 window.VisionOverlays.toast({
                   id: notif.id,
                   type: notif.type,
@@ -285,6 +301,30 @@
               }
             }
 
+            /* FIX (audit core #14): handle 'modified' changes — edits to an
+               active broadcast notification now propagate to the panel. */
+            if (change.type === "modified") {
+              const raw = change.doc.data();
+              let notif = {
+                id: docId,
+                type: raw.type || "info",
+                title: raw.title || "",
+                message: raw.message || "",
+                severity: raw.severity || "low",
+                persistent: !!raw.persistent,
+                position: raw.position || "top-left",
+                timestamp: raw.createdAt
+                  ? _toDate(raw.createdAt).getTime()
+                  : Date.now(),
+              };
+              if (window.VisionSecurity) {
+                const result = window.VisionSecurity.validateNotification(notif);
+                if (result.sanitized) notif = Object.assign(notif, result.sanitized);
+              }
+              if (window.VisionConfig)
+                window.VisionConfig.addNotification(notif);
+            }
+
             if (change.type === "removed") {
               seenIds.delete(docId);
               if (window.VisionConfig)
@@ -293,6 +333,7 @@
                 window.VisionOverlays.dismissToast(docId);
             }
           });
+          firstSnapshot = false; // subsequent snapshots are live events
         },
         (error) => _handleError(error, "syncNotifications"),
       );
@@ -343,8 +384,8 @@
 
           if (window.VisionConfig)
             window.VisionConfig.merge("subscription", sub);
-          if (window.VisionNotifications)
-            window.VisionNotifications.subscriptionStatus(sub);
+          // Audit core #28: VisionNotifications.subscriptionStatus() was the
+          // only consumer of vision-notifications.js (module now unloaded).
         },
         (error) => _handleError(error, "syncSubscription(" + userId + ")"),
       );
@@ -545,6 +586,15 @@
     syncSystemStatus,
     syncNotifications,
     syncSubscription,
+    /* FIX (audit core #8): public per-key unsubscribe — lets vision-init
+       stop the previous user's subscription listener on sign-out. */
+    unsubscribe: function (key) {
+      if (_unsubs[key]) {
+        try { _unsubs[key](); } catch (e) { /* already dead */ }
+        delete _unsubs[key];
+        _log('unsubscribed "' + key + '"');
+      }
+    },
     sendNotification,
     updateSystemStatus,
     setMaintenanceMode,

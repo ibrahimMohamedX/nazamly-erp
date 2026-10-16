@@ -90,6 +90,17 @@
      ────────────────────────────────────── */
 
   const _toCents  = v => Math.round(parseFloat(String(v ?? 0).replace(/[^0-9.]/g, '')) * 100) || 0;
+
+  /* FIX (audit #18): HTML-escape user-typed values before innerHTML
+     interpolation (stored XSS — one employee could otherwise inject scripts
+     into every other user's session via customer/item names, tracking
+     numbers or user-defined status names). */
+  const _esc = v => String(v ?? '')
+    .replace(/&/g, '&#38;')
+    .replace(/</g, '&#60;')
+    .replace(/>/g, '&#62;')
+    .replace(/"/g, '&#34;')
+    .replace(/'/g, '&#39;');
   const _fmtCents = c => (c / 100).toLocaleString('ar-EG', { maximumFractionDigits: c % 100 === 0 ? 0 : 2 }) + ' ج.م';
 
   /* ──────────────────────────────────────
@@ -230,27 +241,19 @@
      ────────────────────────────────────── */
 
   async function _fetchTotalCount() {
-    /* Bug fix: .count() is a Modular SDK v9 feature. The Firebase Compat SDK
-       (firebase-firestore-compat.js) does NOT expose it on the Query prototype
-       in all versions. We check at runtime and fall back to a capped .get()
-       so the init sequence never throws regardless of SDK version.           */
+    /* FIX (audit #16): removed the dead `q.count()` branch — the Compat SDK
+       (pinned at 9.23.0) does not expose .count() on the Query prototype, so
+       the "fallback" always executed anyway. The capped .get() (1001) is
+       now the sole path, with an honest comment. */
     try {
       const q = _buildBaseQuery();
-
-      if (typeof q.count === 'function') {
-        /* Compat SDK >= 9.17 or Modular SDK — use the native aggregate API */
-        const countSnap = await q.count().get();
-        const n = countSnap.data().count;
-        _setText('totalCount', Number(n).toLocaleString('ar-EG'));
-      } else {
-        /* Compat SDK fallback: cap at 1000 to avoid reading the full collection.
-           Exceeding 1000 shows "+999" to signal "many results exist".        */
-        const snap = await q.limit(1001).get();
-        const display = snap.size > 1000
-          ? '+999'
-          : snap.size.toLocaleString('ar-EG');
-        _setText('totalCount', display);
-      }
+      /* Compat SDK: no aggregate API — cap at 1000 to bound the read.
+         Exceeding 1000 shows "+999" to signal "many results exist". */
+      const snap = await q.limit(1001).get();
+      const display = snap.size > 1000
+        ? '+999'
+        : snap.size.toLocaleString('ar-EG');
+      _setText('totalCount', display);
     } catch (err) {
       /* Silently degrade — the count label is informational only.
          An index error here must NEVER block rendering or auth flow.         */
@@ -389,6 +392,7 @@
 
     if (!rows.length) {
       if (tbody) tbody.innerHTML = '';
+      const cardsEmpty = _el('ordersCards'); if (cardsEmpty) cardsEmpty.innerHTML = '';
       if (empty) empty.hidden = false;
       if (table) table.style.display = 'none';
       return;
@@ -396,22 +400,54 @@
     if (empty) empty.hidden = true;
     if (table) table.style.display = '';
 
+    /* FIX (audit #5): render mobile cards too — orders.css switches to
+       .mobile-order-cards at ≤768px, but #ordersCards was never populated,
+       leaving mobile users a completely blank list. */
+    function _mobileCard(o) {
+      const items    = o.items || [];
+      const color    = _statusColor(o.status);
+      const selected = _selected.has(o.id);
+      const pills = items.map(it =>
+        `<span class="product-pill"><span class="product-pill-qty">${it.qty || 1}</span> ${_esc(it.name) || ''}</span>`
+      ).join('');
+      return `<div class="order-card-mobile${selected ? ' selected' : ''}" data-id="${o.id}">
+        <div class="order-card__header">
+          <input type="checkbox" class="row-chk" data-id="${o.id}" ${selected ? 'checked' : ''} aria-label="تحديد الطلب" style="margin-left:8px;" />
+          <div class="order-card__customer">${_esc(o.customerName) || '—'}</div>
+          <div class="order-card__phone" dir="ltr">${_esc(o.customerPhone) || ''}</div>
+        </div>
+        <div class="order-card__body">
+          <div class="order-card__row"><span class="order-card__label">المنتجات</span><span class="order-card__value">${pills || '—'}</span></div>
+          <div class="order-card__row"><span class="order-card__label">الإجمالي</span><span class="order-card__value font-bold">${_fmtCents(o.totalCents || 0)}</span></div>
+          <div class="order-card__row"><span class="order-card__label">الربح</span><span class="order-card__value text-success">${o.profitCents ? _fmtCents(o.profitCents) : '—'}</span></div>
+          <div class="order-card__row"><span class="order-card__label">الحالة</span><span class="order-card__value"><span class="status-badge" style="background:${color}22;color:${color};border:1px solid ${color}44;" data-action="status" data-id="${o.id}">${_esc(o.status) || 'بدون حالة'}</span></span></div>
+          <div class="order-card__row"><span class="order-card__label">التاريخ</span><span class="order-card__value">${_fmtDate(o.createdAt)}</span></div>
+          <div class="order-card__row"><span class="order-card__label">الرقم التتبعي</span><span class="order-card__value"><span class="tracking-num">${_esc(o.trackingNumber) || '—'}</span></span></div>
+        </div>
+        <div class="order-card__actions">
+          <button class="btn btn-secondary btn-sm" data-action="edit" data-id="${o.id}"><i class="fas fa-pen" aria-hidden="true"></i> تعديل</button>
+          <button class="btn btn-secondary btn-sm" data-action="status" data-id="${o.id}"><i class="fas fa-tags" aria-hidden="true"></i> الحالة</button>
+          <button class="btn btn-danger btn-sm" data-action="delete" data-id="${o.id}"><i class="fas fa-trash" aria-hidden="true"></i> حذف</button>
+        </div>
+      </div>`;
+    }
+
     tbody.innerHTML = rows.map((o, i) => {
       const items    = o.items || [];
       const color    = _statusColor(o.status);
       const selected = _selected.has(o.id);
 
       const productPills = items.map(it =>
-        `<span class="product-pill"><span class="product-pill-qty">${it.qty || 1}</span> ${it.name || ''}</span>`
+        `<span class="product-pill"><span class="product-pill-qty">${it.qty || 1}</span> ${_esc(it.name) || ''}</span>`
       ).join('');
 
       return `<tr class="${selected ? 'selected' : ''}" data-id="${o.id}">
         <td><input type="checkbox" class="row-chk" data-id="${o.id}" ${selected ? 'checked' : ''} aria-label="تحديد الطلب" /></td>
         <td class="text-muted">${(_currentPage - 1) * _pageSize + i + 1}</td>
         <td>
-          <div class="td-primary">${o.customerName || '—'}</div>
-          <div class="text-xs text-muted" dir="ltr">${o.customerPhone || ''}</div>
-          <div class="text-xs text-muted">${o.governorate || ''}</div>
+          <div class="td-primary">${_esc(o.customerName) || '—'}</div>
+          <div class="text-xs text-muted" dir="ltr">${_esc(o.customerPhone) || ''}</div>
+          <div class="text-xs text-muted">${_esc(o.governorate) || ''}</div>
         </td>
         <td><div class="product-pills">${productPills || '—'}</div></td>
         <td>
@@ -421,12 +457,12 @@
         <td>
           <span class="status-badge" style="background:${color}22;color:${color};border:1px solid ${color}44;"
             data-action="status" data-id="${o.id}" title="اضغط لتغيير الحالة">
-            ${o.status || 'بدون حالة'}
+            ${_esc(o.status) || 'بدون حالة'}
           </span>
         </td>
         <td class="text-sm text-muted">${_fmtDate(o.createdAt)}</td>
-        ${isAdmin ? `<td class="text-sm text-muted">${_empName(o.employeeId)}</td>` : '<td></td>'}
-        <td><span class="tracking-num">${o.trackingNumber || '—'}</span></td>
+        ${isAdmin ? `<td class="text-sm text-muted">${_esc(_empName(o.employeeId))}</td>` : '<td></td>'}
+        <td><span class="tracking-num">${_esc(o.trackingNumber) || '—'}</span></td>
         <td>
           <div class="row-actions" style="display:flex;gap:var(--space-2);">
             <button class="btn btn-secondary btn-icon btn-sm" data-action="edit"   data-id="${o.id}" title="تعديل"><i class="fas fa-pen" aria-hidden="true"></i></button>
@@ -437,22 +473,29 @@
       </tr>`;
     }).join('');
 
-    tbody.querySelectorAll('[data-action="edit"]').forEach(b =>
-      b.addEventListener('click', e => { e.stopPropagation(); _openOrderModal(b.dataset.id); })
-    );
-    tbody.querySelectorAll('[data-action="status"]').forEach(b =>
-      b.addEventListener('click', e => { e.stopPropagation(); _openStatusModal(b.dataset.id); })
-    );
-    tbody.querySelectorAll('[data-action="delete"]').forEach(b =>
-      b.addEventListener('click', e => { e.stopPropagation(); _confirmDelete([b.dataset.id]); })
-    );
-    tbody.querySelectorAll('.row-chk').forEach(chk =>
-      chk.addEventListener('change', () => {
-        if (chk.checked) _selected.add(chk.dataset.id);
-        else             _selected.delete(chk.dataset.id);
-        _updateBulkBar();
-      })
-    );
+    const cardsEl = _el('ordersCards');
+    if (cardsEl) cardsEl.innerHTML = rows.map(_mobileCard).join('');
+
+    /* Shared wiring for BOTH scopes (desktop rows + mobile cards) */
+    [tbody, cardsEl].forEach(scope => {
+      if (!scope) return;
+      scope.querySelectorAll('[data-action="edit"]').forEach(b =>
+        b.addEventListener('click', e => { e.stopPropagation(); _openOrderModal(b.dataset.id); })
+      );
+      scope.querySelectorAll('[data-action="status"]').forEach(b =>
+        b.addEventListener('click', e => { e.stopPropagation(); _openStatusModal(b.dataset.id); })
+      );
+      scope.querySelectorAll('[data-action="delete"]').forEach(b =>
+        b.addEventListener('click', e => { e.stopPropagation(); _confirmDelete([b.dataset.id]); })
+      );
+      scope.querySelectorAll('.row-chk').forEach(chk =>
+        chk.addEventListener('change', () => {
+          if (chk.checked) _selected.add(chk.dataset.id);
+          else             _selected.delete(chk.dataset.id);
+          _updateBulkBar();
+        })
+      );
+    });
   }
 
   /* ──────────────────────────────────────
@@ -485,9 +528,9 @@
     const pills = [{ name: '', label: 'الكل' }, ...Ref.statuses.map(s => ({ name: s.name, label: s.name, color: s.color }))];
     container.innerHTML = pills.map(s => `
       <button class="status-pill ${Filters.status === s.name ? 'active' : ''}"
-        data-status="${s.name}"
-        style="${s.color && Filters.status === s.name ? `background:${s.color};border-color:${s.color};` : s.color ? `border-color:${s.color}44;color:${s.color};` : ''}">
-        ${s.label}
+        data-status="${_esc(s.name)}"
+        style="${s.color && Filters.status === s.name ? `background:${_esc(s.color)};border-color:${_esc(s.color)};` : s.color ? `border-color:${_esc(s.color)}44;color:${_esc(s.color)};` : ''}">
+        ${_esc(s.label)}
       </button>`).join('');
     container.querySelectorAll('.status-pill').forEach(pill => {
       pill.addEventListener('click', () => {
@@ -505,11 +548,11 @@
   function _populateFilters() {
     const empSel = _el('filterEmployee');
     if (empSel) empSel.innerHTML = '<option value="">كل الموظفين</option>' +
-      Ref.employees.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+      Ref.employees.map(e => `<option value="${e.id}">${_esc(e.name)}</option>`).join('');
 
     const platSel = _el('filterPlatform');
     if (platSel) platSel.innerHTML = '<option value="">كل المنصات</option>' +
-      Ref.platforms.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+      Ref.platforms.map(p => `<option value="${_esc(p.name)}">${_esc(p.name)}</option>`).join('');
 
     const govSel = _el('filterGov');
     if (govSel) govSel.innerHTML = '<option value="">كل المحافظات</option>' +
@@ -527,6 +570,17 @@
     const n = _selected.size;
     bar.classList.toggle('visible', n > 0);
     _setText('bulkCount', `${n} ${n === 1 ? 'طلب محدد' : 'طلبات محددة'}`);
+    _syncSelectionCheckboxes();
+  }
+
+  /* FIX (audit #20): keep the header checkboxes in sync with the real
+     selection — after bulk delete/clear/reset they used to stay checked
+     while nothing was selected. */
+  function _syncSelectionCheckboxes() {
+    const pageIds = _currentPageOrders.map(o => o.id);
+    const allOnPage = pageIds.length > 0 && pageIds.every(id => _selected.has(id));
+    const pageChk = _el('selectPageChk'); if (pageChk) pageChk.checked = allOnPage;
+    const allChk  = _el('selectAllChk'); if (allChk)  allChk.checked  = allOnPage;
   }
 
   /* ──────────────────────────────────────
@@ -535,19 +589,22 @@
 
   function _populateFormSelects() {
     const statusSel = _el('orderStatus');
-    if (statusSel) statusSel.innerHTML = Ref.statuses.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+    if (statusSel) statusSel.innerHTML = Ref.statuses.map(s => `<option value="${_esc(s.name)}">${_esc(s.name)}</option>`).join('');
 
     const empSel = _el('orderEmployee');
     if (empSel) empSel.innerHTML = '<option value="">غير محدد</option>' +
-      Ref.employees.filter(e => e.status === 'active' || !e.status).map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+      Ref.employees.filter(e => e.status === 'active' || !e.status).map(e => `<option value="${e.id}">${_esc(e.name)}</option>`).join('');
 
     const platSel = _el('salesPlatform');
     if (platSel) platSel.innerHTML = '<option value="">غير محدد</option>' +
-      Ref.platforms.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+      Ref.platforms.map(p => `<option value="${_esc(p.name)}">${_esc(p.name)}</option>`).join('');
 
     const shipSel = _el('orderShippingCompany');
     if (shipSel) shipSel.innerHTML = '<option value="">بدون شركة</option>' +
-      Ref.shippingCompanies.map(s => `<option value="${s.id}" data-cost="${s.costCents || 0}">${s.name}</option>`).join('');
+      /* FIX (audit #1 Critical): data-cost must carry POUNDS — the save handler
+         at ~L729 passes it through _toCents (×100) again. Storing raw
+         costCents here inflated shipping (and totalCents/profitCents) 100×. */
+      Ref.shippingCompanies.map(s => `<option value="${s.id}" data-cost="${(s.costCents || 0) / 100}">${_esc(s.name)}</option>`).join('');
 
     const govSel = _el('customerGov');
     if (govSel) govSel.innerHTML = '<option value="">اختر المحافظة</option>' +
@@ -571,9 +628,21 @@
       titleEl.textContent = 'تعديل الطلب';
       iconEl.className = 'fas fa-pen';
       firebase.firestore().collection('orders').doc(_editingId).get().then(doc => {
+        /* FIX (audit #14): staleness guard — if the user closed the modal or
+           opened Add-mode before this resolves, DON'T fill the form (the
+           stale data would pre-fill an add-form and saving would duplicate
+           the order and double-decrement inventory). */
+        const overlayEl = _el('orderModalOverlay');
+        if (!_editingId || !overlayEl || !overlayEl.classList.contains('active')) return;
         if (!doc.exists) { _closeOrderModal(); return; }
         _editingOriginal = { id: doc.id, ...doc.data() };
         _fillOrderForm(_editingOriginal);
+      }).catch(err => {
+        /* FIX (audit #14): the rejection used to be unhandled, leaving an
+           open empty edit modal with no feedback. */
+        console.error('[Orders] edit load failed:', err);
+        _closeOrderModal();
+        window.VisionOverlays?.toast({ type: 'error', message: 'تعذر تحميل بيانات الطلب' });
       });
     } else {
       titleEl.textContent = 'إضافة طلب جديد';
@@ -632,6 +701,12 @@
       const d = order.createdAt.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
       const local = new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
       _el('orderDate').value = local;
+    } else {
+      /* FIX (audit #21): legacy order with no createdAt — default to NOW
+         instead of silently keeping the previous edit's date in the field. */
+      const n = new Date();
+      const localNow = new Date(n - n.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      const dateEl = _el('orderDate'); if (dateEl) dateEl.value = localNow;
     }
 
     (order.items || []).forEach(item => _addProductRow(item));
@@ -672,7 +747,16 @@
 
     if (item?.productId) {
       const sel = row.querySelector('.prod-name');
-      if (sel) sel.value = item.productId;
+      if (sel) {
+        sel.value = item.productId;
+        /* FIX (audit #13): if the product was deleted since the order was
+           saved, the select falls to the placeholder and the item is
+           silently dropped on save. Preserve it as a custom entry instead. */
+        if (sel.value !== item.productId) {
+          sel.value = '__custom__';
+          _switchToCustomInput(row, item.name || item.productId);
+        }
+      }
     } else if (item?.name) {
       const sel = row.querySelector('.prod-name');
       if (sel) sel.value = '__custom__';
@@ -747,17 +831,26 @@
      ────────────────────────────────────── */
 
   let _phoneTimer = null;
+  let _phoneSeq = 0;
   function _checkDuplicatePhone(phone) {
     clearTimeout(_phoneTimer);
     const warn = _el('phoneWarning');
     const text = _el('phoneWarningText');
-    if (!phone || phone.length < 10 || !warn) return;
+    /* FIX (audit #8): hide the stale warning as soon as the number drops
+       below 10 digits — it described input the user is no longer typing. */
+    if (!phone || phone.length < 10 || !warn) { if (warn) warn.hidden = true; return; }
+    /* FIX (audit #19): sequence the async lookups so a slow earlier response
+       can't resolve last and overwrite the warning for a newer number. */
+    const seq = ++_phoneSeq;
     _phoneTimer = setTimeout(async () => {
       try {
         const snap = await firebase.firestore().collection('orders')
           .where('customerPhone', '==', phone)
           .limit(5)
           .get();
+        if (seq !== _phoneSeq) return; // stale response — newer check in flight
+        const currentVal = _el('customerPhone')?.value.trim();
+        if (currentVal !== phone) return; // input changed while querying
         const matches = snap.docs.filter(d => d.id !== _editingId);
         if (matches.length) {
           text.textContent = `هذا الرقم موجود في ${matches.length}${matches.length===5?'+':''} طلب سابق`;
@@ -904,10 +997,13 @@
           const beforeItems = before.items || [];
           const afterItems  = data.items || [];
 
+          /* FIX (audit #3): SUM quantities per product instead of Map.set —
+             duplicate rows for the same product used to overwrite each other
+             (2+3 became 3), corrupting the inventory delta on every edit. */
           const beforeMap = new Map();
-          for (const it of beforeItems) { if (it.productId) beforeMap.set(it.productId, it.qty || 0); }
+          for (const it of beforeItems) { if (it.productId) beforeMap.set(it.productId, (beforeMap.get(it.productId) || 0) + (it.qty || 0)); }
           const afterMap  = new Map();
-          for (const it of afterItems)  { if (it.productId) afterMap.set(it.productId, it.qty || 0); }
+          for (const it of afterItems)  { if (it.productId) afterMap.set(it.productId, (afterMap.get(it.productId) || 0) + (it.qty || 0)); }
 
           const allIds = new Set([...beforeMap.keys(), ...afterMap.keys()]);
           const prodSnaps = new Map(); // pid → DocumentSnapshot
@@ -977,15 +1073,23 @@
             totalRevenueCents: data.statusType === 'delivered' ? (data.totalCents || 0) : 0,
           });
 
-          /* Inventory: decrement quantity, increment sold (using pre-read snapshots) */
+          /* Inventory: decrement quantity, increment sold (using pre-read snapshots).
+             FIX (audit #2): aggregate quantities per product BEFORE writing —
+             duplicate rows for the same product used to issue two updates
+             from the same stale snapshot, so the second overwrote the first
+             and only the last row's qty was deducted. */
+          const invDelta = new Map(); // productId → summed qty across rows
           for (const item of data.items) {
-            if (!item.productId) continue;
-            const prodSnap = prodSnaps.get(item.productId);
+            if (!item.productId) continue; // skip custom/manual entries
+            invDelta.set(item.productId, (invDelta.get(item.productId) || 0) + item.qty);
+          }
+          for (const [pid, qty] of invDelta) {
+            const prodSnap = prodSnaps.get(pid);
             if (!prodSnap || !prodSnap.exists) continue;
             const cur = prodSnap.data();
-            const newQty  = Math.max(0, (cur.quantity || 0) - item.qty);
-            const newSold = (cur.sold || 0) + item.qty;
-            tx.update(db.collection('products').doc(item.productId), { quantity: newQty, sold: newSold });
+            const newQty  = Math.max(0, (cur.quantity || 0) - qty);
+            const newSold = (cur.sold || 0) + qty;
+            tx.update(db.collection('products').doc(pid), { quantity: newQty, sold: newSold });
           }
         });
 
@@ -1008,9 +1112,30 @@
      ────────────────────────────────────── */
 
   function _openStatusModal(orderId) {
-    const order = _currentPageOrders.find(o => o.id === orderId); if (!order) return;
+    /* FIX (audit #6): the bulk selection survives page navigation, but this
+       used to look ONLY in _currentPageOrders and silently no-op when the
+       selected order was on another page. Fall back to a direct doc fetch. */
+    const order = _currentPageOrders.find(o => o.id === orderId);
     const overlay = _el('statusModalOverlay'); if (!overlay) return;
-    _el('statusModalOrderId').value = orderId;
+
+    if (!order) {
+      firebase.firestore().collection('orders').doc(orderId).get().then(snap => {
+        if (!snap.exists) {
+          window.VisionOverlays?.toast({ type: 'error', message: 'لم يتم العثور على الطلب' });
+          return;
+        }
+        _openStatusModalFor({ id: snap.id, ...snap.data() });
+      }).catch(() => {
+        window.VisionOverlays?.toast({ type: 'error', message: 'تعذر تحميل بيانات الطلب' });
+      });
+      return;
+    }
+    _openStatusModalFor(order);
+  }
+
+  function _openStatusModalFor(order) {
+    const overlay = _el('statusModalOverlay'); if (!overlay) return;
+    _el('statusModalOrderId').value = order.id;
     _setText('statusModalOrderInfo', `تغيير حالة طلب: ${order.customerName || ''}`);
     const sel = _el('newStatusSelect');
     if (sel) sel.innerHTML = Ref.statuses.map(s =>
@@ -1097,6 +1222,21 @@
           const [orderSnap, statsSnap] = await Promise.all([tx.get(orderRef), tx.get(statsRef)]);
           if (!orderSnap.exists) return;
           const o = orderSnap.data();
+
+          /* FIX (audit #17): deletion must RESTORE inventory — the save path
+             decrements stock, but delete only adjusted stats, so deleted
+             orders left quantity low and sold high forever. Aggregate the
+             order's items per product and pre-read the docs (all reads
+             before any write, per Firestore transaction rules). */
+          const restore = new Map();
+          (o.items || []).forEach(it => {
+            if (it.productId) restore.set(it.productId, (restore.get(it.productId) || 0) + (it.qty || 0));
+          });
+          const restoreSnaps = new Map();
+          for (const pid of restore.keys()) {
+            restoreSnaps.set(pid, await tx.get(db.collection('products').doc(pid)));
+          }
+
           tx.delete(orderRef);
 
           const bucket = _bucketDelta(o.statusType, -1);
@@ -1107,9 +1247,20 @@
             pending:   bucket.pending,
             totalRevenueCents: o.statusType === 'delivered' ? -(o.totalCents || 0) : 0,
           });
+
+          for (const [pid, qty] of restore) {
+            const snap = restoreSnaps.get(pid);
+            if (!snap || !snap.exists) continue;
+            const cur = snap.data();
+            tx.update(db.collection('products').doc(pid), {
+              quantity: (cur.quantity || 0) + qty,
+              sold:     Math.max(0, (cur.sold || 0) - qty),
+            });
+          }
         });
       }
       _selected.clear();
+      _syncSelectionCheckboxes();
       _updateBulkBar();
       _fetchTotalCount();
       window.VisionOverlays?.toast({ type: 'success', message: `تم حذف ${label}` });
@@ -1243,7 +1394,10 @@
     _el('filterPlatform')?.addEventListener('change', e => { Filters.platform    = e.target.value; _onFiltersChanged(); });
     _el('filterGov')?.addEventListener('change',      e => { Filters.governorate = e.target.value; _onFiltersChanged(); });
     _el('filterIsCOD')?.addEventListener('change',    e => { Filters.isCOD       = e.target.value; _onFiltersChanged(); });
-    _el('dateFrom')?.addEventListener('change', e => { Filters.dateFrom = e.target.value ? new Date(e.target.value) : null; _onFiltersChanged(); });
+    /* FIX (audit #4): date-only strings parse as UTC midnight — in Egypt
+       the from-boundary landed at 02:00/03:00 local, excluding orders
+       created 00:00–03:00 on the from-date. Anchor to LOCAL midnight. */
+    _el('dateFrom')?.addEventListener('change', e => { Filters.dateFrom = e.target.value ? new Date(e.target.value + 'T00:00:00') : null; _onFiltersChanged(); });
     _el('dateTo')?.addEventListener('change',   e => { Filters.dateTo   = e.target.value ? new Date(e.target.value + 'T23:59:59') : null; _onFiltersChanged(); });
 
     _el('resetFiltersBtn')?.addEventListener('click', () => {
@@ -1263,6 +1417,21 @@
 
     _el('selectPageChk')?.addEventListener('change', e => {
       _currentPageOrders.forEach(o => { e.target.checked ? _selected.add(o.id) : _selected.delete(o.id); });
+      _renderTable(_currentPageOrders);
+      _updateBulkBar();
+    });
+
+    /* FIX (audit #11): the header "تحديد الكل" checkbox was never wired on
+       this page. With cursor pagination only the current page is in memory,
+       so it toggles the current page's rows; unchecking also clears the
+       whole cross-page selection (a one-tap deselect-all). */
+    _el('selectAllChk')?.addEventListener('change', e => {
+      if (e.target.checked) {
+        _currentPageOrders.forEach(o => _selected.add(o.id));
+      } else {
+        _selected.clear();
+        const pageChk = _el('selectPageChk'); if (pageChk) pageChk.checked = false;
+      }
       _renderTable(_currentPageOrders);
       _updateBulkBar();
     });
@@ -1291,8 +1460,11 @@
     AuthGuard.protect({
       adminOnly: false,
       onReady: () => {
+        /* FIX (audit #16 companion): .admin-only now defaults to hidden in
+           base.css — show explicitly for admins instead of only hiding for
+           non-admins (which left it visible-by-default for everyone). */
         const isAdmin = window.VisionAuth?.isAdmin();
-        if (!isAdmin) document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin ? '' : 'none');
 
         Sidebar.init({ activePage: 'orders' });
         Topbar.init({ title: 'الطلبات والعملاء' });

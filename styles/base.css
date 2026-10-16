@@ -239,6 +239,14 @@ p  { color: var(--color-text-secondary); line-height: var(--line-height-relaxed)
   pointer-events: none;
 }
 
+/* ── Admin-only elements ──
+   Default hidden for everyone; pages show them explicitly once
+   VisionAuth.isAdmin() resolves (orders.js / inventory.js).
+   FIX (audit #16): previously nothing hid these by default, so employees
+   saw admin buttons until JS ran — and on pages without a hide branch,
+   forever. */
+.admin-only { display: none; }
+
 /* ── Live Indicator Dot ── */
 .live-dot {
   width: 8px;

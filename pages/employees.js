@@ -56,15 +56,19 @@
 
   /* Status type from orders (mirrors dashboard logic) */
   function _isDelivered(o) {
+    /* FIX (audit #23): prefer the authoritative statusType the order actually
+       stores (orders.js writes it on save/status change) — the keyword regex
+       missed custom delivered-status names and misclassified in-flight ones. */
+    if (o.statusType) return o.statusType === 'delivered';
     const lc = (o.status || '').toLowerCase();
-    return /تسليم|مسلم|delivered/.test(lc);
+    return /تسليم|مسلم|تسلم|delivered/.test(lc);
   }
 
   /* Per-employee order stats */
   function _empStats(empId) {
     const empOrders = _orders.filter(o => o.employeeId === empId);
     const delivered = empOrders.filter(_isDelivered);
-    const revenue   = delivered.reduce((s, o) => s + (Number(o.total) || 0), 0);
+    const revenue   = delivered.reduce((s, o) => s + (o.totalCents || 0), 0) / 100;
     return { total: empOrders.length, delivered: delivered.length, revenue };
   }
 
@@ -266,7 +270,10 @@
         maxEmployees = lic.usageCaps.maxEmployees;
       }
     }
-    var currentVisible = _visibleEmployees().length;
+    /* FIX (audit #24): count only ACTIVE employees toward the licensing cap —
+       _visibleEmployees() includes SUSENDED ones, so suspended seats could
+       never be freed (there is no delete path) and blocked new hires. */
+    var currentVisible = _visibleEmployees().filter(e => (e.status || 'active') === 'active').length;
     if (currentVisible >= maxEmployees) {
       window.VisionOverlays?.modal({
         title: 'الحد الأقصى للموظفين',
@@ -299,19 +306,29 @@
       const tempAuth = secondaryApp.auth();
       const cred     = await tempAuth.createUserWithEmailAndPassword(email, password);
       const uid      = cred.user.uid;
-      await tempAuth.signOut();
 
-      /* Write employee doc with default permissions */
-      await window.firebase.firestore().collection('employees').doc(uid).set({
-        name,
-        email,
-        role,
-        status: 'active',
-        permissions: role === 'admin'
-          ? Object.fromEntries(PERMISSIONS.map(p => [p.key, true]))
-          : Object.fromEntries(PERMISSIONS.map(p => [p.key, false])),
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      });
+      try {
+        /* Write employee doc with default permissions */
+        await window.firebase.firestore().collection('employees').doc(uid).set({
+          name,
+          email,
+          role,
+          status: 'active',
+          permissions: role === 'admin'
+            ? Object.fromEntries(PERMISSIONS.map(p => [p.key, true]))
+            : Object.fromEntries(PERMISSIONS.map(p => [p.key, false])),
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      } catch (docErr) {
+        /* FIX (audit #20): compensate — a failed doc write used to leave an
+           ORPHANED Auth account that blocks retries with
+           auth/email-already-in-use and nothing to clean up. Delete the
+           just-created user before rethrowing. */
+        try { await cred.user.delete(); } catch (_) {}
+        throw docErr;
+      }
+
+      await tempAuth.signOut();
 
       window.VisionOverlays?.toast({ type: 'success', title: 'تم الإنشاء', message: `تم إنشاء حساب ${name} بنجاح` });
       _closeAddModal();
@@ -353,10 +370,21 @@
     _el('editEmpOverlay')?.classList.add('active');
     document.body.style.overflow = 'hidden';
 
-    /* Re-hide permissions if role changes */
-    roleEl?.addEventListener('change', e => {
-      if (section) section.style.display = e.target.value === 'admin' ? 'none' : '';
-    }, { once: true });
+    /* FIX (audit #22): wire the role select ONCE (it previously added a new
+       {once:true} listener on every modal open, and the once flag broke the
+       visibility update after the first role change). */
+    if (roleEl && !roleEl.dataset.roleWired) {
+      roleEl.dataset.roleWired = '1';
+      roleEl.addEventListener('change', e => {
+        const newRole = e.target.value;
+        if (section) section.style.display = newRole === 'admin' ? 'none' : '';
+        /* FIX (audit #21): re-render the grid from EMPTY permissions when
+           leaving the admin role — the admin grid pre-checks everything, so
+           demoting admin→user used to save the employee with every
+           permission still enabled (silent privilege retention). */
+        _renderPermissionsGrid({}, newRole);
+      });
+    }
   }
 
   function _closeEditModal() {

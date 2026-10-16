@@ -77,7 +77,13 @@
     if (!status) {
       // No licensing data yet — show loading/unknown state
       const icon = _el('subStatusIcon');
-      if (icon) { icon.className = 'sub-status-icon'; icon.querySelector('i').className = 'fas fa-shield-halved'; }
+      /* FIX (audit #25): guard the icon query — this branch didn't null-check
+         like its sibling at :109 (latent TypeError if the <i> was removed). */
+      if (icon) {
+        icon.className = 'sub-status-icon';
+        const i = icon.querySelector('i');
+        if (i) i.className = 'fas fa-shield-halved';
+      }
       _setText('subStatusValue', 'جاري التحميل…');
       _setText('subStatusDetail', '');
       const daysEl = _el('subStatusDays');
@@ -143,8 +149,16 @@
     if (daysEl) {
       daysEl.className = 'sub-status-days sub-status-days--' + stateClass;
       if (daysLeft === null) {
-        _setText('subStatusDaysNum', '∞');
-        _setText('subStatusDaysLabel', 'مفتوح');
+        /* FIX (audit #23): "∞ مفتوح" only makes sense for an ACTIVE
+           open-ended subscription — a PAUSED system with no endDate used to
+           claim it was open while the value said "النظام متوقف". */
+        if (!isActive) {
+          _setText('subStatusDaysNum', '—');
+          _setText('subStatusDaysLabel', 'متوقف');
+        } else {
+          _setText('subStatusDaysNum', '∞');
+          _setText('subStatusDaysLabel', 'مفتوح');
+        }
       } else if (daysLeft <= 0) {
         _setText('subStatusDaysNum', Math.abs(daysLeft).toLocaleString('ar-EG'));
         _setText('subStatusDaysLabel', 'منذ');
@@ -204,7 +218,7 @@
         const orders    = snap.docs.map(d => d.data());
         const delivered = orders.filter(o => _isDelivered(o.status));
         const pending   = orders.filter(o => !_isDelivered(o.status) && !_isCancelled(o.status));
-        const revenue   = delivered.reduce((s, o) => s + (Number(o.total) || 0), 0);
+        const revenue   = delivered.reduce((s, o) => s + (o.totalCents || 0), 0) / 100;
 
         _setText('statTodayOrders',    orders.length);
         _setText('statTodayDelivered', delivered.length);
@@ -261,7 +275,7 @@
           <span class="badge badge-dot ${badgeClass}">${o.status || 'بدون حالة'}</span>
         </td>
         <td class="font-bold" style="font-variant-numeric:tabular-nums;">
-          ${_fmtCurrency(o.total)}
+          ${_fmtCurrency((o.totalCents || 0) / 100)}
         </td>
         <td class="text-xs text-muted" style="font-variant-numeric:tabular-nums;">
           ${_fmtTime(o.createdAt)}

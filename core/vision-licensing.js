@@ -180,15 +180,56 @@
      * protection (login hasn't confirmed a user yet; suspended IS the
      * target page).
      */
-    if (_state.cached.isActive === false && !_isSuperAdmin()) {
+    if (_state.cached.isActive === false) {
       var currentPage = (window.location.pathname || '').split('/').pop().toLowerCase();
       if (currentPage !== 'suspended.html' && currentPage !== 'login.html') {
-        _log('system inactive — redirecting non-super_admin to suspended.html');
-        setTimeout(function () {
-          window.location.replace('suspended.html');
-        }, 100);
+        /* FIX (audit core #2): the licensing snapshot can resolve BEFORE
+           VisionAuth finishes its async role chain — the raw _isSuperAdmin()
+           check wrongly locked the owner out of dashboard.html (which holds
+           the resume control) and could ping-pong suspended↔dashboard.
+           Enforce only once the auth role has settled. */
+        _enforceLockdownWhenAuthSettled();
       }
     }
+  }
+
+  /**
+   * Wait (up to ~4s, matching auth-guard's budget) for VisionAuth to
+   * resolve the current user + role, then redirect to suspended.html if
+   * the system is still inactive and the user is not super_admin.
+   */
+  function _enforceLockdownWhenAuthSettled() {
+    if (_isSuperAdmin()) { _log('system inactive — super_admin, staying put'); return; }
+    if (_state.lockdownPending) return; // one timer at most
+    _state.lockdownPending = true;
+
+    var attempts = 0;
+    var timer = setInterval(function () {
+      attempts++;
+      /* System reactivated while we were waiting — stand down. */
+      if (_state.cached.isActive !== false) {
+        clearInterval(timer);
+        _state.lockdownPending = false;
+        return;
+      }
+      if (_isSuperAdmin()) {
+        clearInterval(timer);
+        _state.lockdownPending = false;
+        _log('system inactive — super_admin resolved, staying put');
+        return;
+      }
+      var user = window.VisionAuth ? window.VisionAuth.getUser() : null;
+      if (user || attempts >= 20) { // role chain done (or ~4s budget spent)
+        clearInterval(timer);
+        _state.lockdownPending = false;
+        if (_state.cached.isActive === false && !_isSuperAdmin()) {
+          _log('system inactive — redirecting non-super_admin to suspended.html');
+          setTimeout(function () {
+            window.location.replace('suspended.html');
+          }, 100);
+        }
+      }
+    }, 200);
   }
 
   /* ─────────────────────────────────────────────
@@ -431,6 +472,12 @@
         },
         (error) => {
           _err('sync listener error', error);
+
+          /* FIX (audit core #4): reset the sync flag on error so the next
+             startSync() call can retry — _state.syncing used to stay true
+             forever, permanently disabling any retry path. */
+          _state.syncing = false;
+
           // Keep operating with last-known-good cached state
           if (window.VisionOverlays && typeof window.VisionOverlays.toast === 'function') {
             window.VisionOverlays.toast({
@@ -440,6 +487,15 @@
               duration: 8000,
             });
           }
+
+          /* FIX (audit core #4): retry once after 15s — permanent listener
+             failures used to leave enforcement dead for the whole session. */
+          setTimeout(function () {
+            if (!_state.syncing && !_state.unsubFn) {
+              _log('retrying licensing sync after error...');
+              startSync();
+            }
+          }, 15000);
         }
       );
 
@@ -556,7 +612,19 @@
     if (base.getTime() < Date.now()) {
       base.setTime(Date.now());
     }
-    base.setMonth(base.getMonth() + months);
+
+    /* FIX (audit core #6): setMonth overflows at month-ends (Jan 31 + 1
+       month → Mar 3), silently granting/shortening days. Clamp to the
+       last day of the target month. */
+    const targetDay   = base.getDate();
+    const targetMonth = base.getMonth() + months;
+    base.setMonth(targetMonth);
+    /* setMonth rolled over to the next month if the day doesn't exist there */
+    if (base.getMonth() !== ((targetMonth % 12) + 12) % 12) {
+      base.setDate(0); // last day of the previous month
+    } else {
+      base.setDate(targetDay);
+    }
 
     const newEndDate = firebase.firestore.Timestamp.fromDate(base);
     const entry = _historyEntry('renewed', months);

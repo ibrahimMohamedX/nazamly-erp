@@ -37,8 +37,12 @@
         'h1', 'h2', 'h3', 'h4', 'h5', 'h6'
     ]);
 
-    /** Whitelist of attributes that survive sanitizeHtml() */
-    const ALLOWED_ATTRS = new Set(['href', 'title', 'target', 'class', 'dir', 'lang', 'id', 'type', 'placeholder', 'autocomplete', 'aria-label']);
+    /** Whitelist of attributes that survive sanitizeHtml()
+     *  FIX (audit core #19): 'id' removed — Firestore-origin notification
+     *  content is injected via innerHTML, and an injected id could DOM-clobber
+     *  ids the app later queries (e.g. suppressing the expiry-warning banner
+     *  by occupying 'vision-sub-warning-banner'). */
+    const ALLOWED_ATTRS = new Set(['href', 'title', 'target', 'class', 'dir', 'lang', 'type', 'placeholder', 'autocomplete', 'aria-label']);
 
     /** Valid notification type strings */
     const VALID_TYPES = new Set([

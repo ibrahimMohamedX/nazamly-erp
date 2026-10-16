@@ -49,7 +49,9 @@
               <p class="page-subtitle">إدارة الطلبات ومتابعة العملاء</p>
             </div>
             <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;">
-              <button class="btn btn-secondary" id="importBtn"><i class="fas fa-file-import"></i> استيراد</button>
+              <!-- FIX (audit #10): removed the dead "استيراد" button — it had no
+                   handler anywhere in the repo (advertised a feature that
+                   never existed). -->
               <button class="btn btn-secondary" id="exportBtn"><i class="fas fa-file-export"></i> تصدير</button>
               <button class="btn btn-primary"   id="addOrderBtn"><i class="fas fa-plus"></i> إضافة طلب</button>
             </div>

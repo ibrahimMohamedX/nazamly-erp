@@ -98,6 +98,7 @@
       case '90d':         return { from: new Date(now - 90 * 86400000), to: now };
       case 'ytd':         return { from: new Date(y, 0, 1),        to: now };
       case 'custom':      return { from: from || new Date(y, m, 1), to: to || now };
+      case 'all':         return { from: new Date(2000, 0, 1),     to: now };
       default:            return { from: new Date(y, m, 1),         to: now };
     }
   }
@@ -130,6 +131,21 @@
     return Store.categories.find(c => c.name === name)?.color || '#64748B';
   }
 
+/* FIX (audit #7): the 13-month in-memory store doesn't reflect ALL expenses
+   — a category may appear unused but actually have expenses beyond the window.
+   Count against the full Firestore collection via server query. */
+  async function _countExpensesInCategory(catName) {
+    if (!catName) return 0;
+    try {
+      const snap = await firebase.firestore()
+        .collection('expenses').where('category', '==', catName).count().get();
+      return snap.data().count;
+    } catch (err) {
+      console.error('[Expenses] category usage count:', err);
+      return 0;
+    }
+  }
+
   function _scheduleRender() {
     clearTimeout(_renderTimer);
     _renderTimer = setTimeout(_render, 60);
@@ -148,7 +164,13 @@
           .join(' ').toLowerCase();
         if (!hay.includes(search)) return false;
       }
-      if (Filters.category && e.category !== Filters.category) return false;
+      /* FIX (audit #3): the overview's "غير محدد" row sets the category
+         filter to that label, but uncategorized expenses have an undefined
+         category — normalize both sides so the filter actually matches. */
+      if (Filters.category) {
+        const cat = e.category || 'غير محدد';
+        if (cat !== Filters.category) return false;
+      }
       if (Filters.payment  && e.paymentMethod !== Filters.payment) return false;
       return true;
     });
@@ -391,6 +413,11 @@
         Filters.category = pill.dataset.cat;
         _page = 1;
         _renderCategoryPills();
+        /* FIX (audit #5): sync the filterCategory SELECT from the pill —
+           it used to keep showing "كل التصنيفات" while the list was
+           already filtered by a category. */
+        const catSel = _el('filterCategory');
+        if (catSel) catSel.value = Filters.category;
         _scheduleRender();
       })
     );
@@ -685,9 +712,16 @@
       if (titleEl) titleEl.textContent = 'إضافة مصروف';
       if (iconEl)  iconEl.className = 'fas fa-plus-circle';
       if (editId)  editId.value = '';
-      /* Reset */
+      /* Reset — FIX (audit #2): also reset category + payment method; the
+         selects previously kept the last-edited record's values, silently
+         attributing new expenses to them. */
       ['expAmount','expDescription','expNotes'].forEach(id => { const e = _el(id); if (e) e.value = ''; });
-      const today = new Date().toISOString().split('T')[0];
+      const catSel = _el('expCategory');  if (catSel) catSel.value = '';
+      const pmSel  = _el('expPaymentMethod'); if (pmSel) pmSel.value = 'نقدي';
+      /* FIX (audit #4): local date, not UTC — entries made after local
+         midnight (00:00–02:00/03:00) used to default to yesterday. */
+      const dNow = new Date(); dNow.setMinutes(dNow.getMinutes() - dNow.getTimezoneOffset());
+      const today = dNow.toISOString().split('T')[0];
       const dateEl = _el('expDate'); if (dateEl) dateEl.value = today;
     }
 
@@ -743,7 +777,8 @@
       category,
       categoryColor: _catColor(category),
       description,
-      date: firebase.firestore.Timestamp.fromDate(new Date(dateVal)),
+      date: firebase.firestore.Timestamp.fromDate(
+        new Date(dateVal + 'T00:00:00') /* local midnight (fix: UTC parse) */ ),
       paymentMethod: payment,
       notes,
       createdBy:    user?.displayName || user?.email?.split('@')[0] || 'مدير',
@@ -813,6 +848,9 @@
       if (titleEl) titleEl.textContent = 'إضافة مصروف متكرر';
       if (editId)  editId.value = '';
       ['recName','recAmount','recNotes'].forEach(id => { const e = _el(id); if (e) e.value = ''; });
+      /* FIX (audit #2 companion): reset category + day too on add-mode. */
+      const rCat = _el('recCategory');   if (rCat) rCat.value = '';
+      const rDay = _el('recDayOfMonth'); if (rDay) rDay.value = '1';
     }
     overlay.classList.add('active');
     document.body.style.overflow = 'hidden';
@@ -841,7 +879,12 @@
     if (spinner) spinner.hidden = false;
     if (text)    text.textContent = 'جاري الحفظ...';
 
-    const payload = { name, category, amountCents, amount: amountCents / 100, dayOfMonth, notes, active: true };
+    /* FIX (audit #1): preserve the paused/active flag on EDIT — the payload
+       used to hardcode active:true, silently re-activating a paused
+       recurring expense whenever its details were edited. */
+    const currentRec = editId ? Store.recurring.find(r => r.id === editId) : null;
+    const payload = { name, category, amountCents, amount: amountCents / 100, dayOfMonth, notes,
+                      active: currentRec ? currentRec.active !== false : true };
     try {
       if (editId) {
         await firebase.firestore().collection('recurring_expenses').doc(editId).update(payload);
@@ -948,7 +991,7 @@
 
   async function _deleteCategory(catId) {
     const cat = Store.categories.find(c => c.id === catId); if (!cat) return;
-    const inUse = Store.expenses.filter(e => e.category === cat.name).length;
+    const inUse = await _countExpensesInCategory(cat.name);
     const body  = inUse
       ? `هذا التصنيف مستخدم في ${inUse} مصروف. لن تتأثر المصاريف الموجودة بعد الحذف.`
       : `هل تريد حذف تصنيف "${cat.name}"؟`;
@@ -970,15 +1013,33 @@
      ────────────────────────────────────── */
 
   async function _seedCategories() {
-    /* Only seed if the collection is empty */
+    /* Only seed if the collection is empty.
+       FIX (audit #6): guard with a localStorage lock — two concurrent
+       first-loads (two tabs/admins) used to both observe "empty" and
+       double-seed the default categories. After acquiring the seeding lock,
+       re-check emptiness to ensure another tab didn't already seed. */
+    const LOCK_KEY = 'nazamly-cat-seed-lock';
+    try {
+      if (localStorage.getItem(LOCK_KEY) === 'done') return;
+    } catch (_) {}
     const snap = await firebase.firestore().collection('expense_categories').limit(1).get();
-    if (!snap.empty) return;
+    if (!snap.empty) {
+      try { localStorage.setItem(LOCK_KEY, 'done'); } catch (_) {}
+      return;
+    }
+    try { localStorage.setItem(LOCK_KEY, 'seeding'); } catch (_) {}
+    const recheck = await firebase.firestore().collection('expense_categories').limit(1).get();
+    if (!recheck.empty) {
+      try { localStorage.setItem(LOCK_KEY, 'done'); } catch (_) {}
+      return;
+    }
     const batch = firebase.firestore().batch();
     DEFAULT_CATEGORIES.forEach((cat, i) => {
       const ref = firebase.firestore().collection('expense_categories').doc();
       batch.set(ref, { ...cat, order: i, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
     });
     await batch.commit();
+    try { localStorage.setItem(LOCK_KEY, 'done'); } catch (_) {}
   }
 
   function _loadData() {
@@ -1063,7 +1124,9 @@
       const from = _el('dateFrom')?.value;
       const to   = _el('dateTo')?.value;
       if (!from || !to) return;
-      _period = _buildPeriod('custom', new Date(from), new Date(to + 'T23:59:59'));
+      _period = _buildPeriod('custom',
+        new Date(from + 'T00:00:00'),  /* local midnight (fix: UTC parse) */
+        new Date(to + 'T23:59:59'));
       _reloadExpenses();
       _scheduleRender();
     };

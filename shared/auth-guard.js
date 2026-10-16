@@ -195,7 +195,13 @@
            the time onReady fires. */
         _waitForVisionAuthUser(fbUser.uid).then(function (enrichedUser) {
           // ── Role guard ──
-          if (options.adminOnly && window.VisionAuth && !window.VisionAuth.isAdmin()) {
+          /* FIX (audit core #5): on a 4s timeout VisionAuth.getUser() may
+             still be null (slow employee-doc read) — redirecting from an
+             adminOnly page used to demote legitimate admins. When the role
+             is genuinely unknown, skip the adminOnly check and let the
+             server-side Firestore rules be the real guard. */
+          const roleUnknown = !enrichedUser || !window.VisionAuth;
+          if (options.adminOnly && !roleUnknown && window.VisionAuth && !window.VisionAuth.isAdmin()) {
             window.location.replace('orders.html');
             return;
           }

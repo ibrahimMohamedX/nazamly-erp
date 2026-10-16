@@ -154,7 +154,8 @@
       "vision-config.js", // no deps
       "vision-security.js", // no deps
       "vision-overlays.js", // needs VisionSecurity, VisionConfig
-      "vision-notifications.js", // needs VisionConfig, VisionOverlays
+      // "vision-notifications.js" — REMOVED (audit core #28): whole module
+      // had zero consumers; stop loading it, save one HTTP request.
       "vision-auth.js", // needs VisionConfig, VisionOverlays
       "vision-firebase.js", // needs all above
       "vision-licensing.js", // needs VisionFirebase, VisionConfig, VisionAuth
@@ -267,6 +268,8 @@
     }
   }
 
+  var _fbInitPromise = null; // FIX (audit core #12): awaited in bootstrap
+
   /* ─────────────────────────────────────────────
    * INITIALIZE VISION MODULES
    * ───────────────────────────────────────────── */
@@ -281,7 +284,10 @@
 
     // VisionFirebase — async init (offline persistence attempt)
     if (window.VisionFirebase) {
-      window.VisionFirebase.init({ offlinePersistence: true })
+      /* FIX (audit core #12): keep the init promise — bootstrap awaits it
+         before startSyncs() so the system-status / notification listeners
+         can't be silently skipped when IndexedDB setup is slow. */
+      _fbInitPromise = window.VisionFirebase.init({ offlinePersistence: true })
         .then(function () {
           log("VisionFirebase initialized");
         })
@@ -335,13 +341,26 @@
 
     // Per-user subscription sync — starts when a user logs in
     if (window.VisionAuth) {
+      var _lastSubUid = null;
       window.VisionAuth.onAuthStateChanged(function (user) {
         if (user && user.uid) {
           try {
             window.VisionFirebase.syncSubscription(user.uid);
+            _lastSubUid = user.uid;
             log("subscription sync started for " + user.uid);
           } catch (e) {
             err("syncSubscription failed", e);
+          }
+        } else {
+          /* FIX (audit core #8): unsubscribe the previous user's listener on
+             sign-out — the old key subscription_{uid} used to stay attached
+             forever. Track the uid to build the exact key. */
+          if (window.VisionFirebase && _lastSubUid) {
+            try {
+              window.VisionFirebase.unsubscribe('subscription_' + _lastSubUid);
+              log("subscription sync stopped for " + _lastSubUid);
+            } catch (_) {}
+            _lastSubUid = null;
           }
         }
       });
@@ -386,6 +405,10 @@
 
     // 5. Fetch client configuration from Firestore
     await fetchConfig();
+
+    // FIX (audit core #12): wait for VisionFirebase.init to complete before
+    // attaching its listeners (see initModules).
+    if (_fbInitPromise) { try { await _fbInitPromise; } catch (_) {} }
 
     // 6. Start real-time Firestore listeners
     startSyncs();

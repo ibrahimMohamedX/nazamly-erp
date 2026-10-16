@@ -842,10 +842,13 @@
 @media print {
   body { margin: 0; padding: 0; background: #fff !important; }
   .no-print, #sidebar-mount, .app-main > header, .app-main > .topbar, #skeletonLoader { display: none !important; }
+  /* FIX (audit #30): position:fixed content is NEVER fragmented across
+     pages — multi-label printing only produced the labels fitting one
+     page. Static positioning lets the normal document flow paginate with
+     the page-break rules below. */
   #printArea {
     display: block !important;
-    position: fixed;
-    inset: 0;
+    position: static;
     z-index: 99999;
     background: #fff;
   }

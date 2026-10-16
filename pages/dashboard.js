@@ -81,19 +81,22 @@
   function _buildPeriod(key) {
     const now   = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    /* FIX (audit #6): periods that end "now" are OPEN-ENDED — new orders
+       arriving after page load must still count. `to` stays a concrete date
+       for chart bucket spans, but _inWindow uses a live clock for these. */
     switch (key) {
-      case 'today':     return { from: today, to: now, key };
+      case 'today':     return { from: today, to: now, key, openEnded: true };
       case 'yesterday': {
         const y  = new Date(today); y.setDate(y.getDate() - 1);
         const ye = new Date(y);     ye.setHours(23, 59, 59, 999);
         return { from: y, to: ye, key };
       }
-      case '7d':   return { from: new Date(today.getTime() - 6  * 86400000), to: now, key };
-      case '30d':  return { from: new Date(today.getTime() - 29 * 86400000), to: now, key };
-      case '90d':  return { from: new Date(today.getTime() - 89 * 86400000), to: now, key };
-      case 'month':return { from: new Date(now.getFullYear(), now.getMonth(), 1), to: now, key };
-      case 'ytd':  return { from: new Date(now.getFullYear(), 0, 1), to: now, key };
-      default:     return { from: new Date(today.getTime() - 29 * 86400000), to: now, key: '30d' };
+      case '7d':   return { from: new Date(today.getTime() - 6  * 86400000), to: now, key, openEnded: true };
+      case '30d':  return { from: new Date(today.getTime() - 29 * 86400000), to: now, key, openEnded: true };
+      case '90d':  return { from: new Date(today.getTime() - 89 * 86400000), to: now, key, openEnded: true };
+      case 'month':return { from: new Date(now.getFullYear(), now.getMonth(), 1), to: now, key, openEnded: true };
+      case 'ytd':  return { from: new Date(now.getFullYear(), 0, 1), to: now, key, openEnded: true };
+      default:     return { from: new Date(today.getTime() - 29 * 86400000), to: now, key: '30d', openEnded: true };
     }
   }
 
@@ -137,7 +140,11 @@
 
   function _inWindow(ts, from, to) {
     const d = _toDate(ts);
-    return d && d >= from && d <= to;
+    if (!d) return false;
+    /* FIX (audit #6): open-ended periods compare against the LIVE clock so
+       real-time snapshots for newly created orders are not filtered out. */
+    const end = (_period && _period.openEnded) ? new Date() : to;
+    return d >= from && d <= end;
   }
 
   function _filteredOrders(from, to) {
@@ -162,10 +169,10 @@
     const delivered = orders.filter(_isDelivered);
     const cancelled = orders.filter(_isCancelled);
 
-    const totalRevenue  = delivered.reduce((s, o) => s + (Number(o.total)       || 0), 0);
-    const shippingCosts = delivered.reduce((s, o) => s + (Number(o.shippingCost)|| 0), 0);
-    const grossProfit   = delivered.reduce((s, o) => s + (Number(o.profit)      || 0), 0);
-    const productCost   = delivered.reduce((s, o) => s + (Number(o.cost)        || 0), 0);
+    const totalRevenue  = delivered.reduce((s, o) => s + (o.totalCents || 0), 0) / 100;
+    const shippingCosts = delivered.reduce((s, o) => s + (o.shippingCostCents || 0), 0) / 100;
+    const grossProfit   = delivered.reduce((s, o) => s + (o.profitCents || 0), 0) / 100;
+    const productCost   = delivered.reduce((s, o) => s + (o.costCents || 0), 0) / 100;
     const totalExpenses = expenses.reduce ((s, e) => s + (Number(e.amount)      || 0), 0);
     const netProfit     = grossProfit - totalExpenses;
     const aov           = delivered.length ? totalRevenue / delivered.length : 0;
@@ -326,7 +333,7 @@
     Store.orders.filter(_isDelivered).forEach(o => {
       const d = _toDate(o.createdAt); if (!d) return;
       const k = d.toLocaleDateString('ar-EG', { month: 'short', year: '2-digit' });
-      if (months.has(k)) months.set(k, months.get(k) + (Number(o.total) || 0));
+      if (months.has(k)) months.set(k, months.get(k) + ((o.totalCents || 0) / 100));
     });
     _charts[id] = new Chart(canvas, {
       type: 'bar',
@@ -377,7 +384,7 @@
     del.forEach(o => {
       const d = _toDate(o.createdAt); if (!d) return;
       const k = d.toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' });
-      if (map.has(k)) { const e = map.get(k); e.sum += Number(o.total) || 0; e.n++; }
+      if (map.has(k)) { const e = map.get(k); e.sum += (o.totalCents || 0) / 100; e.n++; }
     });
     _charts[id] = new Chart(canvas, {
       type: 'line',
@@ -413,8 +420,8 @@
   function _drawGender(orders) {
     const id = 'genderChart'; _resetChart(id);
     const canvas = _el(id); if (!canvas) return;
-    const male   = orders.filter(o => o.gender === 'male').length;
-    const female = orders.filter(o => o.gender === 'female').length;
+    const male   = orders.filter(o => o.gender === 'ذكر').length;
+    const female = orders.filter(o => o.gender === 'أنثى').length;
     const other  = orders.length - male - female;
     _charts[id] = new Chart(canvas, {
       type: 'doughnut',
@@ -430,7 +437,9 @@
   function _drawCustomerType(orders) {
     const id = 'customerTypeChart'; _resetChart(id);
     const canvas = _el(id); if (!canvas) return;
-    const ret  = orders.filter(o => o.customerType === 'returning').length;
+    const _phoneSeen = {};
+    orders.forEach(o => { const ph = (o.customerPhone || '').trim(); if (ph) _phoneSeen[ph] = (_phoneSeen[ph] || 0) + 1; });
+    const ret  = orders.filter(o => { const ph = (o.customerPhone || '').trim(); return ph && _phoneSeen[ph] > 1; }).length;
     const newC = orders.length - ret;
     _charts[id] = new Chart(canvas, {
       type: 'doughnut',
@@ -446,7 +455,7 @@
   function _drawPayment(orders) {
     const id = 'paymentTypeChart'; _resetChart(id);
     const canvas = _el(id); if (!canvas) return;
-    const cod    = orders.filter(o => /cod|كاش|استلام/i.test(o.paymentType || '')).length;
+    const cod    = orders.filter(o => o.isCOD === true).length;
     const online = orders.length - cod;
     _charts[id] = new Chart(canvas, {
       type: 'doughnut',
@@ -531,10 +540,10 @@
   function _renderPnL(orders, expenses) {
     const el = _el('profitLossStatement'); if (!el) return;
     const del       = orders.filter(_isDelivered);
-    const revenue   = del.reduce((s, o) => s + (Number(o.total)       || 0), 0);
-    const shipCost  = del.reduce((s, o) => s + (Number(o.shippingCost)|| 0), 0);
-    const prodCost  = del.reduce((s, o) => s + (Number(o.cost)        || 0), 0);
-    const gross     = del.reduce((s, o) => s + (Number(o.profit)      || 0), 0);
+    const revenue   = del.reduce((s, o) => s + (o.totalCents || 0), 0) / 100;
+    const shipCost  = del.reduce((s, o) => s + (o.shippingCostCents || 0), 0) / 100;
+    const prodCost  = del.reduce((s, o) => s + (o.costCents || 0), 0) / 100;
+    const gross     = del.reduce((s, o) => s + (o.profitCents || 0), 0) / 100;
     const totalExp  = expenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
     const net       = gross - totalExp;
     const margin    = revenue ? Math.round((net / revenue) * 100) : 0;
@@ -596,7 +605,7 @@
     orders.filter(_isDelivered).forEach(o => {
       const id = o.employeeId || 'unknown';
       if (!map.has(id)) map.set(id, { id, n: 0, rev: 0 });
-      const e = map.get(id); e.n++; e.rev += Number(o.total) || 0;
+      const e = map.get(id); e.n++; e.rev += (o.totalCents || 0) / 100;
     });
     const sorted = [...map.values()].sort((a, b) => b.n - a.n).slice(0, 8);
     if (!sorted.length) { el.innerHTML = `<div class="empty-state"><div class="empty-state-icon"><i class="fas fa-users"></i></div><div class="empty-state-title">لا توجد بيانات</div></div>`; return; }
@@ -628,7 +637,7 @@
       const id = o.employeeId || 'unknown';
       if (!map.has(id)) map.set(id, { id, total: 0, del: 0, can: 0, rev: 0 });
       const e = map.get(id); e.total++;
-      if (_isDelivered(o))  { e.del++; e.rev += Number(o.total) || 0; }
+      if (_isDelivered(o))  { e.del++; e.rev += (o.totalCents || 0) / 100; }
       if (_isCancelled(o))  e.can++;
     });
     const rows = [...map.values()].sort((a, b) => b.del - a.del);
@@ -671,8 +680,8 @@
         const p = map.get(id);
         const qty = Number(item.qty) || 1;
         p.qty    += qty;
-        p.rev    += (Number(item.price || 0)) * qty;
-        p.profit += (Number(item.profit || 0)) * qty;
+        p.rev    += ((item.priceCents || 0) / 100) * qty;
+        p.profit += ((item.profitCents || 0) / 100) * qty;
       });
     });
     const top = [...map.values()].sort((a, b) => b.rev - a.rev).slice(0, 10);
@@ -832,29 +841,30 @@
         )
     );
 
-    /* One-time static reference collections (batched for efficiency) */
-    Promise.all([
-      db.collection('statuses').get(),
-      db.collection('employees').get(),
-      db.collection('products').get(),
-      db.collection('platforms').get(),
-      db.collection('shippingCompanies').get(),
-    ]).then(([st, em, pr, pl, sh]) => {
-      _markLoaded('statuses',          st.docs.map(d => ({ id: d.id, ...d.data() })));
-      _markLoaded('employees',         em.docs.map(d => ({ id: d.id, ...d.data() })));
-      _markLoaded('products',          pr.docs.map(d => ({ id: d.id, ...d.data() })));
-      _markLoaded('platforms',         pl.docs.map(d => ({ id: d.id, ...d.data() })));
-      _markLoaded('shippingCompanies', sh.docs.map(d => ({ id: d.id, ...d.data() })));
-    }).catch(err => {
-      console.error('[Dashboard] static collections:', err);
-      ['statuses','employees','products','platforms','shippingCompanies']
-        .forEach(k => _markLoaded(k, []));
-    });
+    /* One-time static reference collections — independent loads so one failure
+   doesn't wipe all (audit #12: all-or-nothing batch failure). */
+    const _loadRef = (key, colName) => {
+      db.collection(colName).get()
+        .then(snap => {
+          _markLoaded(key, snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        })
+        .catch(err => {
+          console.error('[Dashboard] static ' + colName + ':', err);
+          _markLoaded(key, []);
+        });
+    };
+    _loadRef('statuses', 'statuses');
+    _loadRef('employees', 'employees');
+    _loadRef('products', 'products');
+    _loadRef('platforms', 'platforms');
+    _loadRef('shippingCompanies', 'shippingCompanies');
 
-    /* Goals: silent failure is acceptable */
-    db.collection('goals').doc('main').get()
-      .then(doc => { Store.goals = doc.exists ? doc.data() : null; })
-      .catch(() => { Store.goals = null; });
+    /* Goals: live snapshot so changes re-render immediately */
+    const _goalsUnsub = db.collection('goals').doc('main').onSnapshot(
+      doc => { Store.goals = doc.exists ? doc.data() : null; _scheduleRender(); },
+      err  => { console.error('[Dashboard] goals listener:', err); Store.goals = null; }
+    );
+    _unsubs.push(_goalsUnsub);
   }
 
   /* ──────────────────────────────────────
@@ -878,8 +888,10 @@
       const apply = () => {
         if (!fromEl.value || !toEl.value) return;
         document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+        /* FIX (audit #8): anchor custom-range start to LOCAL midnight —
+           date-only strings parse as UTC, shifting the window start. */
         _period = {
-          from: new Date(fromEl.value),
+          from: new Date(fromEl.value + 'T00:00:00'),
           to:   new Date(toEl.value + 'T23:59:59'),
           key:  'custom',
         };
@@ -917,7 +929,8 @@
     renewed:      'تجديد',
     paused:       'تعليق',
     resumed:      'استئناف',
-    caps_updated: 'تحديث الحدود'
+    caps_updated: 'تحديث الحدود',
+    expired:      'انتهاء تلقائي'
   };
 
   /* Map action codes to icons */
@@ -926,7 +939,8 @@
     renewed:      'fa-rotate',
     paused:       'fa-pause-circle',
     resumed:      'fa-play-circle',
-    caps_updated: 'fa-sliders'
+    caps_updated: 'fa-sliders',
+    expired:      'fa-clock-rotate-left'
   };
 
   /**
